@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'expo-router'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
+import { ScrollView, Text, XStack, YStack, useTheme } from 'tamagui'
 import {
   ArrowRight,
   CalendarDays,
@@ -13,9 +13,15 @@ import {
   UserPlus,
   X,
 } from '@tamagui/lucide-icons'
-import { Animated } from 'react-native'
-import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'
+import { Animated as RNAnimated } from 'react-native'
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  type RenderItemParams,
+} from 'react-native-draggable-flatlist'
+import { SortableGrid } from 'components/ui/SortableGrid'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { ExpandableEditPanel } from 'components/ui/ExpandableEditPanel'
 import { GhostButton, ThemedSwitch } from 'components/ui/controls'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -41,6 +47,7 @@ const cardBorder = {
 
 export default function TabOneScreen() {
   const insets = useSafeAreaInsets()
+  const theme = useTheme()
   const showMetricEditor = useOverviewStore((state) => state.showMetricEditor)
   const showQuickActionEditor = useOverviewStore(
     (state) => state.showQuickActionEditor
@@ -55,7 +62,8 @@ export default function TabOneScreen() {
   const toggleLayoutEditor = useOverviewStore((state) => state.toggleLayoutEditor)
   const setMetricSelection = useOverviewStore((state) => state.setMetricSelection)
   const setSectionOrder = useOverviewStore((state) => state.setSectionOrder)
-  const { appSettings, setQuickActionEnabled, pinnedClientIds } = useStudioStore()
+  const { appSettings, setQuickActionEnabled, setQuickActionOrder, pinnedClientIds } =
+    useStudioStore()
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
@@ -191,9 +199,33 @@ export default function TabOneScreen() {
     []
   )
 
-  const enabledQuickActions = quickActions.filter(
-    (action) => appSettings.overviewQuickActions[action.id]
+  type QuickAction = (typeof quickActions)[number]
+
+  const orderedQuickActions = useMemo(() => {
+    const actionMap = new Map(quickActions.map((action) => [action.id, action]))
+    const orderedIds = appSettings.overviewQuickActionOrder
+    const ordered = orderedIds
+      .map((id) => actionMap.get(id))
+      .filter(Boolean) as (typeof quickActions)[number][]
+    const missing = quickActions.filter((action) => !orderedIds.includes(action.id))
+    return [...ordered, ...missing]
+  }, [appSettings.overviewQuickActionOrder, quickActions])
+
+  const enabledQuickActions = useMemo(
+    () =>
+      orderedQuickActions.filter(
+        (action) => appSettings.overviewQuickActions[action.id]
+      ),
+    [appSettings.overviewQuickActions, orderedQuickActions]
   )
+
+  const handleQuickActionReorder = (nextEnabled: QuickAction[]) => {
+    const enabledIds = nextEnabled.map((action) => action.id)
+    const disabledIds = appSettings.overviewQuickActionOrder.filter(
+      (id) => !enabledIds.includes(id)
+    )
+    setQuickActionOrder([...enabledIds, ...disabledIds])
+  }
 
   const pinnedClients = useMemo(() => {
     if (!pinnedClientIds.length) return []
@@ -206,7 +238,8 @@ export default function TabOneScreen() {
   )
 
   const [layoutDraft, setLayoutDraft] = useState<string[]>(visibleSections)
-  const layoutAnim = useRef(new Animated.Value(showLayoutEditor ? 1 : 0)).current
+  const [isQuickActionDragging, setIsQuickActionDragging] = useState(false)
+  const layoutAnim = useRef(new RNAnimated.Value(showLayoutEditor ? 1 : 0)).current
 
   useEffect(() => {
     if (showLayoutEditor) {
@@ -214,8 +247,9 @@ export default function TabOneScreen() {
     }
   }, [showLayoutEditor, visibleSections])
 
+
   useEffect(() => {
-    Animated.timing(layoutAnim, {
+    RNAnimated.timing(layoutAnim, {
       toValue: showLayoutEditor ? 1 : 0,
       duration: 220,
       useNativeDriver: true,
@@ -285,6 +319,95 @@ export default function TabOneScreen() {
     outputRange: [0, 14],
   })
 
+  const lineColor = theme.borderColor?.val ?? '#CBD5E1'
+  const renderQuickActionCard = (
+    action: QuickAction,
+    options?: { draggable?: boolean; isDragging?: boolean; onPressIn?: () => void }
+  ) => {
+    const Icon = action.icon
+    const isPrimary = action.variant === 'primary'
+    const isSecondary = action.variant === 'secondary'
+    const isDisabled = action.comingSoon
+    return (
+      <YStack
+        width={140}
+        aspectRatio={1}
+        rounded={999}
+        bg={isPrimary ? '$accent' : '$gray1'}
+        borderWidth={isPrimary ? 0 : 1}
+        borderColor={isPrimary ? 'transparent' : '$borderColor'}
+        items="center"
+        justify="center"
+        gap="$2"
+        animation="quick"
+        enterStyle={{ opacity: 0, y: 8 }}
+        shadowColor={isPrimary ? 'rgba(15,23,42,0.2)' : 'rgba(15,23,42,0.08)'}
+        shadowRadius={16}
+        shadowOpacity={1}
+        shadowOffset={{ width: 0, height: 8 }}
+        elevation={isPrimary ? 4 : 3}
+        opacity={isDisabled ? 0.55 : 1}
+        onPressIn={options?.onPressIn}
+        pressStyle={options?.draggable ? { opacity: 0.85 } : undefined}
+        scale={options?.isDragging ? 0.97 : 1}
+      >
+        <Icon
+          size={24}
+          color={isPrimary ? '$accentContrast' : isSecondary ? '$accent' : '$gray8'}
+        />
+        <Text
+          fontSize={12}
+          color={isPrimary ? '$accentContrast' : isSecondary ? '$accent' : '$gray8'}
+          textAlign="center"
+        >
+          {action.label}
+        </Text>
+        {isDisabled ? (
+          <Text fontSize={10} color="$gray7">
+            Coming soon
+          </Text>
+        ) : null}
+      </YStack>
+    )
+  }
+
+  const quickActionContent = () => (
+    <>
+      {orderedQuickActions.map((action) => (
+        <XStack key={action.id} items="center" justify="space-between">
+          <Text fontSize={12} color="$gray8">
+            {action.label}
+          </Text>
+          <ThemedSwitch
+            size="$2"
+            checked={appSettings.overviewQuickActions[action.id]}
+            onCheckedChange={(checked) =>
+              setQuickActionEnabled(action.id, Boolean(checked))
+            }
+          />
+        </XStack>
+      ))}
+    </>
+  )
+  const metricContent = () => (
+    <>
+      {metrics.map((metric) => (
+        <XStack key={metric.id} items="center" justify="space-between">
+          <Text fontSize={12} color="$gray8">
+            {metric.label}
+          </Text>
+          <ThemedSwitch
+            size="$2"
+            checked={selectedMetrics.includes(metric.id)}
+            onCheckedChange={(checked) => {
+              setMetricSelection(metric.id, checked)
+            }}
+          />
+        </XStack>
+      ))}
+    </>
+  )
+
   const getServiceLabel = (notes: string, fallback: string) => {
     const trimmed = (notes || '').trim()
     if (!trimmed) return fallback
@@ -309,106 +432,66 @@ export default function TabOneScreen() {
               {showQuickActionEditor ? 'Done' : 'Edit'}
             </GhostButton>
           </XStack>
+          <ExpandableEditPanel
+            visible={showQuickActionEditor}
+            lineColor={lineColor}
+            cardProps={cardBorder}
+          >
+            {quickActionContent}
+          </ExpandableEditPanel>
           {showQuickActionEditor ? (
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
-              {quickActions.map((action) => (
-                <XStack key={action.id} items="center" justify="space-between">
-                  <Text fontSize={12} color="$gray8">
-                    {action.label}
-                  </Text>
-                  <ThemedSwitch
-                    size="$2"
-                    checked={appSettings.overviewQuickActions[action.id]}
-                    onCheckedChange={(checked) =>
-                      setQuickActionEnabled(action.id, Boolean(checked))
-                    }
-                  />
-                </XStack>
-              ))}
-            </YStack>
+            <Text fontSize={12} color="$gray8">
+              Drag buttons to rearrange order.
+            </Text>
           ) : null}
-          <YStack minHeight={180} justify="center" items="center">
+          <YStack minHeight={180} justify="center" items="center" width="100%">
             {enabledQuickActions.length ? (
-              <XStack
-                gap="$4"
-                justify="center"
-                items="center"
-                width="100%"
-                flexWrap="wrap"
-              >
-                {enabledQuickActions.map((action) => {
-                  const Icon = action.icon
-                  const isPrimary = action.variant === 'primary'
-                  const isSecondary = action.variant === 'secondary'
-                  const isDisabled = action.comingSoon
-                  const card = (
-                    <YStack
-                      width={140}
-                      aspectRatio={1}
-                      rounded={999}
-                      bg={isPrimary ? '$accent' : '$gray1'}
-                      borderWidth={isPrimary ? 0 : 1}
-                      borderColor={isPrimary ? 'transparent' : '$borderColor'}
-                      items="center"
-                      justify="center"
-                      gap="$2"
-                      animation="quick"
-                      enterStyle={{ opacity: 0, y: 8 }}
-                      shadowColor={
-                        isPrimary ? 'rgba(15,23,42,0.2)' : 'rgba(15,23,42,0.08)'
-                      }
-                      shadowRadius={16}
-                      shadowOpacity={1}
-                      shadowOffset={{ width: 0, height: 8 }}
-                      elevation={isPrimary ? 4 : 3}
-                      opacity={isDisabled ? 0.55 : 1}
-                    >
-                      <Icon
-                        size={24}
-                        color={
-                          isPrimary
-                            ? '$accentContrast'
-                            : isSecondary
-                            ? '$accent'
-                            : '$gray8'
-                        }
-                      />
-                      <Text
-                        fontSize={12}
-                        color={
-                          isPrimary
-                            ? '$accentContrast'
-                            : isSecondary
-                            ? '$accent'
-                            : '$gray8'
-                        }
-                        textAlign="center"
-                      >
-                        {action.label}
-                      </Text>
-                      {isDisabled ? (
-                        <Text fontSize={10} color="$gray7">
-                          Coming soon
-                        </Text>
-                      ) : null}
+              showQuickActionEditor ? (
+                <SortableGrid
+                  data={enabledQuickActions}
+                  keyExtractor={(item) => item.id}
+                  columns={2}
+                  itemSize={160}
+                  gap={16}
+                  onDragActiveChange={setIsQuickActionDragging}
+                  onOrderChange={handleQuickActionReorder}
+                  renderItem={(item, isActive) => (
+                    <YStack mx="$2" my="$2">
+                      {renderQuickActionCard(item, {
+                        draggable: true,
+                        isDragging: isActive,
+                      })}
                     </YStack>
-                  )
+                  )}
+                />
+              ) : (
+                <XStack
+                  gap="$4"
+                  justify="center"
+                  items="center"
+                  width="100%"
+                  flexWrap="wrap"
+                >
+                  {enabledQuickActions.map((action) => {
+                    const isDisabled = action.comingSoon
+                    const card = renderQuickActionCard(action)
 
-                  if (action.href && !isDisabled) {
+                    if (action.href && !isDisabled) {
+                      return (
+                        <Link key={action.id} href={action.href} asChild>
+                          {card}
+                        </Link>
+                      )
+                    }
+
                     return (
-                      <Link key={action.id} href={action.href} asChild>
+                      <YStack key={action.id} pointerEvents="none">
                         {card}
-                      </Link>
+                      </YStack>
                     )
-                  }
-
-                  return (
-                    <YStack key={action.id} pointerEvents="none">
-                      {card}
-                    </YStack>
-                  )
-                })}
-              </XStack>
+                  })}
+                </XStack>
+              )
             ) : (
               <Text fontSize={12} color="$gray8">
                 No quick actions selected.
@@ -430,24 +513,13 @@ export default function TabOneScreen() {
               {showMetricEditor ? 'Done' : 'Edit'}
             </GhostButton>
           </XStack>
-          {showMetricEditor ? (
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
-              {metrics.map((metric) => (
-                <XStack key={metric.id} items="center" justify="space-between">
-                  <Text fontSize={12} color="$gray8">
-                    {metric.label}
-                  </Text>
-                  <ThemedSwitch
-                    size="$2"
-                    checked={selectedMetrics.includes(metric.id)}
-                    onCheckedChange={(checked) => {
-                      setMetricSelection(metric.id, checked)
-                    }}
-                  />
-                </XStack>
-              ))}
-            </YStack>
-          ) : null}
+          <ExpandableEditPanel
+            visible={showMetricEditor}
+            lineColor={lineColor}
+            cardProps={cardBorder}
+          >
+            {metricContent}
+          </ExpandableEditPanel>
           <XStack gap="$3" flexWrap="wrap">
             {metrics
               .filter((metric) => selectedMetrics.includes(metric.id))
@@ -635,14 +707,17 @@ export default function TabOneScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <YStack px="$5" pt="$6" gap="$5">
-          {showLayoutEditor ? (
+      {showLayoutEditor ? (
+        <NestableScrollContainer
+          contentContainerStyle={{ paddingBottom: 40 }}
+          scrollEnabled={false}
+        >
+          <YStack px="$5" pt="$6" gap="$5">
             <YStack gap="$3">
               <Text fontSize={12} color="$gray8">
                 Hold and drag to reorder your Overview sections.
               </Text>
-              <DraggableFlatList
+              <NestableDraggableFlatList
                 data={layoutDraft}
                 keyExtractor={(item) => item}
                 renderItem={renderLayoutItem}
@@ -651,14 +726,18 @@ export default function TabOneScreen() {
                 activationDistance={10}
               />
             </YStack>
-          ) : (
-            visibleSections.map((sectionId) => renderSection(sectionId))
-          )}
-
-          {!showLayoutEditor ? (
+          </YStack>
+        </NestableScrollContainer>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 }}
+          scrollEnabled={!showQuickActionEditor && !isQuickActionDragging}
+        >
+          <YStack px="$5" pt="$6" gap="$5">
+            {visibleSections.map((sectionId) => renderSection(sectionId))}
             <YStack alignItems="center" pt="$2" pb="$2">
               <YStack height={52} alignItems="center" justify="center" position="relative">
-                <Animated.View
+                <RNAnimated.View
                   pointerEvents="auto"
                   style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}
                 >
@@ -676,12 +755,12 @@ export default function TabOneScreen() {
                   >
                     <LayoutGrid size={18} color="$accent" />
                   </XStack>
-                </Animated.View>
+                </RNAnimated.View>
               </YStack>
             </YStack>
-          ) : null}
-        </YStack>
-      </ScrollView>
+          </YStack>
+        </ScrollView>
+      )}
 
       {showLayoutEditor ? (
         <YStack
@@ -692,14 +771,14 @@ export default function TabOneScreen() {
           alignItems="center"
           pointerEvents="box-none"
         >
-          <Animated.View
+          <RNAnimated.View
             style={{
               opacity: buttonsOpacity,
               transform: [{ translateY: buttonsTranslate }],
             }}
           >
             <XStack gap="$2">
-              <Animated.View style={{ transform: [{ translateX: leftTranslate }] }}>
+              <RNAnimated.View style={{ transform: [{ translateX: leftTranslate }] }}>
                 <XStack
                   rounded="$4"
                   px="$4"
@@ -717,8 +796,8 @@ export default function TabOneScreen() {
                     Cancel
                   </Text>
                 </XStack>
-              </Animated.View>
-              <Animated.View style={{ transform: [{ translateX: rightTranslate }] }}>
+              </RNAnimated.View>
+              <RNAnimated.View style={{ transform: [{ translateX: rightTranslate }] }}>
                 <XStack
                   rounded="$4"
                   px="$4"
@@ -734,9 +813,9 @@ export default function TabOneScreen() {
                     Save
                   </Text>
                 </XStack>
-              </Animated.View>
+              </RNAnimated.View>
             </XStack>
-          </Animated.View>
+          </RNAnimated.View>
         </YStack>
       ) : null}
     </YStack>

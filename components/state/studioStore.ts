@@ -31,6 +31,7 @@ type StudioPreferences = {
 type AppSettings = {
   clientsShowStatus: boolean
   overviewQuickActions: Record<QuickActionId, boolean>
+  overviewQuickActionOrder: QuickActionId[]
   overviewSections: Record<OverviewSectionId, boolean>
   activeStatusMonths: number
 }
@@ -44,7 +45,27 @@ type StudioStore = {
   setPreferences: (prefs: Partial<StudioPreferences>) => void
   setAppSettings: (settings: Partial<AppSettings>) => void
   setQuickActionEnabled: (actionId: QuickActionId, enabled: boolean) => void
+  setQuickActionOrder: (order: QuickActionId[]) => void
   togglePinnedClient: (clientId: string) => void
+}
+
+const quickActionDefaults: QuickActionId[] = [
+  'newClient',
+  'newAppointmentLog',
+  'newEmailAlert',
+  'newTextAlert',
+]
+
+const normalizeQuickActionOrder = (order?: QuickActionId[]) => {
+  const unique = Array.from(
+    new Set((order ?? []).filter((id) => quickActionDefaults.includes(id)))
+  )
+  quickActionDefaults.forEach((id) => {
+    if (!unique.includes(id)) {
+      unique.push(id)
+    }
+  })
+  return unique
 }
 
 // App-wide preference/profile settings that should persist for this device.
@@ -69,6 +90,7 @@ export const useStudioStore = create<StudioStore>()(
           newEmailAlert: false,
           newTextAlert: false,
         },
+        overviewQuickActionOrder: quickActionDefaults,
         overviewSections: {
           quickActions: true,
           metrics: true,
@@ -99,6 +121,18 @@ export const useStudioStore = create<StudioStore>()(
               ...state.appSettings.overviewQuickActions,
               [actionId]: enabled,
             },
+            overviewQuickActionOrder: state.appSettings.overviewQuickActionOrder.includes(
+              actionId
+            )
+              ? state.appSettings.overviewQuickActionOrder
+              : [...state.appSettings.overviewQuickActionOrder, actionId],
+          },
+        })),
+      setQuickActionOrder: (order) =>
+        set((state) => ({
+          appSettings: {
+            ...state.appSettings,
+            overviewQuickActionOrder: normalizeQuickActionOrder(order),
           },
         })),
       togglePinnedClient: (clientId) =>
@@ -130,6 +164,10 @@ export const useStudioStore = create<StudioStore>()(
               ...current.appSettings.overviewQuickActions,
               ...(persistedApp?.overviewQuickActions ?? {}),
             },
+            overviewQuickActionOrder: normalizeQuickActionOrder(
+              persistedApp?.overviewQuickActionOrder ??
+                current.appSettings.overviewQuickActionOrder
+            ),
             overviewSections: {
               ...current.appSettings.overviewSections,
               ...(persistedApp?.overviewSections ?? {}),
