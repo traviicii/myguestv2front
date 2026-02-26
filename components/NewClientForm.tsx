@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Alert } from 'react-native'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import {
   ErrorPulseBorder,
@@ -9,6 +10,7 @@ import {
   TextAreaField,
   TextField,
 } from './ui/controls'
+import { useCreateClient } from './data/queries'
 
 const cardBorder = {
   bg: '$gray1',
@@ -19,19 +21,21 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 const chipStyle = {
   bg: '$gray1',
   borderWidth: 1,
   borderColor: '$gray3',
-}
+} as const
 
 type ClientType = 'Cut' | 'Color' | 'Cut & Color'
 
 export function NewClientForm() {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const scrollRef = useRef<any>(null)
+  const createClient = useCreateClient()
   const requiredY = useRef<{ firstName?: number; lastName?: number }>({})
   const defaultType: ClientType = 'Cut & Color'
   const [clientType, setClientType] = useState<ClientType>(defaultType)
@@ -65,7 +69,7 @@ export function NewClientForm() {
   const showFirstNameError = attemptedSave && !form.firstName.trim()
   const showLastNameError = attemptedSave && !form.lastName.trim()
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setAttemptedSave(true)
     if (!hasRequired) {
       const targetY =
@@ -84,8 +88,25 @@ export function NewClientForm() {
       return
     }
 
-    // Save wiring lives outside this form in the current iteration.
-    // Keeping validation here lets us add persistence without reshaping UI logic.
+    try {
+      await createClient.mutateAsync({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        birthday: form.birthday,
+        clientType,
+        notes: form.notes,
+      })
+
+      router.replace('/(tabs)/clients')
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to save client right now. Please try again.'
+      Alert.alert('Save Failed', message)
+    }
   }
 
   return (
@@ -93,7 +114,7 @@ export function NewClientForm() {
       ref={scrollRef}
       flex={1}
       contentContainerStyle={{
-        paddingBottom: 40 + insets.bottom,
+        pb: 40 + insets.bottom,
       }}
     >
       <YStack gap="$4">
@@ -231,11 +252,13 @@ export function NewClientForm() {
           </Link>
           <PrimaryButton
             flex={1}
-            disabled={!canSave}
-            opacity={canSave ? 1 : 0.5}
-            onPress={handleSave}
+            disabled={!canSave || createClient.isPending}
+            opacity={canSave && !createClient.isPending ? 1 : 0.5}
+            onPress={() => {
+              void handleSave()
+            }}
           >
-            Save Client
+            {createClient.isPending ? 'Saving...' : 'Save Client'}
           </PrimaryButton>
         </XStack>
       </YStack>

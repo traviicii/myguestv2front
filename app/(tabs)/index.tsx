@@ -30,7 +30,11 @@ import {
 } from 'components/data/queries'
 import { useOverviewStore } from 'components/state/overviewStore'
 import { formatDateByStyle } from 'components/utils/date'
-import { useStudioStore } from 'components/state/studioStore'
+import {
+  useStudioStore,
+  type OverviewSectionId,
+  type QuickActionId,
+} from 'components/state/studioStore'
 
 const cardBorder = {
   bg: '$gray1',
@@ -41,7 +45,7 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 export default function TabOneScreen() {
   const insets = useSafeAreaInsets()
@@ -166,7 +170,16 @@ export default function TabOneScreen() {
     ]
   }, [appointmentHistory, clients, colorAnalysisByClient, imagesByClient, activeCutoff])
 
-  const quickActions = useMemo(
+  type QuickAction = {
+    id: QuickActionId
+    label: string
+    icon: any
+    href?: '/clients/new' | '/appointments/new'
+    variant: 'primary' | 'secondary' | 'ghost'
+    comingSoon?: boolean
+  }
+
+  const quickActions = useMemo<QuickAction[]>(
     () =>
       [
         {
@@ -197,11 +210,9 @@ export default function TabOneScreen() {
           variant: 'ghost',
           comingSoon: true,
         },
-      ] as const,
+      ],
     []
   )
-
-  type QuickAction = (typeof quickActions)[number]
 
   const orderedQuickActions = useMemo(() => {
     const actionMap = new Map(quickActions.map((action) => [action.id, action]))
@@ -253,7 +264,7 @@ export default function TabOneScreen() {
     [appSettings.overviewSections, sectionOrder]
   )
 
-  const [layoutDraft, setLayoutDraft] = useState<string[]>(visibleSections)
+  const [layoutDraft, setLayoutDraft] = useState<OverviewSectionId[]>(visibleSections)
   const [isQuickActionDragging, setIsQuickActionDragging] = useState(false)
   const layoutAnim = useRef(new RNAnimated.Value(showLayoutEditor ? 1 : 0)).current
 
@@ -286,7 +297,7 @@ export default function TabOneScreen() {
     toggleLayoutEditor()
   }
 
-  const sectionLabels: Record<string, string> = {
+  const sectionLabels: Record<OverviewSectionId, string> = {
     quickActions: 'Quick Actions',
     metrics: 'Metrics',
     pinnedClients: 'Pinned Clients',
@@ -294,7 +305,7 @@ export default function TabOneScreen() {
     recentClients: 'Recent Clients',
   }
 
-  const renderLayoutItem = ({ item, drag, isActive }: RenderItemParams<string>) => (
+  const renderLayoutItem = ({ item, drag, isActive }: RenderItemParams<OverviewSectionId>) => (
     <XStack
       {...cardBorder}
       rounded="$5"
@@ -344,7 +355,6 @@ export default function TabOneScreen() {
       draggable?: boolean
       isDragging?: boolean
       onPressIn?: () => void
-      disableEntry?: boolean
     }
   ) => {
     const Icon = action.icon
@@ -362,8 +372,6 @@ export default function TabOneScreen() {
         items="center"
         justify="center"
         gap="$2"
-        animation={options?.disableEntry ? undefined : 'quick'}
-        enterStyle={options?.disableEntry ? undefined : { opacity: 0, y: 8 }}
         shadowColor={isPrimary ? 'rgba(15,23,42,0.2)' : 'rgba(15,23,42,0.08)'}
         shadowRadius={16}
         shadowOpacity={1}
@@ -381,7 +389,7 @@ export default function TabOneScreen() {
         <Text
           fontSize={12}
           color={isPrimary ? '$accentContrast' : isSecondary ? '$accent' : '$gray8'}
-          textAlign="center"
+          style={{ textAlign: 'center' }}
         >
           {action.label}
         </Text>
@@ -431,11 +439,15 @@ export default function TabOneScreen() {
     </>
   )
 
-  const getServiceLabel = (notes: string, fallback: string) => {
+  const getServiceLabel = (serviceType: string, notes: string) => {
+    const normalizedService = (serviceType || '').trim()
+    if (normalizedService && normalizedService.toLowerCase() !== 'service') {
+      return normalizedService
+    }
     const trimmed = (notes || '').trim()
-    if (!trimmed) return fallback
+    if (!trimmed) return normalizedService || 'Service'
     const firstLine = trimmed.split('\n')[0].trim()
-    if (!firstLine) return fallback
+    if (!firstLine) return normalizedService || 'Service'
     const colonIndex = firstLine.indexOf(':')
     if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
     return firstLine
@@ -467,12 +479,12 @@ export default function TabOneScreen() {
               Drag buttons to rearrange order.
             </Text>
           ) : null}
-          <YStack minHeight={160} justify="center" items="center" width="100%">
+          <YStack minH={160} justify="center" items="center" width="100%">
             {enabledQuickActions.length ? (
               <YStack
                 width="100%"
                 position="relative"
-                minHeight={160}
+                minH={160}
                 height={Math.max(quickActionGridHeight, 160)}
               >
                 <SortableGrid
@@ -490,7 +502,6 @@ export default function TabOneScreen() {
                     const card = renderQuickActionCard(item, {
                       draggable: showQuickActionEditor,
                       isDragging: isActive,
-                      disableEntry: true,
                     })
 
                     if (!showQuickActionEditor && item.href && !isDisabled) {
@@ -550,10 +561,8 @@ export default function TabOneScreen() {
                   {...cardBorder}
                   p="$4"
                   rounded="$5"
-                  minWidth={140}
-                  flexGrow={1}
-                  animation="quick"
-                  enterStyle={{ opacity: 0, y: 6 }}
+                  minW={140}
+                  flex={1}
                 >
                   <Text fontSize={12} color="$gray8">
                     {metric.label}
@@ -643,9 +652,7 @@ export default function TabOneScreen() {
                     items="center"
                     justify="space-between"
                     gap="$3"
-                    animation="quick"
-                    enterStyle={{ opacity: 0, y: 6 }}
-                  >
+                                                          >
                     <XStack items="center" gap="$3">
                       <XStack
                         bg="$accentSoft"
@@ -658,7 +665,7 @@ export default function TabOneScreen() {
                       </XStack>
                       <YStack gap="$1">
                         <Text fontSize={14} fontWeight="600">
-                          {getServiceLabel(entry.notes, entry.services)}
+                          {getServiceLabel(entry.services, entry.notes)}
                         </Text>
                         <XStack items="center" gap="$2">
                           <Text fontSize={12} color="$gray8">
@@ -756,13 +763,13 @@ export default function TabOneScreen() {
         </YStack>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ pb: '$10' }}
           scrollEnabled={!showQuickActionEditor && !isQuickActionDragging}
         >
           <YStack px="$5" pt="$6" gap="$5">
             {visibleSections.map((sectionId) => renderSection(sectionId))}
-            <YStack alignItems="center" pt="$2" pb="$2">
-              <YStack height={52} alignItems="center" justify="center" position="relative">
+            <YStack items="center" pt="$2" pb="$2">
+              <YStack height={52} items="center" justify="center" position="relative">
                 <RNAnimated.View
                   pointerEvents="auto"
                   style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}
@@ -791,10 +798,10 @@ export default function TabOneScreen() {
       {showLayoutEditor ? (
         <YStack
           position="absolute"
-          left={0}
-          right={0}
-          bottom={Math.max(16, insets.bottom + 8)}
-          alignItems="center"
+          l={0}
+          r={0}
+          b={Math.max(16, insets.bottom + 8)}
+          items="center"
           pointerEvents="box-none"
         >
           <RNAnimated.View

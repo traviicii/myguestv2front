@@ -18,7 +18,7 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 export default function SettingsScreen() {
   const { appSettings, setAppSettings } = useStudioStore()
@@ -51,7 +51,7 @@ export default function SettingsScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">

@@ -7,18 +7,16 @@ import { useThemePrefs } from '../ThemePrefs'
 // consistent across all screens.
 export const PrimaryButton = styled(Button, {
   height: 44,
-  borderRadius: 12,
+  rounded: 12,
   bg: '$accent',
-  color: '$accentContrast',
   pressStyle: { bg: '$accentPress' },
   hoverStyle: { bg: '$accentPress' },
 })
 
 export const SecondaryButton = styled(Button, {
   height: 44,
-  borderRadius: 12,
+  rounded: 12,
   bg: '$background',
-  color: '$gray9',
   borderWidth: 1,
   borderColor: '$gray3',
   pressStyle: { bg: '$gray2' },
@@ -28,12 +26,11 @@ export const SecondaryButton = styled(Button, {
 export const GhostButton = styled(Button, {
   height: 40,
   chromeless: true,
-  color: '$gray8',
 })
 
 export const TextField = styled(Input, {
   height: 44,
-  borderRadius: 12,
+  rounded: 12,
   bg: '$background',
   borderWidth: 1,
   borderColor: '$gray3',
@@ -43,8 +40,8 @@ export const TextField = styled(Input, {
 })
 
 export const TextAreaField = styled(TextArea, {
-  minHeight: 120,
-  borderRadius: 12,
+  minH: 120,
+  rounded: 12,
   bg: '$background',
   borderWidth: 1,
   borderColor: '$gray3',
@@ -62,14 +59,14 @@ export const SectionDivider = styled(Separator, {
 export function ThemedSwitch(props: React.ComponentProps<typeof Switch>) {
   const { mode } = useThemePrefs()
   const isDark = mode === 'dark'
+  const isChecked = props.checked === true
 
   return (
     <Switch
       size="$2"
-      bg={isDark ? '$gray3' : '$gray6'}
-      borderColor={isDark ? '$gray4' : '$gray7'}
+      bg={isChecked ? '$accent' : isDark ? '$gray3' : '$gray6'}
+      borderColor={isChecked ? '$accentPress' : isDark ? '$gray4' : '$gray7'}
       borderWidth={1}
-      checkedStyle={{ bg: '$accent', borderColor: '$accentPress' }}
       {...props}
     >
       <Switch.Thumb

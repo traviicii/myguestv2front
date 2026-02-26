@@ -1,4 +1,4 @@
-import { Link, Stack, useLocalSearchParams } from 'expo-router'
+import { Link, Stack, useLocalSearchParams, type Href } from 'expo-router'
 import {
   ChevronRight,
   Mail,
@@ -31,7 +31,7 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -42,7 +42,10 @@ export default function ClientDetailScreen() {
 
   const client = clients.find((item) => item.id === id) ?? clients[0]
 
-  const editHref = id ? `/client/${id}/edit` : '/clients'
+  const editHref: Href =
+    id && typeof id === 'string'
+      ? { pathname: '/client/[id]/edit', params: { id } }
+      : '/clients'
 
   if (!client) {
     return (
@@ -84,11 +87,15 @@ export default function ClientDetailScreen() {
     }
   }
 
-  const getServiceLabel = (notes: string, fallback: string) => {
+  const getServiceLabel = (serviceType: string, notes: string) => {
+    const normalizedService = (serviceType || '').trim()
+    if (normalizedService && normalizedService.toLowerCase() !== 'service') {
+      return normalizedService
+    }
     const trimmed = (notes || '').trim()
-    if (!trimmed) return fallback
+    if (!trimmed) return normalizedService || 'Service'
     const firstLine = trimmed.split('\n')[0].trim()
-    if (!firstLine) return fallback
+    if (!firstLine) return normalizedService || 'Service'
     const colonIndex = firstLine.indexOf(':')
     if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
     return firstLine
@@ -132,7 +139,7 @@ export default function ClientDetailScreen() {
         }}
       />
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontSize={20} fontWeight="700">
@@ -312,7 +319,7 @@ export default function ClientDetailScreen() {
                     >
                       <YStack flex={1} gap="$1">
                         <Text fontSize={13} fontWeight="600">
-                          {getServiceLabel(entry.notes, entry.services)}
+                          {getServiceLabel(entry.services, entry.notes)}
                         </Text>
                         <Text fontSize={12} color="$gray8">
                           {formatDateByStyle(entry.date, 'short', {

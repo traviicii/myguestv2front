@@ -78,7 +78,7 @@ export const ExpandableEditPanel = ({
         onLayout={(event) => {
           lineWidth.value = event.nativeEvent.layout.width
         }}
-        alignItems="flex-end"
+        items="flex-end"
       >
         <Animated.View
           style={[
@@ -95,9 +95,9 @@ export const ExpandableEditPanel = ({
         <YStack position="relative">
           <YStack
             position="absolute"
-            left={0}
-            right={0}
-            top={0}
+            l={0}
+            r={0}
+            t={0}
             opacity={0}
             pointerEvents="none"
             onLayout={(event) => {

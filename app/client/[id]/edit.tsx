@@ -23,13 +23,13 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 const chipStyle = {
   bg: '$gray1',
   borderWidth: 1,
   borderColor: '$gray3',
-}
+} as const
 
 const normalizeType = (value: string, fallback: ClientType) => {
   const trimmed = value.trim()
@@ -133,7 +133,7 @@ export default function EditClientScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">

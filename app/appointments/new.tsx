@@ -16,7 +16,7 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 export default function NewAppointmentClientPicker() {
   const { data: clients = [] } = useClients()
@@ -39,7 +39,7 @@ export default function NewAppointmentClientPicker() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
@@ -92,9 +92,7 @@ export default function NewAppointmentClientPicker() {
                     items="center"
                     justify="space-between"
                     gap="$3"
-                    animation="quick"
-                    enterStyle={{ opacity: 0, y: 6 }}
-                  >
+                                                          >
                     <YStack>
                       <Text fontSize={14} fontWeight="600">
                         {client.name}

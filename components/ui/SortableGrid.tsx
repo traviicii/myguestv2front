@@ -3,6 +3,7 @@ import { View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -180,11 +181,11 @@ type SortableItemProps<T> = {
   item: T
   itemKey: string
   renderItem: (item: T, isActive: boolean) => ReactNode
-  positions: Animated.SharedValue<Positions>
-  activeKey: Animated.SharedValue<string | null>
-  hasMounted: Animated.SharedValue<boolean>
+  positions: SharedValue<Positions>
+  activeKey: SharedValue<string | null>
+  hasMounted: SharedValue<boolean>
   setActiveKeyState: (key: string | null) => void
-  isDragging: Animated.SharedValue<boolean>
+  isDragging: SharedValue<boolean>
   dragEnabled: boolean
   itemSize: number
   getOrder: (x: number, y: number) => number
@@ -194,7 +195,7 @@ type SortableItemProps<T> = {
   activeKeyState: string | null
 }
 
-const SortableGridItem = memo(<T,>({
+const SortableGridItemInner = <T,>({
   item,
   itemKey,
   renderItem,
@@ -300,4 +301,6 @@ const SortableGridItem = memo(<T,>({
   )
 
   return <GestureDetector gesture={gesture}>{content}</GestureDetector>
-})
+}
+
+const SortableGridItem = memo(SortableGridItemInner) as typeof SortableGridItemInner

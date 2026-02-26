@@ -1,25 +1,18 @@
 import { defaultConfig } from '@tamagui/config/v5'
 import { createTamagui } from 'tamagui'
 
-const customTokens = {
-  ...defaultConfig.tokens,
-  color: {
-    ...defaultConfig.tokens.color,
-    gray1: '#F8FAFC',
-    gray2: '#F1F5F9',
-    gray3: '#E2E8F0',
-    gray4: '#CBD5E1',
-    gray5: '#94A3B8',
-    gray6: '#64748B',
-    gray7: '#475569',
-    gray8: '#334155',
-    gray9: '#1F2937',
-    gray10: '#111827',
-    gray11: '#0F172A',
-    gray12: '#0B1220',
-    green10: '#16A34A',
-    orange10: '#F97316',
-  },
+const customTokens = defaultConfig.tokens
+type BaseTheme = typeof defaultConfig.themes.light
+
+type ThemePalette = {
+  background: string
+  color: string
+  border: string
+  accent: string
+  accentMuted: string
+  accentSoft: string
+  accentPress: string
+  accentContrast: string
 }
 
 const palettes = {
@@ -91,7 +84,7 @@ const palettes = {
   },
 }
 
-const makeTheme = (base, palette) => ({
+const makeTheme = (base: BaseTheme, palette: ThemePalette) => ({
   ...base,
   background: palette.background,
   backgroundHover: palette.background,

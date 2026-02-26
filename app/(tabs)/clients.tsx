@@ -18,13 +18,13 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 const chipStyle = {
   bg: '$gray1',
   borderWidth: 1,
   borderColor: '$gray3',
-}
+} as const
 
 const statusColors = {
   Active: '$green10',
@@ -54,6 +54,16 @@ export default function ClientsScreen() {
 
   const activeCutoff = new Date()
   activeCutoff.setMonth(activeCutoff.getMonth() - activeStatusMonths)
+
+  const lastVisitByClient = useMemo(() => {
+    return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
+      const current = acc[entry.clientId]
+      if (!current || new Date(entry.date) > new Date(current)) {
+        acc[entry.clientId] = entry.date
+      }
+      return acc
+    }, {})
+  }, [appointmentHistory])
 
   const isActive = (clientId: string) => {
     const history = appointmentHistory.filter((item) => item.clientId === clientId)
@@ -88,7 +98,7 @@ export default function ClientsScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
@@ -193,9 +203,7 @@ export default function ClientsScreen() {
                 items="center"
                 justify="space-between"
                 gap="$3"
-                animation="quick"
-                enterStyle={{ opacity: 0, y: 6 }}
-                hoverStyle={{ opacity: 0.92 }}
+                                                hoverStyle={{ opacity: 0.92 }}
                 pressStyle={{ opacity: 0.88 }}
                 cursor="pointer"
                 onPress={() => router.push(`/client/${client.id}`)}
@@ -204,10 +212,15 @@ export default function ClientsScreen() {
                   <Text fontSize={15} fontWeight="600">
                     {client.name}
                   </Text>
+                  {(() => {
+                    const lastVisit = lastVisitByClient[client.id] ?? client.lastVisit
+                    return (
                   <Text fontSize={12} color="$gray8">
                     {client.type} • Last visit{' '}
-                    {formatDateByStyle(client.lastVisit, 'short', { todayLabel: true })}
+                    {formatDateByStyle(lastVisit, 'short', { todayLabel: true })}
                   </Text>
+                    )
+                  })()}
                   <XStack items="center" gap="$2">
                     {showStatus
                       ? (() => {

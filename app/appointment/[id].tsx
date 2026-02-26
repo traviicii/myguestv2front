@@ -18,13 +18,17 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
-const getServiceLabel = (notes: string, fallback: string) => {
+const getServiceLabel = (serviceType: string, notes: string) => {
+  const normalizedService = (serviceType || '').trim()
+  if (normalizedService && normalizedService.toLowerCase() !== 'service') {
+    return normalizedService
+  }
   const trimmed = (notes || '').trim()
-  if (!trimmed) return fallback
+  if (!trimmed) return normalizedService || 'Service'
   const firstLine = trimmed.split('\n')[0].trim()
-  if (!firstLine) return fallback
+  if (!firstLine) return normalizedService || 'Service'
   const colonIndex = firstLine.indexOf(':')
   if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
   return firstLine
@@ -108,11 +112,11 @@ export default function AppointmentDetailScreen() {
         }}
       />
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontSize={20} fontWeight="700">
-              {getServiceLabel(appointment.notes, appointment.services)}
+              {getServiceLabel(appointment.services, appointment.notes)}
             </Text>
             <XStack items="center" gap="$2">
               <CalendarDays size={14} color="$gray8" />
@@ -133,7 +137,7 @@ export default function AppointmentDetailScreen() {
                 Service
               </Text>
               <Text fontSize={12}>
-                {getServiceLabel(appointment.notes, appointment.services)}
+                {getServiceLabel(appointment.services, appointment.notes)}
               </Text>
             </XStack>
             <XStack items="center" justify="space-between">
@@ -254,8 +258,8 @@ export default function AppointmentDetailScreen() {
                     key={`${uri}-preview-${index}`}
                     width={previewWidth || 1}
                     height="100%"
-                    alignItems="center"
-                    justifyContent="center"
+                    items="center"
+                    justify="center"
                   >
                     <Image
                       source={{ uri }}

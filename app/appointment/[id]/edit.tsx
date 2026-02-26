@@ -26,7 +26,7 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 const parsePrice = (value: string) => {
   const cleaned = value.replace(/[^\d.]/g, '')
@@ -133,7 +133,7 @@ export default function EditAppointmentScreen() {
       if (status !== 'granted') return
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: [ImagePicker.MediaType.Images],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
       })
@@ -150,7 +150,7 @@ export default function EditAppointmentScreen() {
     if (status !== 'granted') return
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [ImagePicker.MediaType.Images],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.8,
     })
@@ -172,7 +172,7 @@ export default function EditAppointmentScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$5" gap="$3">
           <YStack gap="$1">
             <Text fontSize={11} letterSpacing={1} color="$gray7">
@@ -276,8 +276,8 @@ export default function EditAppointmentScreen() {
                       <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
                       <XStack
                         position="absolute"
-                        top={4}
-                        right={4}
+                        t={4}
+                        r={4}
                         width={20}
                         height={20}
                         rounded={10}

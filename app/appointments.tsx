@@ -16,13 +16,17 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
-const getServiceLabel = (notes: string, fallback: string) => {
+const getServiceLabel = (serviceType: string, notes: string) => {
+  const normalizedService = (serviceType || '').trim()
+  if (normalizedService && normalizedService.toLowerCase() !== 'service') {
+    return normalizedService
+  }
   const trimmed = (notes || '').trim()
-  if (!trimmed) return fallback
+  if (!trimmed) return normalizedService || 'Service'
   const firstLine = trimmed.split('\n')[0].trim()
-  if (!firstLine) return fallback
+  if (!firstLine) return normalizedService || 'Service'
   const colonIndex = firstLine.indexOf(':')
   if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
   return firstLine
@@ -50,7 +54,7 @@ export default function AppointmentsScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
@@ -84,9 +88,7 @@ export default function AppointmentsScreen() {
                       items="center"
                       justify="space-between"
                       gap="$3"
-                      animation="quick"
-                      enterStyle={{ opacity: 0, y: 6 }}
-                    >
+                                                                >
                       <XStack items="center" gap="$3">
                         <XStack
                           bg="$accentSoft"
@@ -99,7 +101,7 @@ export default function AppointmentsScreen() {
                         </XStack>
                         <YStack gap="$1">
                           <Text fontSize={14} fontWeight="600">
-                            {getServiceLabel(entry.notes, entry.services)}
+                            {getServiceLabel(entry.services, entry.notes)}
                           </Text>
                           <XStack items="center" gap="$2">
                             <Text fontSize={12} color="$gray8">

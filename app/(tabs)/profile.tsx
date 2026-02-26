@@ -22,7 +22,7 @@ const cardBorder = {
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 8 },
   elevation: 2,
-}
+} as const
 
 export default function ProfileScreen() {
   const { mode, palette, setMode, setPalette } = useThemePrefs()
@@ -67,16 +67,14 @@ export default function ProfileScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }}>
         <YStack px="$5" pt="$6" gap="$4">
           <YStack
             {...cardBorder}
             rounded="$5"
             p="$5"
             gap="$3"
-            animation="quick"
-            enterStyle={{ opacity: 0, y: 6 }}
-          >
+                                  >
             <XStack items="center" justify="space-between">
               <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
                 Profile

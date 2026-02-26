@@ -36,10 +36,11 @@ function ThemedProvider({
   ...rest
 }: Omit<TamaguiProviderProps, 'config' | 'defaultTheme'>) {
   const { themeName } = useThemePrefs()
+  const activeTheme = themeName as keyof typeof config.themes
 
   return (
-    <TamaguiProvider config={config} defaultTheme={themeName} {...rest}>
-      <Theme name={themeName}>
+    <TamaguiProvider config={config} defaultTheme={activeTheme} {...rest}>
+      <Theme name={activeTheme}>
         <ToastProvider
           swipeDirection="horizontal"
           duration={6000}

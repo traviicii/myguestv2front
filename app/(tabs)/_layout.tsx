@@ -4,16 +4,20 @@ import { LayoutDashboard, Users, User } from '@tamagui/lucide-icons'
 
 export default function TabLayout() {
   const theme = useTheme()
+  const accent = theme.accent?.val ?? '#0A0A0A'
+  const gray8 = theme.gray8?.val ?? '#334155'
+  const background = theme.background?.val ?? '#F8F8F8'
+  const color = theme.color?.val ?? '#0A0A0A'
 
   return (
     // Shared tab + header styling lives here so individual tab screens only
     // manage content/state and not navigation chrome.
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.accent.val,
-        tabBarInactiveTintColor: theme.gray8.val,
+        tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: gray8,
         tabBarStyle: {
-          backgroundColor: theme.background.val,
+          backgroundColor: background,
           borderTopWidth: 0,
           paddingTop: 6,
           paddingBottom: 10,
@@ -25,11 +29,11 @@ export default function TabLayout() {
           elevation: 8,
         },
         headerStyle: {
-          backgroundColor: theme.background.val,
+          backgroundColor: background,
           borderBottomWidth: 0,
           height: 48,
         },
-        headerTintColor: theme.color.val,
+        headerTintColor: color,
         headerTitleStyle: {
           fontFamily: 'Inter',
           fontSize: 16,

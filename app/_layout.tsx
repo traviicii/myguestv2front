@@ -57,6 +57,7 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
 function RootLayoutNav() {
   const theme = useTheme()
   const { mode } = useThemePrefs()
+  const background = theme.background?.val ?? '#F8F8F8'
   return (
     <ThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
@@ -163,7 +164,7 @@ function RootLayoutNav() {
             gestureEnabled: true,
             gestureDirection: 'horizontal',
             contentStyle: {
-              backgroundColor: theme.background.val,
+              backgroundColor: background,
             },
           }}
         />
