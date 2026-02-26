@@ -37,12 +37,15 @@ EXPO_PUBLIC_FIREBASE_API_KEY=<firebase-web-api-key>
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
 EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-web-app-id>
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<google-ios-client-id>
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<google-android-client-id>
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google-web-client-id>
 EXPO_PUBLIC_USE_MOCK_DATA=false
 ```
 
 Notes:
 
-- Firebase login is currently implemented for Expo web (Google popup flow).
+- Google login works on web and native via Firebase + Expo Auth Session.
 - The app will call `POST /auth/sync` automatically before protected API reads/writes.
 - Set `EXPO_PUBLIC_USE_MOCK_DATA=true` to force local mock collections.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` is still supported as a fallback for one-off testing.

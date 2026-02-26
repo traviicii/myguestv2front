@@ -14,6 +14,7 @@ import {
   browserLocalPersistence,
   onAuthStateChanged,
   setPersistence,
+  signInWithCredential,
   signInWithPopup,
   signOut,
   type User,
@@ -32,6 +33,7 @@ type AuthContextValue = {
   missingFirebaseConfigKeys: string[]
   authError: string | null
   signInWithGoogle: () => Promise<void>
+  signInWithGoogleIdToken: (idToken: string) => Promise<void>
   signOutUser: () => Promise<void>
 }
 
@@ -101,6 +103,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await auth.currentUser?.getIdToken(true)
   }, [canUseFirebaseAuth])
 
+  const signInWithGoogleIdToken = useCallback(
+    async (idToken: string) => {
+      if (!canUseFirebaseAuth) {
+        throw new Error('Firebase is not configured.')
+      }
+      if (!idToken) {
+        throw new Error('Google sign-in did not return an ID token.')
+      }
+
+      const auth = getFirebaseAuth()
+      const credential = GoogleAuthProvider.credential(idToken)
+      await signInWithCredential(auth, credential)
+      await auth.currentUser?.getIdToken(true)
+    },
+    [canUseFirebaseAuth]
+  )
+
   const signOutUser = useCallback(async () => {
     if (!canUseFirebaseAuth) return
     await signOut(getFirebaseAuth())
@@ -115,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       missingFirebaseConfigKeys,
       authError,
       signInWithGoogle,
+      signInWithGoogleIdToken,
       signOutUser,
     }),
     [
@@ -123,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isReady,
       missingFirebaseConfigKeys,
       signInWithGoogle,
+      signInWithGoogleIdToken,
       signOutUser,
       user,
     ]
