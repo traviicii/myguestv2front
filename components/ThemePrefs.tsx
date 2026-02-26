@@ -17,6 +17,12 @@ type ThemePrefs = {
 const getThemeName = (palette: ThemePalette, mode: ThemeMode) =>
   `${palette}_${mode}`
 
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  value === 'light' || value === 'dark'
+
+const isThemePalette = (value: unknown): value is ThemePalette =>
+  value === 'studio' || value === 'slate' || value === 'sand'
+
 // Keeps theme selection in persistent local storage and exposes a resolved
 // Tamagui theme name (palette + light/dark mode) for app-wide styling.
 export const useThemePrefs = create<ThemePrefs>()(
@@ -41,10 +47,17 @@ export const useThemePrefs = create<ThemePrefs>()(
       storage: zustandStorage,
       partialize: (state) => ({ mode: state.mode, palette: state.palette }),
       merge: (persisted, current) => {
-        const merged = { ...current, ...(persisted as Partial<ThemePrefs>) }
+        const persistedState = (persisted ?? {}) as Partial<ThemePrefs>
+        const mode = isThemeMode(persistedState.mode)
+          ? persistedState.mode
+          : current.mode
+        const palette = isThemePalette(persistedState.palette)
+          ? persistedState.palette
+          : current.palette
+        const merged = { ...current, ...persistedState, mode, palette }
         return {
           ...merged,
-          themeName: getThemeName(merged.palette, merged.mode),
+          themeName: getThemeName(palette, mode),
         }
       },
     }

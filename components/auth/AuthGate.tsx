@@ -1,13 +1,47 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ActivityIndicator, Platform } from 'react-native'
+import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
-import * as Google from 'expo-auth-session/providers/google'
 import { Text, YStack } from 'tamagui'
 import { PrimaryButton, SecondaryButton } from 'components/ui/controls'
 import { hasStaticDevToken } from 'components/data/api'
 import { useAuth } from './AuthProvider'
 
 WebBrowser.maybeCompleteAuthSession()
+
+type GoogleAuthHookResult = [
+  unknown,
+  { type: string; params?: Record<string, string> } | null,
+  () => Promise<unknown>,
+]
+
+type GoogleProviderModule = {
+  useIdTokenAuthRequest: (
+    config: {
+      iosClientId?: string
+      androidClientId?: string
+      webClientId?: string
+      selectAccount?: boolean
+    },
+    redirectUriOptions?: {
+      native?: string
+    }
+  ) => GoogleAuthHookResult
+}
+
+let googleProviderModule: GoogleProviderModule | null = null
+let googleProviderLoadError: string | null = null
+
+try {
+  // Load lazily so an incompatible native module doesn't crash the whole app.
+  googleProviderModule =
+    require('expo-auth-session/providers/google') as GoogleProviderModule
+} catch (error) {
+  googleProviderLoadError =
+    error instanceof Error
+      ? error.message
+      : 'Unable to load native Google auth module.'
+}
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const {
@@ -21,15 +55,29 @@ export function AuthGate({ children }: { children: ReactNode }) {
   } = useAuth()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
+  const isExpoGo = Constants.executionEnvironment === 'storeClient'
   const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim()
   const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim()
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim()
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: iosClientId || undefined,
-    androidClientId: androidClientId || undefined,
-    webClientId: webClientId || undefined,
-    selectAccount: true,
-  })
+  const nativeRedirectUri = useMemo(() => {
+    if (Platform.OS === 'ios') {
+      const bundleId = Constants.expoConfig?.ios?.bundleIdentifier?.trim()
+      return bundleId ? `${bundleId}:/oauthredirect` : undefined
+    }
+    if (Platform.OS === 'android') {
+      const packageName = Constants.expoConfig?.android?.package?.trim()
+      return packageName ? `${packageName}:/oauthredirect` : undefined
+    }
+    return undefined
+  }, [])
+  const [request, response, promptAsync] = googleProviderModule
+    ? googleProviderModule.useIdTokenAuthRequest({
+        iosClientId: iosClientId || undefined,
+        androidClientId: androidClientId || undefined,
+        webClientId: webClientId || undefined,
+        selectAccount: true,
+      }, nativeRedirectUri ? { native: nativeRedirectUri } : undefined)
+    : [null, null, async () => null]
 
   const canUseDevTokenFallback = hasStaticDevToken()
   const missingGoogleClientIds = useMemo(() => {
@@ -45,6 +93,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
     return missing
   }, [androidClientId, iosClientId, webClientId])
+  const nativeGoogleUnavailable =
+    Platform.OS !== 'web' && !googleProviderModule
+  const isNativeAuthBlockedInExpoGo = Platform.OS !== 'web' && isExpoGo
 
   useEffect(() => {
     if (response?.type !== 'success') {
@@ -125,6 +176,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   `Missing ${missingGoogleClientIds.join(', ')} in .env.`
                 )
               }
+              if (nativeGoogleUnavailable) {
+                throw new Error(
+                  'Native Google sign-in is unavailable in this build. Run `npx expo install expo-auth-session` and rebuild iOS.'
+                )
+              }
+              if (isNativeAuthBlockedInExpoGo) {
+                throw new Error(
+                  'Google sign-in on native requires a dev build, not Expo Go. Run `npx expo run:ios` and open the built app.'
+                )
+              }
               await promptAsync()
             } catch (error) {
               setLoginError(
@@ -142,6 +203,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {missingGoogleClientIds.length > 0 ? (
           <Text fontSize={11} color="$gray8" style={{ textAlign: 'center' }}>
             Missing {missingGoogleClientIds.join(', ')}.
+          </Text>
+        ) : null}
+        {isNativeAuthBlockedInExpoGo ? (
+          <Text fontSize={11} color="$gray8" style={{ textAlign: 'center' }}>
+            Native Google sign-in is blocked in Expo Go. Use a development build.
+          </Text>
+        ) : null}
+        {nativeGoogleUnavailable && googleProviderLoadError ? (
+          <Text fontSize={11} color="$gray8" style={{ textAlign: 'center' }}>
+            {googleProviderLoadError}
           </Text>
         ) : null}
         {loginError || authError ? (

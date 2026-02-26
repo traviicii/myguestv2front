@@ -39,7 +39,9 @@ function ThemedProvider({
   ...rest
 }: Omit<TamaguiProviderProps, 'config' | 'defaultTheme'>) {
   const { themeName } = useThemePrefs()
-  const activeTheme = themeName as keyof typeof config.themes
+  const activeTheme = (
+    themeName in config.themes ? themeName : 'studio_light'
+  ) as keyof typeof config.themes
 
   return (
     <TamaguiProvider config={config} defaultTheme={activeTheme} {...rest}>
