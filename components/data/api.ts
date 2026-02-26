@@ -17,6 +17,18 @@ type ApiErrorEnvelope = {
   }
 }
 
+class ApiRequestError extends Error {
+  status: number
+  code: string | null
+
+  constructor(message: string, status: number, code: string | null) {
+    super(message)
+    this.name = 'ApiRequestError'
+    this.status = status
+    this.code = code
+  }
+}
+
 type ApiClient = {
   id: number
   owner_user_id: number
@@ -144,7 +156,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
     const message =
       errorPayload.error?.message ||
       `Request failed with status ${response.status}.`
-    throw new Error(message)
+    throw new ApiRequestError(message, response.status, errorPayload.error?.code ?? null)
   }
   return payload as T
 }
@@ -239,25 +251,51 @@ export async function createClientViaApi(input: CreateClientInput): Promise<Clie
 }
 
 export async function fetchAppointmentHistoryFromApi(): Promise<AppointmentHistory[]> {
-  const clientsResponse = await request<ApiClientListResponse>(
-    '/clients?limit=100&offset=0&sort=first_name&order=asc',
-    { method: 'GET' }
-  )
+  try {
+    const limit = 200
+    let offset = 0
+    let total = 0
+    const items: ApiFormula[] = []
 
-  const appointmentHistory: AppointmentHistory[] = []
+    do {
+      const formulasResponse = await request<ApiFormulaListResponse>(
+        `/formulas?limit=${limit}&offset=${offset}`,
+        { method: 'GET' }
+      )
+      total = formulasResponse.total
+      items.push(...formulasResponse.items)
+      offset += limit
+      if (formulasResponse.items.length === 0) break
+    } while (items.length < total)
 
-  for (const client of clientsResponse.items) {
-    const formulasResponse = await request<ApiFormulaListResponse>(
-      `/clients/${client.id}/formulas?limit=100&offset=0`,
+    return items
+      .map(toAppointmentModel)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  } catch (error) {
+    const notFound =
+      error instanceof ApiRequestError &&
+      (error.status === 404 || error.code === 'not_found')
+    if (!notFound) {
+      throw error
+    }
+
+    // Backward-compatible fallback for backends that don't yet expose GET /formulas.
+    const clientsResponse = await request<ApiClientListResponse>(
+      '/clients?limit=100&offset=0&sort=first_name&order=asc',
       { method: 'GET' }
     )
 
-    for (const formula of formulasResponse.items) {
-      appointmentHistory.push(toAppointmentModel(formula))
-    }
-  }
+    const formulaResponses = await Promise.all(
+      clientsResponse.items.map((client) =>
+        request<ApiFormulaListResponse>(
+          `/clients/${client.id}/formulas?limit=100&offset=0`,
+          { method: 'GET' }
+        )
+      )
+    )
 
-  return appointmentHistory.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )
+    return formulaResponses
+      .flatMap((response) => response.items.map(toAppointmentModel))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }
 }
