@@ -7,6 +7,7 @@ const API_BASE_URL = (
 ).replace(/\/+$/, '')
 
 const DEV_ID_TOKEN = process.env.EXPO_PUBLIC_DEV_ID_TOKEN?.trim()
+type AuthTokenProvider = () => Promise<string | null>
 
 type ApiErrorEnvelope = {
   error?: {
@@ -63,6 +64,7 @@ type ApiFormulaListResponse = {
 
 let syncPromise: Promise<void> | null = null
 let syncedToken: string | null = null
+let authTokenProvider: AuthTokenProvider | null = null
 
 function hasDevToken() {
   return Boolean(DEV_ID_TOKEN)
@@ -71,10 +73,18 @@ function hasDevToken() {
 function getDevToken() {
   if (!DEV_ID_TOKEN) {
     throw new Error(
-      'Missing EXPO_PUBLIC_DEV_ID_TOKEN. Set it in .env to use live v2 API data.'
+      'Not authenticated. Sign in with Google or set EXPO_PUBLIC_DEV_ID_TOKEN in .env.'
     )
   }
   return DEV_ID_TOKEN
+}
+
+async function getRequestToken() {
+  if (authTokenProvider) {
+    const token = await authTokenProvider()
+    if (token) return token
+  }
+  return getDevToken()
 }
 
 function normalizeClientType(rawType: string | null | undefined): ClientType {
@@ -176,15 +186,20 @@ async function ensureSessionSynced(token: string) {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getDevToken()
+  const token = await getRequestToken()
   if (path !== '/auth/sync') {
     await ensureSessionSynced(token)
   }
   return requestRaw<T>(path, init, token)
 }
 
-export function isLiveApiConfigured() {
+export function hasStaticDevToken() {
   return hasDevToken()
+}
+
+export function setAuthTokenProvider(provider: AuthTokenProvider | null) {
+  authTokenProvider = provider
+  syncedToken = null
 }
 
 export async function fetchClientsFromApi(): Promise<Client[]> {

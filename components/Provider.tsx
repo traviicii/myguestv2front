@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { CurrentToast } from './CurrentToast'
 import { config } from '../tamagui.config'
 import { ThemePrefsProvider, useThemePrefs } from './ThemePrefs'
+import { AuthProvider } from './auth/AuthProvider'
 
 // Shared query defaults keep UI snappy while still refreshing in the background.
 const queryClient = new QueryClient({
@@ -24,9 +25,11 @@ export function Provider({
   // read/write cached data and persisted appearance settings.
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemePrefsProvider>
-        <ThemedProvider {...rest}>{children}</ThemedProvider>
-      </ThemePrefsProvider>
+      <AuthProvider>
+        <ThemePrefsProvider>
+          <ThemedProvider {...rest}>{children}</ThemedProvider>
+        </ThemePrefsProvider>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

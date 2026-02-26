@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'expo-router'
-import { Mail, Phone, Settings } from '@tamagui/lucide-icons'
+import { LogOut, Mail, Phone, Settings } from '@tamagui/lucide-icons'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import {
@@ -12,6 +12,7 @@ import {
 } from 'components/ui/controls'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { useStudioStore } from 'components/state/studioStore'
+import { useAuth } from 'components/auth/AuthProvider'
 
 const cardBorder = {
   bg: '$gray1',
@@ -27,7 +28,9 @@ const cardBorder = {
 export default function ProfileScreen() {
   const { mode, palette, setMode, setPalette } = useThemePrefs()
   const { profile, preferences, setProfile, setPreferences } = useStudioStore()
+  const { user, signOutUser, canUseFirebaseAuth } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [draftProfile, setDraftProfile] = useState(profile)
 
   useEffect(() => {
@@ -280,6 +283,36 @@ export default function ProfileScreen() {
           </YStack>
 
           <SectionDivider />
+
+          {canUseFirebaseAuth ? (
+            <>
+              <YStack gap="$3">
+                <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+                  Session
+                </Text>
+                <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+                  <Text fontSize={12} color="$gray8">
+                    Signed in as {user?.email ?? profile.email}
+                  </Text>
+                  <SecondaryButton
+                    icon={<LogOut size={16} />}
+                    disabled={isSigningOut}
+                    onPress={async () => {
+                      setIsSigningOut(true)
+                      try {
+                        await signOutUser()
+                      } finally {
+                        setIsSigningOut(false)
+                      }
+                    }}
+                  >
+                    {isSigningOut ? 'Signing out...' : 'Sign out'}
+                  </SecondaryButton>
+                </YStack>
+              </YStack>
+              <SectionDivider />
+            </>
+          ) : null}
 
           <Link href="/settings" asChild>
             <XStack {...cardBorder} rounded="$5" p="$4" items="center" gap="$3">

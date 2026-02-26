@@ -28,18 +28,24 @@ Useful commands:
 
 ## Live v2 API (Dev)
 
-To use real data from your v2 backend instead of mock collections, create `.env`:
+To use real data from your v2 backend with automatic Firebase login/token refresh,
+create `.env`:
 
 ```bash
 EXPO_PUBLIC_API_BASE_URL=https://myguestv2back.onrender.com/api/v1
-EXPO_PUBLIC_DEV_ID_TOKEN=<firebase-id-token>
+EXPO_PUBLIC_FIREBASE_API_KEY=<firebase-web-api-key>
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
+EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-web-app-id>
+EXPO_PUBLIC_USE_MOCK_DATA=false
 ```
 
 Notes:
 
-- `EXPO_PUBLIC_DEV_ID_TOKEN` should be a real Firebase ID token for a valid user.
+- Firebase login is currently implemented for Expo web (Google popup flow).
 - The app will call `POST /auth/sync` automatically before protected API reads/writes.
-- If token/base URL are missing, query hooks fall back to mock data.
+- Set `EXPO_PUBLIC_USE_MOCK_DATA=true` to force local mock collections.
+- `EXPO_PUBLIC_DEV_ID_TOKEN` is still supported as a fallback for one-off testing.
 
 ## Project Map
 

@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { Provider } from 'components/Provider'
 import { useTheme } from 'tamagui'
 import { useThemePrefs } from 'components/ThemePrefs'
+import { AuthGate } from 'components/auth/AuthGate'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -61,114 +62,116 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      {/* Central navigation map for all top-level routes and modals. */}
-      <Stack
-        screenOptions={{
-          gestureEnabled: true,
-          gestureDirection: 'horizontal',
-        }}
-      >
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
-
-        <Stack.Screen
-          name="client/[id]"
-          options={{
-            title: 'Client Details',
-            headerBackTitle: 'Clients',
-          }}
-        />
-
-        <Stack.Screen
-          name="client/[id]/new-appointment"
-          options={{
-            title: 'New Appointment Log',
-            headerBackTitle: 'Client',
-          }}
-        />
-
-        <Stack.Screen
-          name="client/[id]/edit"
-          options={{
-            title: 'Edit Client',
-            headerBackTitle: 'Client',
-          }}
-        />
-
-        <Stack.Screen
-          name="clients/new"
-          options={{
-            title: 'New Client',
-            headerBackTitle: 'Clients',
-          }}
-        />
-
-        <Stack.Screen
-          name="appointments"
-          options={{
-            title: 'Appointment History',
-            headerBackTitle: 'Overview',
-          }}
-        />
-
-        <Stack.Screen
-          name="appointments/new"
-          options={{
-            title: 'New Appointment Log',
-            headerBackTitle: 'Overview',
-          }}
-        />
-
-        <Stack.Screen
-          name="recent-clients"
-          options={{
-            title: 'Recent Clients',
-            headerBackTitle: 'Overview',
-          }}
-        />
-
-        <Stack.Screen
-          name="appointment/[id]"
-          options={{
-            title: 'Appointment',
-            headerBackTitle: 'History',
-          }}
-        />
-
-        <Stack.Screen
-          name="appointment/[id]/edit"
-          options={{
-            title: 'Edit Appointment Log',
-            headerBackTitle: 'Appointment',
-          }}
-        />
-
-        <Stack.Screen
-          name="settings"
-          options={{
-            title: 'App Settings',
-            headerBackTitle: 'Profile',
-          }}
-        />
-
-        <Stack.Screen
-          name="modal"
-          options={{
-            title: 'Tamagui + Expo',
-            presentation: 'modal',
-            animation: 'slide_from_right',
+      <AuthGate>
+        {/* Central navigation map for all top-level routes and modals. */}
+        <Stack
+          screenOptions={{
             gestureEnabled: true,
             gestureDirection: 'horizontal',
-            contentStyle: {
-              backgroundColor: background,
-            },
           }}
-        />
-      </Stack>
+        >
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: false,
+            }}
+          />
+
+          <Stack.Screen
+            name="client/[id]"
+            options={{
+              title: 'Client Details',
+              headerBackTitle: 'Clients',
+            }}
+          />
+
+          <Stack.Screen
+            name="client/[id]/new-appointment"
+            options={{
+              title: 'New Appointment Log',
+              headerBackTitle: 'Client',
+            }}
+          />
+
+          <Stack.Screen
+            name="client/[id]/edit"
+            options={{
+              title: 'Edit Client',
+              headerBackTitle: 'Client',
+            }}
+          />
+
+          <Stack.Screen
+            name="clients/new"
+            options={{
+              title: 'New Client',
+              headerBackTitle: 'Clients',
+            }}
+          />
+
+          <Stack.Screen
+            name="appointments"
+            options={{
+              title: 'Appointment History',
+              headerBackTitle: 'Overview',
+            }}
+          />
+
+          <Stack.Screen
+            name="appointments/new"
+            options={{
+              title: 'New Appointment Log',
+              headerBackTitle: 'Overview',
+            }}
+          />
+
+          <Stack.Screen
+            name="recent-clients"
+            options={{
+              title: 'Recent Clients',
+              headerBackTitle: 'Overview',
+            }}
+          />
+
+          <Stack.Screen
+            name="appointment/[id]"
+            options={{
+              title: 'Appointment',
+              headerBackTitle: 'History',
+            }}
+          />
+
+          <Stack.Screen
+            name="appointment/[id]/edit"
+            options={{
+              title: 'Edit Appointment Log',
+              headerBackTitle: 'Appointment',
+            }}
+          />
+
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: 'App Settings',
+              headerBackTitle: 'Profile',
+            }}
+          />
+
+          <Stack.Screen
+            name="modal"
+            options={{
+              title: 'Tamagui + Expo',
+              presentation: 'modal',
+              animation: 'slide_from_right',
+              gestureEnabled: true,
+              gestureDirection: 'horizontal',
+              contentStyle: {
+                backgroundColor: background,
+              },
+            }}
+          />
+        </Stack>
+      </AuthGate>
     </ThemeProvider>
   )
 }

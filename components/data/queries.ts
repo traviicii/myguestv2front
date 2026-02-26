@@ -10,33 +10,32 @@ import {
   createClientViaApi,
   fetchAppointmentHistoryFromApi,
   fetchClientsFromApi,
-  isLiveApiConfigured,
 } from './api'
 
-const USE_LIVE_API = isLiveApiConfigured()
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true'
 
 // These hooks are the app's data boundary. They currently return local
 // testing collections and can be replaced with real API-backed fetchers
 // without changing screen-level query usage.
 export function useClients() {
   return useQuery({
-    queryKey: ['clients', USE_LIVE_API ? 'api' : 'mock'],
+    queryKey: ['clients', USE_MOCK_DATA ? 'mock' : 'api'],
     queryFn: async () => {
-      if (!USE_LIVE_API) return mockClients
+      if (USE_MOCK_DATA) return mockClients
       return fetchClientsFromApi()
     },
-    initialData: USE_LIVE_API ? undefined : mockClients,
+    initialData: USE_MOCK_DATA ? mockClients : undefined,
   })
 }
 
 export function useAppointmentHistory() {
   return useQuery({
-    queryKey: ['appointments', USE_LIVE_API ? 'api' : 'mock'],
+    queryKey: ['appointments', USE_MOCK_DATA ? 'mock' : 'api'],
     queryFn: async () => {
-      if (!USE_LIVE_API) return mockAppointmentHistory
+      if (USE_MOCK_DATA) return mockAppointmentHistory
       return fetchAppointmentHistoryFromApi()
     },
-    initialData: USE_LIVE_API ? undefined : mockAppointmentHistory,
+    initialData: USE_MOCK_DATA ? mockAppointmentHistory : undefined,
   })
 }
 
@@ -61,9 +60,9 @@ export function useCreateClient() {
 
   return useMutation({
     mutationFn: async (input: CreateClientInput) => {
-      if (!USE_LIVE_API) {
+      if (USE_MOCK_DATA) {
         throw new Error(
-          'Live API is not configured. Set EXPO_PUBLIC_DEV_ID_TOKEN in .env to create clients in v2 backend.'
+          'Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to create clients in v2 backend.'
         )
       }
       return createClientViaApi(input)
