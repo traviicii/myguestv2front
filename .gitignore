@@ -74,3 +74,6 @@ components/mockData.ts
 
 # Misc local placeholders
 **/_
+
+# Local planning docs (keep out of repo)
+APP_STORE_SUBMISSION_CHECKLIST.local.md

@@ -19,7 +19,7 @@ import {
   useColorAnalysisByClient,
 } from 'components/data/queries'
 import { SectionDivider } from 'components/ui/controls'
-import { formatDateMMDDYYYY } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 import { useStudioStore } from 'components/state/studioStore'
 
 const cardBorder = {
@@ -63,6 +63,8 @@ export default function ClientDetailScreen() {
   const isActive = history.some((entry) => new Date(entry.date) >= activeCutoff)
   const statusLabel = isActive ? 'Active' : 'Inactive'
   const statusColor = isActive ? '$green10' : '$orange10'
+  const showStatus =
+    appSettings.clientsShowStatus && appSettings.clientsShowStatusDetails
 
   const sanitizedPhone = client.phone?.replace(/[^\d+]/g, '') ?? ''
   const phoneUrl = sanitizedPhone ? `tel:${sanitizedPhone}` : ''
@@ -140,9 +142,11 @@ export default function ClientDetailScreen() {
               <Text fontSize={12} color="$gray8">
                 {client.type}
               </Text>
-              <Text fontSize={11} color={statusColor}>
-                {statusLabel}
-              </Text>
+              {showStatus ? (
+                <Text fontSize={11} color={statusColor}>
+                  {statusLabel}
+                </Text>
+              ) : null}
               {client.tag ? (
                 <Text fontSize={11} color="$gray7">
                   {client.tag}
@@ -150,7 +154,11 @@ export default function ClientDetailScreen() {
               ) : null}
             </XStack>
             <Text fontSize={12} color="$gray8">
-              Last visit {formatDateMMDDYYYY(client.lastVisit)}
+              Last visit{' '}
+              {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
+                todayLabel: true,
+                includeWeekday: appSettings.dateLongIncludeWeekday,
+              })}
             </Text>
           </YStack>
           <YStack {...cardBorder} rounded="$5" p="$4" gap="$2">
@@ -307,7 +315,9 @@ export default function ClientDetailScreen() {
                           {getServiceLabel(entry.notes, entry.services)}
                         </Text>
                         <Text fontSize={12} color="$gray8">
-                          {formatDateMMDDYYYY(entry.date)}
+                          {formatDateByStyle(entry.date, 'short', {
+                            todayLabel: true,
+                          })}
                         </Text>
                       </YStack>
                       <XStack items="center" gap="$2">

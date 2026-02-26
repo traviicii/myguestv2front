@@ -9,6 +9,7 @@ export type QuickActionId =
   | 'newAppointmentLog'
   | 'newEmailAlert'
   | 'newTextAlert'
+export type AppointmentDateFormat = 'short' | 'long'
 export type OverviewSectionId =
   | 'quickActions'
   | 'metrics'
@@ -30,6 +31,10 @@ type StudioPreferences = {
 
 type AppSettings = {
   clientsShowStatus: boolean
+  clientsShowStatusList: boolean
+  clientsShowStatusDetails: boolean
+  dateDisplayFormat: AppointmentDateFormat
+  dateLongIncludeWeekday: boolean
   overviewQuickActions: Record<QuickActionId, boolean>
   overviewQuickActionOrder: QuickActionId[]
   overviewSections: Record<OverviewSectionId, boolean>
@@ -55,6 +60,14 @@ const quickActionDefaults: QuickActionId[] = [
   'newEmailAlert',
   'newTextAlert',
 ]
+
+const normalizeAppointmentDateFormat = (
+  format: AppointmentDateFormat | 'shortWithToday' | string | undefined,
+  fallback: AppointmentDateFormat
+): AppointmentDateFormat => {
+  if (format === 'long') return 'long'
+  return fallback
+}
 
 const normalizeQuickActionOrder = (order?: QuickActionId[]) => {
   const unique = Array.from(
@@ -84,6 +97,10 @@ export const useStudioStore = create<StudioStore>()(
       },
       appSettings: {
         clientsShowStatus: true,
+        clientsShowStatusList: true,
+        clientsShowStatusDetails: true,
+        dateDisplayFormat: 'short',
+        dateLongIncludeWeekday: true,
         overviewQuickActions: {
           newClient: true,
           newAppointmentLog: true,
@@ -151,7 +168,12 @@ export const useStudioStore = create<StudioStore>()(
       merge: (persisted, current) => {
         const persistedState = persisted as Partial<StudioStore>
         const merged = { ...current, ...persistedState }
-        const persistedApp = persistedState.appSettings
+        const persistedApp = persistedState.appSettings as
+          | (Partial<AppSettings> & {
+              appointmentPreviewDateFormat?: AppointmentDateFormat | string
+              appointmentDetailDateFormat?: AppointmentDateFormat | string
+            })
+          | undefined
 
         // Merge nested setting groups defensively so new defaults are not lost
         // when older persisted payloads are missing keys.
@@ -164,6 +186,21 @@ export const useStudioStore = create<StudioStore>()(
               ...current.appSettings.overviewQuickActions,
               ...(persistedApp?.overviewQuickActions ?? {}),
             },
+            clientsShowStatusList:
+              persistedApp?.clientsShowStatusList ??
+              current.appSettings.clientsShowStatusList,
+            clientsShowStatusDetails:
+              persistedApp?.clientsShowStatusDetails ??
+              current.appSettings.clientsShowStatusDetails,
+            dateDisplayFormat: normalizeAppointmentDateFormat(
+              persistedApp?.dateDisplayFormat ??
+                persistedApp?.appointmentDetailDateFormat ??
+                persistedApp?.appointmentPreviewDateFormat,
+              current.appSettings.dateDisplayFormat
+            ),
+            dateLongIncludeWeekday:
+              persistedApp?.dateLongIncludeWeekday ??
+              current.appSettings.dateLongIncludeWeekday,
             overviewQuickActionOrder: normalizeQuickActionOrder(
               persistedApp?.overviewQuickActionOrder ??
                 current.appSettings.overviewQuickActionOrder

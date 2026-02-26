@@ -5,7 +5,7 @@ import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { Image } from 'react-native'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
-import { formatDateLabel } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 
 const cardBorder = {
   bg: '$gray1',
@@ -106,7 +106,9 @@ export default function AppointmentsScreen() {
                               {clientName}
                             </Text>
                             <Text fontSize={11} color="$gray8">
-                              {formatDateLabel(entry.date, { todayLabel: true })}
+                              {formatDateByStyle(entry.date, 'short', {
+                                todayLabel: true,
+                              })}
                             </Text>
                           </XStack>
                         </YStack>

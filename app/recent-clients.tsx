@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
-import { formatDateMMDDYYYY } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 
 const cardBorder = {
   bg: '$gray1',
@@ -87,7 +87,10 @@ export default function RecentClientsScreen() {
                           {client.name}
                         </Text>
                         <Text fontSize={12} color="$gray8">
-                          {client.type} • Last visit {formatDateMMDDYYYY(lastVisit || '—')}
+                          {client.type} • Last visit{' '}
+                          {formatDateByStyle(lastVisit || '—', 'short', {
+                            todayLabel: true,
+                          })}
                         </Text>
                       </YStack>
                     </XStack>

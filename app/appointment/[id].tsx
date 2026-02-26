@@ -5,8 +5,9 @@ import { Animated, Easing, Image, Modal, Pressable, ScrollView as RNScrollView }
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
-import { formatDateLong, formatDateMMDDYYYY } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 import { SectionDivider } from 'components/ui/controls'
+import { useStudioStore } from 'components/state/studioStore'
 
 const cardBorder = {
   bg: '$gray1',
@@ -33,6 +34,7 @@ export default function AppointmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: clients = [] } = useClients()
+  const appSettings = useStudioStore((state) => state.appSettings)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [showPreviewControls, setShowPreviewControls] = useState(true)
   const [previewWidth, setPreviewWidth] = useState(0)
@@ -115,7 +117,10 @@ export default function AppointmentDetailScreen() {
             <XStack items="center" gap="$2">
               <CalendarDays size={14} color="$gray8" />
               <Text fontSize={12} color="$gray8">
-                {formatDateLong(appointment.date)}
+                {formatDateByStyle(appointment.date, appSettings.dateDisplayFormat, {
+                  todayLabel: true,
+                  includeWeekday: appSettings.dateLongIncludeWeekday,
+                })}
               </Text>
             </XStack>
           </YStack>

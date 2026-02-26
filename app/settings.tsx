@@ -3,7 +3,11 @@ import { HelpCircle } from '@tamagui/lucide-icons'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { SectionDivider, ThemedSwitch } from 'components/ui/controls'
-import { useStudioStore, type OverviewSectionId } from 'components/state/studioStore'
+import {
+  useStudioStore,
+  type AppointmentDateFormat,
+  type OverviewSectionId,
+} from 'components/state/studioStore'
 
 const cardBorder = {
   bg: '$gray1',
@@ -18,6 +22,10 @@ const cardBorder = {
 
 export default function SettingsScreen() {
   const { appSettings, setAppSettings } = useStudioStore()
+  const appointmentDateOptions: Array<{ id: AppointmentDateFormat; label: string }> = [
+    { id: 'short', label: 'MM/DD/YYYY' },
+    { id: 'long', label: 'Long format' },
+  ]
 
   const showInfo = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -58,7 +66,7 @@ export default function SettingsScreen() {
 
           <YStack gap="$3">
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
-              Client list
+              Clients
             </Text>
             <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
               <XStack items="center" justify="space-between">
@@ -67,7 +75,7 @@ export default function SettingsScreen() {
                     <Text fontSize={13}>Active/Inactive indicator</Text>
                     <InfoButton
                       title="Active/Inactive indicator"
-                      message="Shows whether a client has visited in the past year on the client list."
+                      message="Toggle status labels that show whether a client has visited recently."
                     />
                   </XStack>
                   <Text fontSize={11} color="$gray8">
@@ -82,6 +90,56 @@ export default function SettingsScreen() {
                   }
                 />
               </XStack>
+              {appSettings.clientsShowStatus ? (
+                <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$gray3">
+                  <XStack items="center" justify="space-between">
+                    <YStack gap="$0.5" flex={1} pr="$3">
+                      <XStack items="center" gap="$2">
+                        <Text fontSize={13}>Client list indicator</Text>
+                        <InfoButton
+                          title="Client list indicator"
+                          message="Show Active/Inactive status on the Clients list."
+                        />
+                      </XStack>
+                      <Text fontSize={11} color="$gray8">
+                        Show status labels on the client list.
+                      </Text>
+                    </YStack>
+                    <ThemedSwitch
+                      size="$2"
+                      checked={appSettings.clientsShowStatusList}
+                      onCheckedChange={(checked) =>
+                        setAppSettings({
+                          clientsShowStatusList: Boolean(checked),
+                        })
+                      }
+                    />
+                  </XStack>
+                  <XStack items="center" justify="space-between">
+                    <YStack gap="$0.5" flex={1} pr="$3">
+                      <XStack items="center" gap="$2">
+                        <Text fontSize={13}>Client details indicator</Text>
+                        <InfoButton
+                          title="Client details indicator"
+                          message="Show Active/Inactive status on the client details screen."
+                        />
+                      </XStack>
+                      <Text fontSize={11} color="$gray8">
+                        Show status labels on client detail pages.
+                      </Text>
+                    </YStack>
+                    <ThemedSwitch
+                      size="$2"
+                      checked={appSettings.clientsShowStatusDetails}
+                      onCheckedChange={(checked) =>
+                        setAppSettings({
+                          clientsShowStatusDetails: Boolean(checked),
+                        })
+                      }
+                    />
+                  </XStack>
+                </YStack>
+              ) : null}
               <XStack items="center" justify="space-between">
                 <YStack gap="$0.5" flex={1} pr="$3">
                   <XStack items="center" gap="$2">
@@ -120,6 +178,85 @@ export default function SettingsScreen() {
                   )
                 })}
               </XStack>
+            </YStack>
+          </YStack>
+
+          <SectionDivider />
+
+          <YStack gap="$3">
+            <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+              Dates
+            </Text>
+            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+              <YStack gap="$2">
+                <XStack items="center" justify="space-between">
+                  <YStack gap="$0.5" flex={1} pr="$3">
+                    <XStack items="center" gap="$2">
+                      <Text fontSize={13}>Date format</Text>
+                      <InfoButton
+                        title="Date format"
+                        message="Controls the app-wide date display style. Today is still shown as 'Today'."
+                      />
+                    </XStack>
+                    <Text fontSize={11} color="$gray8">
+                      Applies globally, with compact cards kept short for readability.
+                    </Text>
+                  </YStack>
+                </XStack>
+                <XStack gap="$2" flexWrap="wrap">
+                  {appointmentDateOptions.map((option) => {
+                    const isActive = appSettings.dateDisplayFormat === option.id
+                    return (
+                      <XStack
+                        key={option.id}
+                        {...cardBorder}
+                        rounded="$3"
+                        px="$2.5"
+                        py="$1.5"
+                        items="center"
+                        bg={isActive ? '$accentMuted' : '$background'}
+                        borderColor={isActive ? '$accentSoft' : '$borderColor'}
+                        onPress={() =>
+                          setAppSettings({
+                            dateDisplayFormat: option.id,
+                          })
+                        }
+                      >
+                        <Text fontSize={11} color={isActive ? '$accent' : '$gray8'}>
+                          {option.label}
+                        </Text>
+                      </XStack>
+                    )
+                  })}
+                </XStack>
+              </YStack>
+              {appSettings.dateDisplayFormat === 'long' ? (
+                <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$gray3">
+                  <XStack items="center" justify="space-between">
+                    <YStack gap="$0.5" flex={1} pr="$3">
+                      <XStack items="center" gap="$2">
+                        <Text fontSize={13}>Include weekday</Text>
+                        <InfoButton
+                          title="Include weekday"
+                          message="When long format is enabled, include the weekday in dates."
+                        />
+                      </XStack>
+                      <Text fontSize={11} color="$gray8">
+                        Example: Monday, October 4th 2026
+                      </Text>
+                    </YStack>
+                    <ThemedSwitch
+                      size="$2"
+                      checked={appSettings.dateLongIncludeWeekday}
+                      onCheckedChange={(checked) =>
+                        setAppSettings({
+                          dateLongIncludeWeekday: Boolean(checked),
+                        })
+                      }
+                    />
+                  </XStack>
+                </YStack>
+              ) : null}
             </YStack>
           </YStack>
 

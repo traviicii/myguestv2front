@@ -2,6 +2,15 @@ const pad = (value: number) => String(value).padStart(2, '0')
 
 type Ymd = { y: number; m: number; d: number }
 
+const isToday = (ymd: Ymd) => {
+  const today = new Date()
+  return (
+    ymd.y === today.getFullYear() &&
+    ymd.m === today.getMonth() + 1 &&
+    ymd.d === today.getDate()
+  )
+}
+
 // Accepts the date formats currently present across mock data and forms.
 // We normalize once so all UI formatters share the same parsing behavior.
 const parseYmd = (dateString: string): Ymd | null => {
@@ -50,16 +59,7 @@ export const formatDateLabel = (
 ) => {
   const ymd = parseYmd(dateString)
   if (!ymd) return (dateString || '—').trim()
-  if (todayLabel) {
-    const today = new Date()
-    if (
-      ymd.y === today.getFullYear() &&
-      ymd.m === today.getMonth() + 1 &&
-      ymd.d === today.getDate()
-    ) {
-      return 'Today'
-    }
-  }
+  if (todayLabel && isToday(ymd)) return 'Today'
   return `${pad(ymd.m)}/${pad(ymd.d)}/${ymd.y}`
 }
 
@@ -77,14 +77,42 @@ const getOrdinalSuffix = (day: number) => {
   }
 }
 
-export const formatDateLong = (dateString: string) => {
+export const formatDateLong = (
+  dateString: string,
+  { includeWeekday = true }: { includeWeekday?: boolean } = {}
+) => {
   const ymd = parseYmd(dateString)
   if (!ymd) return (dateString || '—').trim()
   const date = new Date(ymd.y, ymd.m - 1, ymd.d)
   if (Number.isNaN(date.getTime())) return (dateString || '—').trim()
 
-  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
   const month = date.toLocaleDateString('en-US', { month: 'long' })
   const suffix = getOrdinalSuffix(ymd.d)
+  if (!includeWeekday) {
+    return `${month} ${ymd.d}${suffix}, ${ymd.y}`
+  }
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
   return `${weekday}, ${month} ${ymd.d}${suffix} ${ymd.y}`
+}
+
+export type DateDisplayFormat = 'short' | 'long'
+
+export const formatDateByStyle = (
+  dateString: string,
+  format: DateDisplayFormat,
+  {
+    todayLabel = false,
+    includeWeekday = true,
+  }: { todayLabel?: boolean; includeWeekday?: boolean } = {}
+) => {
+  const ymd = parseYmd(dateString)
+  if (!ymd) return (dateString || '—').trim()
+  if (todayLabel && isToday(ymd)) return 'Today'
+  switch (format) {
+    case 'long':
+      return formatDateLong(dateString, { includeWeekday })
+    case 'short':
+    default:
+      return formatDateMMDDYYYY(dateString)
+  }
 }

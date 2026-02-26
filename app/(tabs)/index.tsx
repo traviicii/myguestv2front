@@ -14,9 +14,7 @@ import {
   X,
 } from '@tamagui/lucide-icons'
 import { Animated as RNAnimated } from 'react-native'
-import {
-  NestableDraggableFlatList,
-  NestableScrollContainer,
+import DraggableFlatList, {
   type RenderItemParams,
 } from 'react-native-draggable-flatlist'
 import { SortableGrid } from 'components/ui/SortableGrid'
@@ -31,7 +29,7 @@ import {
   useImagesByClient,
 } from 'components/data/queries'
 import { useOverviewStore } from 'components/state/overviewStore'
-import { formatDateLabel, formatDateMMDDYYYY } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 import { useStudioStore } from 'components/state/studioStore'
 
 const cardBorder = {
@@ -62,8 +60,12 @@ export default function TabOneScreen() {
   const toggleLayoutEditor = useOverviewStore((state) => state.toggleLayoutEditor)
   const setMetricSelection = useOverviewStore((state) => state.setMetricSelection)
   const setSectionOrder = useOverviewStore((state) => state.setSectionOrder)
-  const { appSettings, setQuickActionEnabled, setQuickActionOrder, pinnedClientIds } =
-    useStudioStore()
+  const {
+    appSettings,
+    setQuickActionEnabled,
+    setQuickActionOrder,
+    pinnedClientIds,
+  } = useStudioStore()
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
@@ -218,6 +220,20 @@ export default function TabOneScreen() {
       ),
     [appSettings.overviewQuickActions, orderedQuickActions]
   )
+  const quickActionColumns = 2
+  const quickActionItemSize = 148
+  const quickActionGap = 12
+  const shouldCenterQuickActionRow =
+    enabledQuickActions.length % quickActionColumns !== 0
+  const quickActionRows = Math.max(
+    1,
+    Math.ceil(enabledQuickActions.length / quickActionColumns)
+  )
+  const quickActionGridHeight =
+    enabledQuickActions.length > 0
+      ? quickActionRows * quickActionItemSize +
+        quickActionGap * (quickActionRows - 1)
+      : 0
 
   const handleQuickActionReorder = (nextEnabled: QuickAction[]) => {
     const enabledIds = nextEnabled.map((action) => action.id)
@@ -283,12 +299,14 @@ export default function TabOneScreen() {
       {...cardBorder}
       rounded="$5"
       px="$4"
-      py="$4"
+      py="$3"
+      my="$1"
       items="center"
       justify="space-between"
       opacity={isActive ? 0.85 : 1}
       onLongPress={drag}
       pressStyle={{ opacity: 0.8 }}
+      overflow="visible"
     >
       <Text fontSize={14} fontWeight="600">
         {sectionLabels[item] ?? item}
@@ -322,7 +340,12 @@ export default function TabOneScreen() {
   const lineColor = theme.borderColor?.val ?? '#CBD5E1'
   const renderQuickActionCard = (
     action: QuickAction,
-    options?: { draggable?: boolean; isDragging?: boolean; onPressIn?: () => void }
+    options?: {
+      draggable?: boolean
+      isDragging?: boolean
+      onPressIn?: () => void
+      disableEntry?: boolean
+    }
   ) => {
     const Icon = action.icon
     const isPrimary = action.variant === 'primary'
@@ -339,8 +362,8 @@ export default function TabOneScreen() {
         items="center"
         justify="center"
         gap="$2"
-        animation="quick"
-        enterStyle={{ opacity: 0, y: 8 }}
+        animation={options?.disableEntry ? undefined : 'quick'}
+        enterStyle={options?.disableEntry ? undefined : { opacity: 0, y: 8 }}
         shadowColor={isPrimary ? 'rgba(15,23,42,0.2)' : 'rgba(15,23,42,0.08)'}
         shadowRadius={16}
         shadowOpacity={1}
@@ -444,54 +467,52 @@ export default function TabOneScreen() {
               Drag buttons to rearrange order.
             </Text>
           ) : null}
-          <YStack minHeight={180} justify="center" items="center" width="100%">
+          <YStack minHeight={160} justify="center" items="center" width="100%">
             {enabledQuickActions.length ? (
-              showQuickActionEditor ? (
+              <YStack
+                width="100%"
+                position="relative"
+                minHeight={160}
+                height={Math.max(quickActionGridHeight, 160)}
+              >
                 <SortableGrid
                   data={enabledQuickActions}
                   keyExtractor={(item) => item.id}
-                  columns={2}
-                  itemSize={160}
-                  gap={16}
+                  columns={quickActionColumns}
+                  itemSize={quickActionItemSize}
+                  gap={quickActionGap}
+                  centerLastRow={shouldCenterQuickActionRow}
+                  dragEnabled={showQuickActionEditor}
                   onDragActiveChange={setIsQuickActionDragging}
                   onOrderChange={handleQuickActionReorder}
-                  renderItem={(item, isActive) => (
-                    <YStack mx="$2" my="$2">
-                      {renderQuickActionCard(item, {
-                        draggable: true,
-                        isDragging: isActive,
-                      })}
-                    </YStack>
-                  )}
-                />
-              ) : (
-                <XStack
-                  gap="$4"
-                  justify="center"
-                  items="center"
-                  width="100%"
-                  flexWrap="wrap"
-                >
-                  {enabledQuickActions.map((action) => {
-                    const isDisabled = action.comingSoon
-                    const card = renderQuickActionCard(action)
+                  renderItem={(item, isActive) => {
+                    const isDisabled = item.comingSoon
+                    const card = renderQuickActionCard(item, {
+                      draggable: showQuickActionEditor,
+                      isDragging: isActive,
+                      disableEntry: true,
+                    })
 
-                    if (action.href && !isDisabled) {
+                    if (!showQuickActionEditor && item.href && !isDisabled) {
                       return (
-                        <Link key={action.id} href={action.href} asChild>
+                        <Link key={item.id} href={item.href} asChild>
                           {card}
                         </Link>
                       )
                     }
 
-                    return (
-                      <YStack key={action.id} pointerEvents="none">
-                        {card}
-                      </YStack>
-                    )
-                  })}
-                </XStack>
-              )
+                    if (!showQuickActionEditor && isDisabled) {
+                      return (
+                        <YStack key={item.id} pointerEvents="none">
+                          {card}
+                        </YStack>
+                      )
+                    }
+
+                    return card
+                  }}
+                />
+              </YStack>
             ) : (
               <Text fontSize={12} color="$gray8">
                 No quick actions selected.
@@ -573,7 +594,10 @@ export default function TabOneScreen() {
                         {client.name}
                       </Text>
                       <Text fontSize={12} color="$gray8">
-                        {client.type} • Last visit {formatDateMMDDYYYY(client.lastVisit)}
+                        {client.type} • Last visit{' '}
+                        {formatDateByStyle(client.lastVisit, 'short', {
+                          todayLabel: true,
+                        })}
                       </Text>
                     </YStack>
                     <ArrowRight size={14} color="$accent" />
@@ -641,7 +665,9 @@ export default function TabOneScreen() {
                             {clientName}
                           </Text>
                           <Text fontSize={11} color="$gray8">
-                            {formatDateLabel(entry.date, { todayLabel: true })}
+                            {formatDateByStyle(entry.date, 'short', {
+                              todayLabel: true,
+                            })}
                           </Text>
                         </XStack>
                       </YStack>
@@ -690,7 +716,10 @@ export default function TabOneScreen() {
                       {client.name}
                     </Text>
                     <Text fontSize={12} color="$gray8">
-                      {client.type} • Last visit {formatDateMMDDYYYY(client.lastVisit)}
+                      {client.type} • Last visit{' '}
+                      {formatDateByStyle(client.lastVisit, 'short', {
+                        todayLabel: true,
+                      })}
                     </Text>
                   </YStack>
                 </XStack>
@@ -708,26 +737,23 @@ export default function TabOneScreen() {
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
       {showLayoutEditor ? (
-        <NestableScrollContainer
-          contentContainerStyle={{ paddingBottom: 40 }}
-          scrollEnabled={false}
-        >
-          <YStack px="$5" pt="$6" gap="$5">
-            <YStack gap="$3">
-              <Text fontSize={12} color="$gray8">
-                Hold and drag to reorder your Overview sections.
-              </Text>
-              <NestableDraggableFlatList
-                data={layoutDraft}
-                keyExtractor={(item) => item}
-                renderItem={renderLayoutItem}
-                onDragEnd={({ data }) => setLayoutDraft(data)}
-                scrollEnabled={false}
-                activationDistance={10}
-              />
-            </YStack>
+        <YStack px="$5" pt="$6" gap="$5">
+          <YStack gap="$3">
+            <Text fontSize={12} color="$gray8">
+              Hold and drag to reorder your Overview sections.
+            </Text>
+            <DraggableFlatList
+              data={layoutDraft}
+              keyExtractor={(item) => item}
+              renderItem={renderLayoutItem}
+              onDragEnd={({ data }) => setLayoutDraft(data)}
+              scrollEnabled={false}
+              activationDistance={10}
+              style={{ overflow: 'visible' }}
+              contentContainerStyle={{ paddingVertical: 4 }}
+            />
           </YStack>
-        </NestableScrollContainer>
+        </YStack>
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 40 }}

@@ -5,7 +5,7 @@ import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
 import { SectionDivider, TextField } from 'components/ui/controls'
-import { formatDateMMDDYYYY } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 import { useClientsStore } from 'components/state/clientsStore'
 import { useStudioStore } from 'components/state/studioStore'
 
@@ -43,7 +43,11 @@ export default function ClientsScreen() {
   const toggleFilters = useClientsStore((state) => state.toggleFilters)
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
-  const showStatus = useStudioStore((state) => state.appSettings.clientsShowStatus)
+  const showStatus = useStudioStore(
+    (state) =>
+      state.appSettings.clientsShowStatus &&
+      state.appSettings.clientsShowStatusList
+  )
   const activeStatusMonths = useStudioStore(
     (state) => state.appSettings.activeStatusMonths
   )
@@ -90,9 +94,6 @@ export default function ClientsScreen() {
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
               Client Index
             </Text>
-            <Text fontSize={12} color="$gray8">
-              Search, segment, and act with precision.
-            </Text>
           </YStack>
 
           <XStack gap="$3" items="center">
@@ -111,6 +112,7 @@ export default function ClientsScreen() {
                 borderWidth={0}
                 height={36}
                 px="$0"
+                pl="$2"
                 placeholder="Search clients, tags, notes"
                 value={searchText}
                 onChangeText={setSearchText}
@@ -203,7 +205,8 @@ export default function ClientsScreen() {
                     {client.name}
                   </Text>
                   <Text fontSize={12} color="$gray8">
-                    {client.type} • Last visit {formatDateMMDDYYYY(client.lastVisit)}
+                    {client.type} • Last visit{' '}
+                    {formatDateByStyle(client.lastVisit, 'short', { todayLabel: true })}
                   </Text>
                   <XStack items="center" gap="$2">
                     {showStatus

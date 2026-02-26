@@ -5,7 +5,7 @@ import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useClients } from 'components/data/queries'
 import { SectionDivider, TextField } from 'components/ui/controls'
-import { formatDateMMDDYYYY } from 'components/utils/date'
+import { formatDateByStyle } from 'components/utils/date'
 
 const cardBorder = {
   bg: '$gray1',
@@ -100,7 +100,10 @@ export default function NewAppointmentClientPicker() {
                         {client.name}
                       </Text>
                       <Text fontSize={12} color="$gray8">
-                        {client.type} • Last visit {formatDateMMDDYYYY(client.lastVisit)}
+                        {client.type} • Last visit{' '}
+                        {formatDateByStyle(client.lastVisit, 'short', {
+                          todayLabel: true,
+                        })}
                       </Text>
                     </YStack>
                     <XStack items="center" gap="$2">
