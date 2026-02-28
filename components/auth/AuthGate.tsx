@@ -59,24 +59,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim()
   const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim()
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim()
-  const nativeRedirectUri = useMemo(() => {
-    if (Platform.OS === 'ios') {
-      const bundleId = Constants.expoConfig?.ios?.bundleIdentifier?.trim()
-      return bundleId ? `${bundleId}:/oauthredirect` : undefined
-    }
-    if (Platform.OS === 'android') {
-      const packageName = Constants.expoConfig?.android?.package?.trim()
-      return packageName ? `${packageName}:/oauthredirect` : undefined
-    }
-    return undefined
-  }, [])
+  const iosNativeRedirectUri = useMemo(() => {
+    if (Platform.OS !== 'ios' || !iosClientId) return undefined
+    const suffix = '.apps.googleusercontent.com'
+    if (!iosClientId.endsWith(suffix)) return undefined
+    const clientPart = iosClientId.slice(0, -suffix.length)
+    if (!clientPart) return undefined
+    return `com.googleusercontent.apps.${clientPart}:/oauthredirect`
+  }, [iosClientId])
   const [request, response, promptAsync] = googleProviderModule
     ? googleProviderModule.useIdTokenAuthRequest({
         iosClientId: iosClientId || undefined,
         androidClientId: androidClientId || undefined,
         webClientId: webClientId || undefined,
         selectAccount: true,
-      }, nativeRedirectUri ? { native: nativeRedirectUri } : undefined)
+      }, iosNativeRedirectUri ? { native: iosNativeRedirectUri } : undefined)
     : [null, null, async () => null]
 
   const canUseDevTokenFallback = hasStaticDevToken()
@@ -134,7 +131,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       return (
         <YStack flex={1} items="center" justify="center" gap="$3">
           <ActivityIndicator />
-          <Text fontSize={12} color="$gray8">
+          <Text fontSize={12} color="$textSecondary">
             Checking session...
           </Text>
         </YStack>
@@ -151,7 +148,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           <Text fontSize={20} fontWeight="700">
             Sign In
           </Text>
-          <Text fontSize={12} color="$gray8" style={{ textAlign: 'center' }}>
+          <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
             Use your Google account to access your MyGuest v2 data.
           </Text>
         </YStack>
@@ -201,17 +198,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </Text>
         </PrimaryButton>
         {missingGoogleClientIds.length > 0 ? (
-          <Text fontSize={11} color="$gray8" style={{ textAlign: 'center' }}>
+          <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
             Missing {missingGoogleClientIds.join(', ')}.
           </Text>
         ) : null}
         {isNativeAuthBlockedInExpoGo ? (
-          <Text fontSize={11} color="$gray8" style={{ textAlign: 'center' }}>
+          <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
             Native Google sign-in is blocked in Expo Go. Use a development build.
           </Text>
         ) : null}
         {nativeGoogleUnavailable && googleProviderLoadError ? (
-          <Text fontSize={11} color="$gray8" style={{ textAlign: 'center' }}>
+          <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
             {googleProviderLoadError}
           </Text>
         ) : null}
@@ -234,13 +231,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <Text fontSize={18} fontWeight="700">
           Firebase Config Required
         </Text>
-        <Text fontSize={12} color="$gray8" style={{ textAlign: 'center' }}>
+        <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
           Add Firebase web config values in `.env` to enable login.
         </Text>
       </YStack>
       <YStack gap="$1.5" width="100%" maxW={520}>
         {missingFirebaseConfigKeys.map((key) => (
-          <Text key={key} fontSize={11} color="$gray8">
+          <Text key={key} fontSize={11} color="$textSecondary">
             - {key}
           </Text>
         ))}

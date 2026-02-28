@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'expo-router'
-import { ScrollView, Text, XStack, YStack, useTheme } from 'tamagui'
 import {
-  ArrowRight,
+  useEffect,
+  useMemo,
+  useRef,
+  useState } from 'react'
+import { Link } from 'expo-router'
+import { ScrollView,
+  Text,
+  XStack,
+  YStack,
+  useTheme } from 'tamagui'
+import { ArrowRight,
   CalendarDays,
   Check,
   GripVertical,
@@ -12,44 +19,59 @@ import {
   PlusCircle,
   UserPlus,
   X,
-} from '@tamagui/lucide-icons'
-import { Animated as RNAnimated } from 'react-native'
-import DraggableFlatList, {
-  type RenderItemParams,
-} from 'react-native-draggable-flatlist'
+  } from '@tamagui/lucide-icons'
+import { Animated as RNAnimated,
+  Pressable as RNPressable } from 'react-native'
+import DraggableFlatList,
+  { type RenderItemParams,
+  } from 'react-native-draggable-flatlist'
 import { SortableGrid } from 'components/ui/SortableGrid'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { ExpandableEditPanel } from 'components/ui/ExpandableEditPanel'
-import { GhostButton, ThemedSwitch } from 'components/ui/controls'
+import { GhostButton,
+  GlassOrbAction,
+  SectionDivider,
+  SurfaceCard,
+  ThemedHeadingText,
+  ThemedSwitch,
+  cardSurfaceProps,
+} from 'components/ui/controls'
+import { useThemePrefs } from 'components/ThemePrefs'
+import { useIsFocused } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   useAppointmentHistory,
   useClients,
   useColorAnalysisByClient,
-  useImagesByClient,
 } from 'components/data/queries'
 import { useOverviewStore } from 'components/state/overviewStore'
 import { formatDateByStyle } from 'components/utils/date'
+import { sortClientsByNewest } from 'components/utils/clientSort'
+import { toNativeColor } from 'components/utils/color'
+import { getServiceLabel, normalizeServiceName } from 'components/utils/services'
 import {
   useStudioStore,
   type OverviewSectionId,
   type QuickActionId,
 } from 'components/state/studioStore'
 
-const cardBorder = {
-  bg: '$gray1',
+const editPanelCardBorder = {
+  bg: '$surfaceCard',
   borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
+  borderColor: '$borderSubtle',
 } as const
 
 export default function TabOneScreen() {
   const insets = useSafeAreaInsets()
+  const isFocused = useIsFocused()
   const theme = useTheme()
+  const { aesthetic } = useThemePrefs()
+  const isCyberpunk = aesthetic === 'cyberpunk'
+  const isGlass = aesthetic === 'glass'
+  const sectionCardRadius = isCyberpunk ? 0 : isGlass ? 24 : 14
+  const controlRadius = isCyberpunk ? 0 : isGlass ? 20 : 10
+  const actionCardRadius = isCyberpunk ? 0 : isGlass ? 52 : 999
+  const iconBadgeRadius = isCyberpunk ? 0 : isGlass ? 16 : 10
   const showMetricEditor = useOverviewStore((state) => state.showMetricEditor)
   const showQuickActionEditor = useOverviewStore(
     (state) => state.showQuickActionEditor
@@ -73,9 +95,11 @@ export default function TabOneScreen() {
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
-  const { data: imagesByClient = {} } = useImagesByClient()
 
-  const recentClients = clients.slice(0, 3)
+  const recentClients = useMemo(
+    () => sortClientsByNewest(clients).slice(0, 3),
+    [clients]
+  )
   const recentHistory = useMemo(() => {
     return [...appointmentHistory]
       .filter((entry) => entry.date)
@@ -127,7 +151,14 @@ export default function TabOneScreen() {
     const serviceMix = (() => {
       const counts = entriesLastYear.reduce<Record<string, number>>(
         (acc, entry) => {
-          acc[entry.services] = (acc[entry.services] || 0) + 1
+          const normalizedLabels =
+            entry.serviceLabels?.map((label) => normalizeServiceName(label)).filter(Boolean) ?? []
+          const labels = normalizedLabels.length
+            ? normalizedLabels
+            : [normalizeServiceName(entry.services) || 'Service']
+          labels.forEach((label) => {
+            acc[label] = (acc[label] || 0) + 1
+          })
           return acc
         },
         {}
@@ -139,8 +170,11 @@ export default function TabOneScreen() {
     })()
 
     const colorCoverage = (() => {
-      const total = clients.length
-      const withColor = clients.filter((client) => {
+      const eligibleColorClients = clients.filter(
+        (client) => client.type === 'Color' || client.type === 'Cut & Color'
+      )
+      const total = eligibleColorClients.length
+      const withColor = eligibleColorClients.filter((client) => {
         const data = colorAnalysisByClient[client.id]
         if (!data) return false
         return Object.values(data).some((value) => value && value !== '—' && value !== 'Unknown')
@@ -150,9 +184,10 @@ export default function TabOneScreen() {
     })()
 
     const photoCoverage = (() => {
-      const total = clients.length
-      const withPhotos = clients.filter((client) => imagesByClient[client.id])
-        .length
+      const total = appointmentHistory.length
+      const withPhotos = appointmentHistory.filter(
+        (entry) => (entry.images?.length ?? 0) > 0
+      ).length
       const percent = total > 0 ? Math.round((withPhotos / total) * 100) : 0
       return `${percent}%`
     })()
@@ -166,9 +201,9 @@ export default function TabOneScreen() {
       { id: 'newClients90', label: 'New Clients (90d)', value: `${newClients90}` },
       { id: 'serviceMix', label: 'Top Service Mix', value: serviceMix },
       { id: 'colorCoverage', label: 'Color Chart Coverage', value: colorCoverage },
-      { id: 'photoCoverage', label: 'Photo Coverage', value: photoCoverage },
+      { id: 'photoCoverage', label: 'Photo Coverage (Logs)', value: photoCoverage },
     ]
-  }, [appointmentHistory, clients, colorAnalysisByClient, imagesByClient, activeCutoff])
+  }, [appointmentHistory, clients, colorAnalysisByClient, activeCutoff])
 
   type QuickAction = {
     id: QuickActionId
@@ -267,6 +302,9 @@ export default function TabOneScreen() {
   const [layoutDraft, setLayoutDraft] = useState<OverviewSectionId[]>(visibleSections)
   const [isQuickActionDragging, setIsQuickActionDragging] = useState(false)
   const layoutAnim = useRef(new RNAnimated.Value(showLayoutEditor ? 1 : 0)).current
+  const quickActionHintAnim = useRef(
+    new RNAnimated.Value(showQuickActionEditor ? 1 : 0)
+  ).current
 
   useEffect(() => {
     if (showLayoutEditor) {
@@ -282,6 +320,20 @@ export default function TabOneScreen() {
       useNativeDriver: true,
     }).start()
   }, [layoutAnim, showLayoutEditor])
+
+  useEffect(() => {
+    RNAnimated.timing(quickActionHintAnim, {
+      toValue: showQuickActionEditor ? 1 : 0,
+      duration: 170,
+      useNativeDriver: false,
+    }).start()
+  }, [quickActionHintAnim, showQuickActionEditor])
+
+  useEffect(() => {
+    if (isFocused || !showLayoutEditor) return
+    setLayoutDraft(visibleSections)
+    toggleLayoutEditor()
+  }, [isFocused, showLayoutEditor, toggleLayoutEditor, visibleSections])
 
   const handleSaveLayout = () => {
     const hiddenSections = sectionOrder.filter(
@@ -306,24 +358,34 @@ export default function TabOneScreen() {
   }
 
   const renderLayoutItem = ({ item, drag, isActive }: RenderItemParams<OverviewSectionId>) => (
-    <XStack
-      {...cardBorder}
-      rounded="$5"
-      px="$4"
-      py="$3"
-      my="$1"
-      items="center"
-      justify="space-between"
-      opacity={isActive ? 0.85 : 1}
-      onLongPress={drag}
-      pressStyle={{ opacity: 0.8 }}
-      overflow="visible"
-    >
-      <Text fontSize={14} fontWeight="600">
-        {sectionLabels[item] ?? item}
-      </Text>
-      <GripVertical size={18} color="$gray7" />
-    </XStack>
+    <RNPressable onLongPress={drag} delayLongPress={120}>
+      <XStack
+        {...cardSurfaceProps}
+        rounded={sectionCardRadius}
+        px="$4"
+        py="$3"
+        my="$1"
+        items="center"
+        justify="space-between"
+        opacity={isActive ? 0.85 : 1}
+        pressStyle={{ opacity: 0.8 }}
+        overflow="visible"
+      >
+        <Text fontSize={14} fontWeight="600">
+          {sectionLabels[item] ?? item}
+        </Text>
+        <XStack
+          width={28}
+          height={28}
+          rounded={isCyberpunk ? 0 : 8}
+          items="center"
+          justify="center"
+          onPressIn={drag}
+        >
+          <GripVertical size={18} color="$textMuted" />
+        </XStack>
+      </XStack>
+    </RNPressable>
   )
 
   const iconOpacity = layoutAnim.interpolate({
@@ -348,27 +410,51 @@ export default function TabOneScreen() {
     outputRange: [0, 14],
   })
 
-  const lineColor = theme.borderColor?.val ?? '#CBD5E1'
+  const lineColor = toNativeColor(theme.borderColor?.val, '#CBD5E1')
   const renderQuickActionCard = (
     action: QuickAction,
-    options?: {
-      draggable?: boolean
-      isDragging?: boolean
-      onPressIn?: () => void
-    }
+    options?: { isDragging?: boolean }
   ) => {
     const Icon = action.icon
     const isPrimary = action.variant === 'primary'
     const isSecondary = action.variant === 'secondary'
     const isDisabled = action.comingSoon
+
+    if (isGlass) {
+      return (
+        <YStack scale={options?.isDragging ? 0.97 : 1}>
+          <GlassOrbAction
+            label={action.label}
+            icon={<Icon size={24} />}
+            variant={action.variant}
+            disabled={Boolean(isDisabled)}
+          />
+        </YStack>
+      )
+    }
+
+    const backgroundColor = isPrimary ? '$buttonPrimaryBg' : '$surfaceCard'
+    const borderWidth = isPrimary ? 0 : 1
+    const borderColor = isPrimary ? 'transparent' : '$borderColor'
+    const iconColor = isPrimary
+      ? '$buttonPrimaryFg'
+      : isSecondary
+        ? '$accent'
+        : '$textSecondary'
+    const labelColor = isPrimary
+      ? '$buttonPrimaryFg'
+      : isSecondary
+        ? '$accent'
+        : '$textSecondary'
+
     return (
       <YStack
         width={140}
         aspectRatio={1}
-        rounded={999}
-        bg={isPrimary ? '$accent' : '$gray1'}
-        borderWidth={isPrimary ? 0 : 1}
-        borderColor={isPrimary ? 'transparent' : '$borderColor'}
+        rounded={actionCardRadius}
+        bg={backgroundColor}
+        borderWidth={borderWidth}
+        borderColor={borderColor}
         items="center"
         justify="center"
         gap="$2"
@@ -378,23 +464,19 @@ export default function TabOneScreen() {
         shadowOffset={{ width: 0, height: 8 }}
         elevation={isPrimary ? 4 : 3}
         opacity={isDisabled ? 0.55 : 1}
-        onPressIn={options?.onPressIn}
-        pressStyle={options?.draggable ? { opacity: 0.85 } : undefined}
+        pressStyle={{ opacity: 0.85 }}
         scale={options?.isDragging ? 0.97 : 1}
       >
-        <Icon
-          size={24}
-          color={isPrimary ? '$accentContrast' : isSecondary ? '$accent' : '$gray8'}
-        />
+        <Icon size={24} color={iconColor} />
         <Text
           fontSize={12}
-          color={isPrimary ? '$accentContrast' : isSecondary ? '$accent' : '$gray8'}
+          color={labelColor}
           style={{ textAlign: 'center' }}
         >
           {action.label}
         </Text>
         {isDisabled ? (
-          <Text fontSize={10} color="$gray7">
+          <Text fontSize={10} color="$textMuted">
             Coming soon
           </Text>
         ) : null}
@@ -406,7 +488,7 @@ export default function TabOneScreen() {
     <>
       {orderedQuickActions.map((action) => (
         <XStack key={action.id} items="center" justify="space-between">
-          <Text fontSize={12} color="$gray8">
+          <Text fontSize={12} color="$textSecondary">
             {action.label}
           </Text>
           <ThemedSwitch
@@ -424,7 +506,7 @@ export default function TabOneScreen() {
     <>
       {metrics.map((metric) => (
         <XStack key={metric.id} items="center" justify="space-between">
-          <Text fontSize={12} color="$gray8">
+          <Text fontSize={12} color="$textSecondary">
             {metric.label}
           </Text>
           <ThemedSwitch
@@ -439,30 +521,16 @@ export default function TabOneScreen() {
     </>
   )
 
-  const getServiceLabel = (serviceType: string, notes: string) => {
-    const normalizedService = (serviceType || '').trim()
-    if (normalizedService && normalizedService.toLowerCase() !== 'service') {
-      return normalizedService
-    }
-    const trimmed = (notes || '').trim()
-    if (!trimmed) return normalizedService || 'Service'
-    const firstLine = trimmed.split('\n')[0].trim()
-    if (!firstLine) return normalizedService || 'Service'
-    const colonIndex = firstLine.indexOf(':')
-    if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
-    return firstLine
-  }
-
   const renderSection = (id: string) => {
     // Overview sections are rendered from ids so the order can be customized
     // and persisted by the layout editor.
     if (id === 'quickActions') {
       return (
-        <YStack key={id} gap="$3">
-          <XStack items="center" justify="space-between">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+        <YStack key={id}>
+          <XStack items="center" justify="space-between" mb="$2">
+            <ThemedHeadingText fontWeight="700" fontSize={16}>
               Quick Actions
-            </Text>
+            </ThemedHeadingText>
             <GhostButton onPress={toggleQuickActionEditor}>
               {showQuickActionEditor ? 'Done' : 'Edit'}
             </GhostButton>
@@ -470,16 +538,30 @@ export default function TabOneScreen() {
           <ExpandableEditPanel
             visible={showQuickActionEditor}
             lineColor={lineColor}
-            cardProps={cardBorder}
+            cardProps={editPanelCardBorder}
           >
             {quickActionContent}
           </ExpandableEditPanel>
-          {showQuickActionEditor ? (
-            <Text fontSize={12} color="$gray8">
+          <RNAnimated.View
+            pointerEvents="none"
+            style={{
+              opacity: quickActionHintAnim,
+              height: quickActionHintAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 18],
+              }),
+              marginTop: quickActionHintAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 8],
+              }),
+              overflow: 'hidden',
+            }}
+          >
+            <Text fontSize={12} color="$textSecondary">
               Drag buttons to rearrange order.
             </Text>
-          ) : null}
-          <YStack minH={160} justify="center" items="center" width="100%">
+          </RNAnimated.View>
+          <YStack mt="$1" minH={160} justify="center" items="center" width="100%">
             {enabledQuickActions.length ? (
               <YStack
                 width="100%"
@@ -500,7 +582,6 @@ export default function TabOneScreen() {
                   renderItem={(item, isActive) => {
                     const isDisabled = item.comingSoon
                     const card = renderQuickActionCard(item, {
-                      draggable: showQuickActionEditor,
                       isDragging: isActive,
                     })
 
@@ -525,7 +606,7 @@ export default function TabOneScreen() {
                 />
               </YStack>
             ) : (
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 No quick actions selected.
               </Text>
             )}
@@ -536,11 +617,11 @@ export default function TabOneScreen() {
 
     if (id === 'metrics') {
       return (
-        <YStack key={id} gap="$3">
-          <XStack items="center" justify="space-between">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+        <YStack key={id}>
+          <XStack items="center" justify="space-between" mb="$2">
+            <ThemedHeadingText fontWeight="700" fontSize={16}>
               Metrics
-            </Text>
+            </ThemedHeadingText>
             <GhostButton onPress={toggleMetricEditor}>
               {showMetricEditor ? 'Done' : 'Edit'}
             </GhostButton>
@@ -548,29 +629,48 @@ export default function TabOneScreen() {
           <ExpandableEditPanel
             visible={showMetricEditor}
             lineColor={lineColor}
-            cardProps={cardBorder}
+            cardProps={editPanelCardBorder}
           >
             {metricContent}
           </ExpandableEditPanel>
-          <XStack gap="$3" flexWrap="wrap">
+          <XStack mt="$1" gap="$3" flexWrap="wrap">
             {metrics
               .filter((metric) => selectedMetrics.includes(metric.id))
               .map((metric) => (
-                <YStack
-                  key={metric.id}
-                  {...cardBorder}
-                  p="$4"
-                  rounded="$5"
-                  minW={140}
-                  flex={1}
-                >
-                  <Text fontSize={12} color="$gray8">
-                    {metric.label}
-                  </Text>
-                  <Text fontSize={18} fontWeight="700" color="$color">
-                    {metric.value}
-                  </Text>
-                </YStack>
+                isGlass ? (
+                  <SurfaceCard
+                    key={metric.id}
+                    tone="tabGlass"
+                    p="$4"
+                    gap="$1"
+                    rounded={sectionCardRadius}
+                    minW={140}
+                    flex={1}
+                  >
+                    <Text fontSize={12} color="$textSecondary">
+                      {metric.label}
+                    </Text>
+                    <Text fontSize={18} fontWeight="700" color="$color">
+                      {metric.value}
+                    </Text>
+                  </SurfaceCard>
+                ) : (
+                  <YStack
+                    key={metric.id}
+                    {...cardSurfaceProps}
+                    p="$4"
+                    rounded={sectionCardRadius}
+                    minW={140}
+                    flex={1}
+                  >
+                    <Text fontSize={12} color="$textSecondary">
+                      {metric.label}
+                    </Text>
+                    <Text fontSize={18} fontWeight="700" color="$color">
+                      {metric.value}
+                    </Text>
+                  </YStack>
+                )
               ))}
           </XStack>
         </YStack>
@@ -581,41 +681,67 @@ export default function TabOneScreen() {
       return (
         <YStack key={id} gap="$3">
           <XStack items="center" justify="space-between">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={16}>
               Pinned Clients
-            </Text>
+            </ThemedHeadingText>
           </XStack>
           {pinnedClients.length ? (
             <YStack gap="$3">
               {pinnedClients.slice(0, 3).map((client) => (
                 <Link key={client.id} href={`/client/${client.id}`} asChild>
-                  <XStack
-                    {...cardBorder}
-                    p="$4"
-                    rounded="$5"
-                    items="center"
-                    justify="space-between"
-                    gap="$3"
-                    pressStyle={{ opacity: 0.85 }}
-                  >
-                    <YStack>
-                      <Text fontSize={14} fontWeight="600">
-                        {client.name}
-                      </Text>
-                      <Text fontSize={12} color="$gray8">
-                        {client.type} • Last visit{' '}
-                        {formatDateByStyle(client.lastVisit, 'short', {
-                          todayLabel: true,
-                        })}
-                      </Text>
-                    </YStack>
-                    <ArrowRight size={14} color="$accent" />
-                  </XStack>
+                  {isGlass ? (
+                    <SurfaceCard
+                      tone="secondary"
+                      p="$4"
+                      rounded={sectionCardRadius}
+                      pressStyle={{ opacity: 0.85 }}
+                    >
+                      <XStack items="center" justify="space-between" gap="$3">
+                        <YStack>
+                          <Text fontSize={14} fontWeight="600">
+                            {client.name}
+                          </Text>
+                          <Text fontSize={12} color="$textSecondary">
+                            {client.type} • Last visit{' '}
+                            {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
+                              todayLabel: true,
+                              includeWeekday: appSettings.dateLongIncludeWeekday,
+                            })}
+                          </Text>
+                        </YStack>
+                        <ArrowRight size={14} color="$accent" />
+                      </XStack>
+                    </SurfaceCard>
+                  ) : (
+                    <XStack
+                      {...cardSurfaceProps}
+                      p="$4"
+                      rounded={sectionCardRadius}
+                      items="center"
+                      justify="space-between"
+                      gap="$3"
+                      pressStyle={{ opacity: 0.85 }}
+                    >
+                      <YStack>
+                        <Text fontSize={14} fontWeight="600">
+                          {client.name}
+                        </Text>
+                        <Text fontSize={12} color="$textSecondary">
+                          {client.type} • Last visit{' '}
+                          {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
+                            todayLabel: true,
+                            includeWeekday: appSettings.dateLongIncludeWeekday,
+                          })}
+                        </Text>
+                      </YStack>
+                      <ArrowRight size={14} color="$accent" />
+                    </XStack>
+                  )}
                 </Link>
               ))}
             </YStack>
           ) : (
-            <Text fontSize={12} color="$gray8">
+            <Text fontSize={12} color="$textSecondary">
               Pin clients from their profile to keep them handy here.
             </Text>
           )}
@@ -627,9 +753,9 @@ export default function TabOneScreen() {
       return (
         <YStack key={id} gap="$3">
           <XStack items="center" justify="space-between">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={16}>
               Recent Appointments
-            </Text>
+            </ThemedHeadingText>
             <Link href="/appointments" asChild>
               <XStack items="center" gap="$1">
                 <Text fontSize={12} color="$accent">
@@ -640,50 +766,99 @@ export default function TabOneScreen() {
             </Link>
           </XStack>
           <YStack gap="$3">
-            {recentHistory.map((entry) => {
+            {recentHistory.map((entry, entryIndex) => {
               const clientName =
                 clients.find((client) => client.id === entry.clientId)?.name ?? 'Client'
               return (
-                <Link key={entry.id} href={`/appointment/${entry.id}`} asChild>
-                  <XStack
-                    {...cardBorder}
-                    p="$4"
-                    rounded="$5"
-                    items="center"
-                    justify="space-between"
-                    gap="$3"
-                                                          >
-                    <XStack items="center" gap="$3">
-                      <XStack
-                        bg="$accentSoft"
-                        rounded="$4"
-                        p="$2.5"
-                        items="center"
-                        justify="center"
+                <YStack key={entry.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
+                  <Link href={`/appointment/${entry.id}`} asChild>
+                    {isGlass ? (
+                      <SurfaceCard
+                        tone="secondary"
+                        p="$4"
+                        rounded={sectionCardRadius}
                       >
-                        <CalendarDays size={18} color="$accent" />
-                      </XStack>
-                      <YStack gap="$1">
-                        <Text fontSize={14} fontWeight="600">
-                          {getServiceLabel(entry.services, entry.notes)}
-                        </Text>
-                        <XStack items="center" gap="$2">
-                          <Text fontSize={12} color="$gray8">
-                            {clientName}
-                          </Text>
-                          <Text fontSize={11} color="$gray8">
-                            {formatDateByStyle(entry.date, 'short', {
-                              todayLabel: true,
-                            })}
+                        <XStack items="center" justify="space-between" gap="$3">
+                          <XStack items="center" gap="$3">
+                            <XStack
+                              bg="$accentSoft"
+                              rounded={iconBadgeRadius}
+                              p="$2.5"
+                              items="center"
+                              justify="center"
+                            >
+                              <CalendarDays size={18} color="$accent" />
+                            </XStack>
+                            <YStack gap="$1">
+                              <Text fontSize={14} fontWeight="600">
+                                {getServiceLabel(entry.services, entry.notes)}
+                              </Text>
+                              <XStack items="center" gap="$2">
+                                <Text fontSize={12} color="$textSecondary">
+                                  {clientName}
+                                </Text>
+                                <Text fontSize={11} color="$textSecondary">
+                                  {formatDateByStyle(entry.date, appSettings.dateDisplayFormat, {
+                                    todayLabel: true,
+                                    includeWeekday: appSettings.dateLongIncludeWeekday,
+                                  })}
+                                </Text>
+                              </XStack>
+                            </YStack>
+                          </XStack>
+                          <Text fontSize={12} color="$textMuted">
+                            ${entry.price}
                           </Text>
                         </XStack>
-                      </YStack>
-                    </XStack>
-                    <Text fontSize={12} color="$gray9">
-                      ${entry.price}
-                    </Text>
-                  </XStack>
-                </Link>
+                      </SurfaceCard>
+                    ) : (
+                      <XStack
+                        {...cardSurfaceProps}
+                        p="$4"
+                        rounded={sectionCardRadius}
+                        items="center"
+                        justify="space-between"
+                        gap="$3"
+                      >
+                        <XStack items="center" gap="$3">
+                          <XStack
+                            bg="$accentSoft"
+                            rounded={iconBadgeRadius}
+                            p="$2.5"
+                            items="center"
+                            justify="center"
+                          >
+                            <CalendarDays size={18} color="$accent" />
+                          </XStack>
+                          <YStack gap="$1">
+                            <Text fontSize={14} fontWeight="600">
+                              {getServiceLabel(entry.services, entry.notes)}
+                            </Text>
+                            <XStack items="center" gap="$2">
+                              <Text fontSize={12} color="$textSecondary">
+                                {clientName}
+                              </Text>
+                              <Text fontSize={11} color="$textSecondary">
+                                {formatDateByStyle(entry.date, appSettings.dateDisplayFormat, {
+                                  todayLabel: true,
+                                  includeWeekday: appSettings.dateLongIncludeWeekday,
+                                })}
+                              </Text>
+                            </XStack>
+                          </YStack>
+                        </XStack>
+                        <Text fontSize={12} color="$textMuted">
+                          ${entry.price}
+                        </Text>
+                      </XStack>
+                    )}
+                  </Link>
+                  {aesthetic === 'modern' && entryIndex < recentHistory.length - 1 ? (
+                    <YStack items="center">
+                      <SectionDivider width="88%" />
+                    </YStack>
+                  ) : null}
+                </YStack>
               )
             })}
           </YStack>
@@ -695,9 +870,9 @@ export default function TabOneScreen() {
       return (
         <YStack key={id} gap="$3">
           <XStack items="center" justify="space-between">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={16}>
               Recent Clients
-            </Text>
+            </ThemedHeadingText>
             <Link href="/recent-clients" asChild>
               <XStack items="center" gap="$1">
                 <Text fontSize={12} color="$accent">
@@ -708,29 +883,60 @@ export default function TabOneScreen() {
             </Link>
           </XStack>
           <YStack gap="$3">
-            {recentClients.map((client) => (
-              <Link key={client.id} href={`/client/${client.id}`} asChild>
-                <XStack
-                  {...cardBorder}
-                  p="$4"
-                  rounded="$5"
-                  items="center"
-                  justify="space-between"
-                  gap="$3"
-                >
-                  <YStack>
-                    <Text fontSize={14} fontWeight="600">
-                      {client.name}
-                    </Text>
-                    <Text fontSize={12} color="$gray8">
-                      {client.type} • Last visit{' '}
-                      {formatDateByStyle(client.lastVisit, 'short', {
-                        todayLabel: true,
-                      })}
-                    </Text>
+            {recentClients.map((client, clientIndex) => (
+              <YStack key={client.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
+                <Link href={`/client/${client.id}`} asChild>
+                  {isGlass ? (
+                    <SurfaceCard
+                      tone="secondary"
+                      p="$4"
+                      rounded={sectionCardRadius}
+                    >
+                      <XStack items="center" justify="space-between" gap="$3">
+                        <YStack>
+                          <Text fontSize={14} fontWeight="600">
+                            {client.name}
+                          </Text>
+                          <Text fontSize={12} color="$textSecondary">
+                            {client.type} • Last visit{' '}
+                            {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
+                              todayLabel: true,
+                              includeWeekday: appSettings.dateLongIncludeWeekday,
+                            })}
+                          </Text>
+                        </YStack>
+                      </XStack>
+                    </SurfaceCard>
+                  ) : (
+                    <XStack
+                      {...cardSurfaceProps}
+                      p="$4"
+                      rounded={sectionCardRadius}
+                      items="center"
+                      justify="space-between"
+                      gap="$3"
+                    >
+                      <YStack>
+                        <Text fontSize={14} fontWeight="600">
+                          {client.name}
+                        </Text>
+                        <Text fontSize={12} color="$textSecondary">
+                          {client.type} • Last visit{' '}
+                          {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
+                            todayLabel: true,
+                            includeWeekday: appSettings.dateLongIncludeWeekday,
+                          })}
+                        </Text>
+                      </YStack>
+                    </XStack>
+                  )}
+                </Link>
+                {aesthetic === 'modern' && clientIndex < recentClients.length - 1 ? (
+                  <YStack items="center">
+                    <SectionDivider width="88%" />
                   </YStack>
-                </XStack>
-              </Link>
+                ) : null}
+              </YStack>
             ))}
           </YStack>
         </YStack>
@@ -746,7 +952,7 @@ export default function TabOneScreen() {
       {showLayoutEditor ? (
         <YStack px="$5" pt="$6" gap="$5">
           <YStack gap="$3">
-            <Text fontSize={12} color="$gray8">
+            <Text fontSize={12} color="$textSecondary">
               Hold and drag to reorder your Overview sections.
             </Text>
             <DraggableFlatList
@@ -755,7 +961,7 @@ export default function TabOneScreen() {
               renderItem={renderLayoutItem}
               onDragEnd={({ data }) => setLayoutDraft(data)}
               scrollEnabled={false}
-              activationDistance={10}
+              activationDistance={2}
               style={{ overflow: 'visible' }}
               contentContainerStyle={{ paddingVertical: 4 }}
             />
@@ -767,7 +973,14 @@ export default function TabOneScreen() {
           scrollEnabled={!showQuickActionEditor && !isQuickActionDragging}
         >
           <YStack px="$5" pt="$6" gap="$5">
-            {visibleSections.map((sectionId) => renderSection(sectionId))}
+            {visibleSections.map((sectionId, index) => (
+              <YStack key={sectionId} gap="$3">
+                {renderSection(sectionId)}
+                {aesthetic === 'modern' && index < visibleSections.length - 1 ? (
+                  <SectionDivider />
+                ) : null}
+              </YStack>
+            ))}
             <YStack items="center" pt="$2" pb="$2">
               <YStack height={52} items="center" justify="center" position="relative">
                 <RNAnimated.View
@@ -777,8 +990,8 @@ export default function TabOneScreen() {
                   <XStack
                     width={44}
                     height={44}
-                    rounded={999}
-                    bg="$gray1"
+                    rounded={controlRadius}
+                    bg="$surfaceCard"
                     borderWidth={1}
                     borderColor="$borderColor"
                     items="center"
@@ -813,26 +1026,26 @@ export default function TabOneScreen() {
             <XStack gap="$2">
               <RNAnimated.View style={{ transform: [{ translateX: leftTranslate }] }}>
                 <XStack
-                  rounded="$4"
+                  rounded={controlRadius}
                   px="$4"
                   py="$2.5"
                   borderWidth={1}
                   borderColor="$borderColor"
-                  bg="$gray1"
+                  bg="$surfaceCard"
                   items="center"
                   gap="$2"
                   pressStyle={{ opacity: 0.7 }}
                   onPress={handleCancelLayout}
                 >
-                  <X size={14} color="$gray8" />
-                  <Text fontSize={12} color="$gray8">
+                  <X size={14} color="$textSecondary" />
+                  <Text fontSize={12} color="$textSecondary">
                     Cancel
                   </Text>
                 </XStack>
               </RNAnimated.View>
               <RNAnimated.View style={{ transform: [{ translateX: rightTranslate }] }}>
                 <XStack
-                  rounded="$4"
+                  rounded={controlRadius}
                   px="$4"
                   py="$2.5"
                   bg="$accent"

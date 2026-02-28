@@ -1,7 +1,6 @@
 import '../tamagui.generated.css'
 
-import { useEffect } from 'react'
-import { StatusBar } from 'expo-status-bar'
+import { useEffect, useMemo } from 'react'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
 import { SplashScreen, Stack } from 'expo-router'
@@ -10,6 +9,7 @@ import { Provider } from 'components/Provider'
 import { useTheme } from 'tamagui'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { AuthGate } from 'components/auth/AuthGate'
+import { toNativeColor } from 'components/utils/color'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -28,6 +28,7 @@ export default function RootLayout() {
   const [interLoaded, interError] = useFonts({
     Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
     InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
 
   useEffect(() => {
@@ -57,17 +58,54 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
 
 function RootLayoutNav() {
   const theme = useTheme()
-  const { mode } = useThemePrefs()
-  const background = theme.background?.val ?? '#F8F8F8'
+  const { mode, aesthetic } = useThemePrefs()
+  const pageBackground = toNativeColor(theme.surfacePage?.val, '#F8F8F8')
+  const chromeBackground = toNativeColor(theme.chromeBackground?.val, '#F8F8F8')
+  const chromeTint = toNativeColor(theme.textPrimary?.val, '#0A0A0A')
+  const headingFontFamily = aesthetic === 'cyberpunk' ? 'SpaceMono' : 'Inter'
+  const navigationTheme = useMemo(() => {
+    const base = mode === 'dark' ? DarkTheme : DefaultTheme
+    const primary = toNativeColor(theme.accent?.val, base.colors.primary)
+    const border = toNativeColor(theme.surfacePanelBorder?.val, base.colors.border)
+    return {
+      ...base,
+      dark: mode === 'dark',
+      colors: {
+        ...base.colors,
+        primary,
+        background: pageBackground,
+        card: chromeBackground,
+        border,
+        text: chromeTint,
+        notification: primary,
+      },
+    }
+  }, [chromeBackground, chromeTint, mode, pageBackground, theme.accent?.val, theme.surfacePanelBorder?.val])
+
   return (
-    <ThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+    <ThemeProvider value={navigationTheme}>
       <AuthGate>
         {/* Central navigation map for all top-level routes and modals. */}
         <Stack
           screenOptions={{
+            animation: 'none',
             gestureEnabled: true,
             gestureDirection: 'horizontal',
+            headerBackTitle: '',
+            headerBackButtonDisplayMode: 'minimal',
+            headerStyle: {
+              backgroundColor: chromeBackground,
+            },
+            headerShadowVisible: false,
+            headerTintColor: chromeTint,
+            headerTitleStyle: {
+              fontFamily: headingFontFamily,
+              fontSize: 16,
+              fontWeight: '600',
+            },
+            contentStyle: {
+              backgroundColor: pageBackground,
+            },
           }}
         >
           <Stack.Screen
@@ -81,7 +119,7 @@ function RootLayoutNav() {
             name="client/[id]"
             options={{
               title: 'Client Details',
-              headerBackTitle: 'Clients',
+              headerShown: false,
             }}
           />
 
@@ -89,7 +127,7 @@ function RootLayoutNav() {
             name="client/[id]/new-appointment"
             options={{
               title: 'New Appointment Log',
-              headerBackTitle: 'Client',
+              headerShown: false,
             }}
           />
 
@@ -97,7 +135,20 @@ function RootLayoutNav() {
             name="client/[id]/edit"
             options={{
               title: 'Edit Client',
-              headerBackTitle: 'Client',
+            }}
+          />
+
+          <Stack.Screen
+            name="client/[id]/color-chart/index"
+            options={{
+              title: 'Color Chart',
+            }}
+          />
+
+          <Stack.Screen
+            name="client/[id]/color-chart/edit"
+            options={{
+              title: 'Edit Color Chart',
             }}
           />
 
@@ -105,7 +156,6 @@ function RootLayoutNav() {
             name="clients/new"
             options={{
               title: 'New Client',
-              headerBackTitle: 'Clients',
             }}
           />
 
@@ -113,7 +163,6 @@ function RootLayoutNav() {
             name="appointments"
             options={{
               title: 'Appointment History',
-              headerBackTitle: 'Overview',
             }}
           />
 
@@ -121,7 +170,7 @@ function RootLayoutNav() {
             name="appointments/new"
             options={{
               title: 'New Appointment Log',
-              headerBackTitle: 'Overview',
+              headerShown: false,
             }}
           />
 
@@ -129,7 +178,6 @@ function RootLayoutNav() {
             name="recent-clients"
             options={{
               title: 'Recent Clients',
-              headerBackTitle: 'Overview',
             }}
           />
 
@@ -137,7 +185,7 @@ function RootLayoutNav() {
             name="appointment/[id]"
             options={{
               title: 'Appointment',
-              headerBackTitle: 'History',
+              headerShown: false,
             }}
           />
 
@@ -145,7 +193,6 @@ function RootLayoutNav() {
             name="appointment/[id]/edit"
             options={{
               title: 'Edit Appointment Log',
-              headerBackTitle: 'Appointment',
             }}
           />
 
@@ -153,7 +200,7 @@ function RootLayoutNav() {
             name="settings"
             options={{
               title: 'App Settings',
-              headerBackTitle: 'Profile',
+              headerShown: false,
             }}
           />
 
@@ -166,7 +213,7 @@ function RootLayoutNav() {
               gestureEnabled: true,
               gestureDirection: 'horizontal',
               contentStyle: {
-                backgroundColor: background,
+                backgroundColor: pageBackground,
               },
             }}
           />

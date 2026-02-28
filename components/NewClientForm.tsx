@@ -5,29 +5,17 @@ import { Alert } from 'react-native'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import {
   ErrorPulseBorder,
+  FieldLabel,
+  OptionChip,
+  OptionChipLabel,
   PrimaryButton,
   SecondaryButton,
+  SurfaceCard,
   TextAreaField,
   TextField,
+  ThemedHeadingText,
 } from './ui/controls'
 import { useCreateClient } from './data/queries'
-
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
-
-const chipStyle = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-} as const
 
 type ClientType = 'Cut' | 'Color' | 'Cut & Color'
 
@@ -118,16 +106,14 @@ export function NewClientForm() {
       }}
     >
       <YStack gap="$4">
-        <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+        <SurfaceCard p="$4" gap="$3">
           <YStack
             gap="$2"
             onLayout={(event) => {
               requiredY.current.firstName = event.nativeEvent.layout.y
             }}
           >
-            <Text fontSize={12} color="$gray8">
-              First name
-            </Text>
+            <FieldLabel>First name</FieldLabel>
             <YStack position="relative" pointerEvents="box-none">
               <TextField
                 placeholder="First name"
@@ -135,7 +121,7 @@ export function NewClientForm() {
                 onChangeText={(text) =>
                   setForm((prev) => ({ ...prev, firstName: text }))
                 }
-                borderColor={showFirstNameError ? '$red10' : '$gray3'}
+                borderColor={showFirstNameError ? '$red10' : '$borderSubtle'}
               />
               <ErrorPulseBorder active={showFirstNameError} pulseKey={pulseKey} />
             </YStack>
@@ -151,9 +137,7 @@ export function NewClientForm() {
               requiredY.current.lastName = event.nativeEvent.layout.y
             }}
           >
-            <Text fontSize={12} color="$gray8">
-              Last name
-            </Text>
+            <FieldLabel>Last name</FieldLabel>
             <YStack position="relative" pointerEvents="box-none">
               <TextField
                 placeholder="Last name"
@@ -161,7 +145,7 @@ export function NewClientForm() {
                 onChangeText={(text) =>
                   setForm((prev) => ({ ...prev, lastName: text }))
                 }
-                borderColor={showLastNameError ? '$red10' : '$gray3'}
+                borderColor={showLastNameError ? '$red10' : '$borderSubtle'}
               />
               <ErrorPulseBorder active={showLastNameError} pulseKey={pulseKey} />
             </YStack>
@@ -172,9 +156,7 @@ export function NewClientForm() {
             ) : null}
           </YStack>
           <YStack gap="$2">
-            <Text fontSize={12} color="$gray8">
-              Email
-            </Text>
+            <FieldLabel>Email</FieldLabel>
             <TextField
               placeholder="email@example.com"
               keyboardType="email-address"
@@ -183,9 +165,7 @@ export function NewClientForm() {
             />
           </YStack>
           <YStack gap="$2">
-            <Text fontSize={12} color="$gray8">
-              Phone
-            </Text>
+            <FieldLabel>Phone</FieldLabel>
             <TextField
               placeholder="(555) 555-5555"
               keyboardType="phone-pad"
@@ -194,9 +174,7 @@ export function NewClientForm() {
             />
           </YStack>
           <YStack gap="$2">
-            <Text fontSize={12} color="$gray8">
-              Birthday
-            </Text>
+            <FieldLabel>Birthday</FieldLabel>
             <TextField
               placeholder="YYYY-MM-DD"
               value={form.birthday}
@@ -205,46 +183,37 @@ export function NewClientForm() {
               }
             />
           </YStack>
-        </YStack>
+        </SurfaceCard>
 
-        <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
-          <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+        <SurfaceCard p="$4" gap="$3">
+          <ThemedHeadingText fontWeight="700" fontSize={14}>
             Client Type
-          </Text>
+          </ThemedHeadingText>
           <XStack gap="$2" flexWrap="wrap">
             {(['Cut', 'Color', 'Cut & Color'] as const).map((type) => (
-              <XStack
+              <OptionChip
                 key={type}
-                {...chipStyle}
-                rounded="$3"
-                px="$2.5"
-                py="$1.5"
-                items="center"
-                bg={clientType === type ? '$accentMuted' : '$background'}
-                borderColor={clientType === type ? '$accentSoft' : '$borderColor'}
+                active={clientType === type}
                 onPress={() => setClientType(type)}
               >
-                <Text
-                  fontSize={11}
-                  color={clientType === type ? '$accent' : '$gray8'}
-                >
+                <OptionChipLabel active={clientType === type}>
                   {type}
-                </Text>
-              </XStack>
+                </OptionChipLabel>
+              </OptionChip>
             ))}
           </XStack>
-        </YStack>
+        </SurfaceCard>
 
-        <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
-          <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+        <SurfaceCard p="$4" gap="$3">
+          <ThemedHeadingText fontWeight="700" fontSize={14}>
             Notes
-          </Text>
+          </ThemedHeadingText>
           <TextAreaField
             placeholder="Client preferences, formulas, reminders..."
             value={form.notes}
             onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
           />
-        </YStack>
+        </SurfaceCard>
 
         <XStack gap="$3">
           <Link href="/(tabs)/clients" asChild>

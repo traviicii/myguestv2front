@@ -1,35 +1,26 @@
-import { useMemo, useRef, useState } from 'react'
-import { useRouter, useLocalSearchParams } from 'expo-router'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
+import {
+  useMemo,
+  useRef,
+  useState } from 'react'
+import { useRouter,
+  useLocalSearchParams } from 'expo-router'
+import { ScrollView,
+  Text,
+  XStack,
+  YStack } from 'tamagui'
 import { useQueryClient } from '@tanstack/react-query'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useClients } from 'components/data/queries'
-import {
-  ErrorPulseBorder,
+import { ErrorPulseBorder,
   PrimaryButton,
   SecondaryButton,
   SectionDivider,
   TextAreaField,
   TextField,
+  cardSurfaceProps,
+  chipSurfaceProps,
 } from 'components/ui/controls'
 import type { ClientType } from 'components/mockData'
-
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
-
-const chipStyle = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-} as const
 
 const normalizeType = (value: string, fallback: ClientType) => {
   const trimmed = value.trim()
@@ -90,7 +81,7 @@ export default function EditClientScreen() {
   if (!client) {
     return (
       <YStack flex={1} bg="$background" items="center" justify="center">
-        <Text fontSize={13} color="$gray8">
+        <Text fontSize={13} color="$textSecondary">
           Client not found.
         </Text>
       </YStack>
@@ -139,21 +130,21 @@ export default function EditClientScreen() {
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
               Edit Client
             </Text>
-            <Text fontSize={12} color="$gray8">
+            <Text fontSize={12} color="$textSecondary">
               Update contact info and client notes.
             </Text>
           </YStack>
 
           <SectionDivider />
 
-          <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+          <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$3">
             <YStack
               gap="$2"
               onLayout={(event) => {
                 requiredY.current.name = event.nativeEvent.layout.y
               }}
             >
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Name
               </Text>
               <YStack position="relative">
@@ -162,7 +153,7 @@ export default function EditClientScreen() {
                   onChangeText={(text) =>
                     setForm((prev) => ({ ...prev, name: text }))
                   }
-                  borderColor={showNameError ? '$red10' : '$gray3'}
+                  borderColor={showNameError ? '$red10' : '$borderSubtle'}
                 />
                 <ErrorPulseBorder active={showNameError} pulseKey={pulseKey} />
               </YStack>
@@ -173,7 +164,7 @@ export default function EditClientScreen() {
               ) : null}
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Email
               </Text>
               <TextField
@@ -182,7 +173,7 @@ export default function EditClientScreen() {
               />
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Phone
               </Text>
               <TextField
@@ -191,14 +182,14 @@ export default function EditClientScreen() {
               />
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Client Type
               </Text>
               <XStack gap="$2" flexWrap="wrap">
                 {typeOptions.map((type) => (
                   <XStack
                     key={type}
-                    {...chipStyle}
+                    {...chipSurfaceProps}
                     rounded="$3"
                     px="$3"
                     py="$2"
@@ -207,7 +198,7 @@ export default function EditClientScreen() {
                     borderColor={form.type === type ? '$accentSoft' : '$borderColor'}
                     onPress={() => setForm((prev) => ({ ...prev, type }))}
                   >
-                    <Text fontSize={12} color={form.type === type ? '$accent' : '$gray8'}>
+                    <Text fontSize={12} color={form.type === type ? '$accent' : '$textSecondary'}>
                       {type}
                     </Text>
                   </XStack>
@@ -215,7 +206,7 @@ export default function EditClientScreen() {
               </XStack>
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Tag
               </Text>
               <TextField
@@ -229,7 +220,7 @@ export default function EditClientScreen() {
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Notes
             </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4">
+            <YStack {...cardSurfaceProps} rounded="$5" p="$4">
               <TextAreaField
                 value={form.notes}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}

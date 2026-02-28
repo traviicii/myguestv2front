@@ -12,7 +12,7 @@ export default function NewClientScreen() {
           <Text fontFamily="$heading" fontWeight="600" fontSize={18} color="$color">
             New Client
           </Text>
-          <Text fontSize={12} color="$gray8">
+          <Text fontSize={12} color="$textSecondary">
             Add client details to keep their history and formulas organized.
           </Text>
         </YStack>

@@ -1,64 +1,78 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, Stack, useLocalSearchParams } from 'expo-router'
-import { CalendarDays, ChevronLeft, ChevronRight, UserRound, X } from '@tamagui/lucide-icons'
-import { Animated, Easing, Image, Modal, Pressable, ScrollView as RNScrollView } from 'react-native'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
+import {
+  useEffect,
+  useRef,
+  useState } from 'react'
+import { Link,
+  useLocalSearchParams,
+  useRouter } from 'expo-router'
+import { CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  UserRound,
+  X } from '@tamagui/lucide-icons'
+import { Animated,
+  Easing,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView as RNScrollView } from 'react-native'
+import { ScrollView,
+  Text,
+  XStack,
+  YStack } from 'tamagui'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
-import { useAppointmentHistory, useClients } from 'components/data/queries'
+import { useThemePrefs } from 'components/ThemePrefs'
+import { useAppointmentHistory,
+  useClients } from 'components/data/queries'
 import { formatDateByStyle } from 'components/utils/date'
-import { SectionDivider } from 'components/ui/controls'
+import { getServiceLabel } from 'components/utils/services'
+import { SecondaryButton,
+  SectionDivider,
+  SurfaceCard,
+  cardSurfaceProps,
+} from 'components/ui/controls'
 import { useStudioStore } from 'components/state/studioStore'
 
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
-
-const getServiceLabel = (serviceType: string, notes: string) => {
-  const normalizedService = (serviceType || '').trim()
-  if (normalizedService && normalizedService.toLowerCase() !== 'service') {
-    return normalizedService
-  }
-  const trimmed = (notes || '').trim()
-  if (!trimmed) return normalizedService || 'Service'
-  const firstLine = trimmed.split('\n')[0].trim()
-  if (!firstLine) return normalizedService || 'Service'
-  const colonIndex = firstLine.indexOf(':')
-  if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
-  return firstLine
-}
-
 export default function AppointmentDetailScreen() {
+  const { aesthetic } = useThemePrefs()
+  const isCyberpunk = aesthetic === 'cyberpunk'
+  const isGlass = aesthetic === 'glass'
+  const cardRadius = isCyberpunk ? 0 : isGlass ? 24 : 14
+  const thumbRadius = isCyberpunk ? 0 : isGlass ? 14 : 8
+  const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: appointmentHistory = [] } = useAppointmentHistory()
-  const { data: clients = [] } = useClients()
+  const appointmentId = typeof id === 'string' ? id : ''
+  const { data: appointmentHistory = [], isLoading: historyLoading } =
+    useAppointmentHistory()
+  const { data: clients = [], isLoading: clientsLoading } = useClients()
   const appSettings = useStudioStore((state) => state.appSettings)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [showPreviewControls, setShowPreviewControls] = useState(true)
   const [previewWidth, setPreviewWidth] = useState(0)
   const previewScrollRef = useRef<RNScrollView | null>(null)
   const controlsOpacity = useRef(new Animated.Value(1)).current
-
-  const appointment = appointmentHistory.find((item) => item.id === id)
-  if (!appointment) {
-    return (
-      <YStack flex={1} bg="$background" items="center" justify="center">
-        <Text fontSize={13} color="$gray8">
-          Appointment not found.
-        </Text>
+  const topInset = Math.max(insets.top + 8, 16)
+  const isBootstrapping = (historyLoading || clientsLoading) && !appointmentHistory.length
+  const GlassCard = ({
+    children,
+    ...props
+  }: React.ComponentProps<typeof YStack>) =>
+    isGlass ? (
+      <SurfaceCard mode="alwaysCard" tone="secondary" gap="$0" {...props}>
+        {children}
+      </SurfaceCard>
+    ) : (
+      <YStack {...cardSurfaceProps} {...props}>
+        {children}
       </YStack>
     )
-  }
 
+  const appointment = appointmentHistory.find((item) => item.id === id)
   const client =
-    clients.find((item) => item.id === appointment.clientId) ?? clients[0]
-  const images = appointment.images ?? []
+    clients.find((item) => item.id === appointment?.clientId) ?? clients[0]
+  const images = appointment?.images ?? []
   const canGoPrev = previewIndex !== null && previewIndex > 0
   const canGoNext = previewIndex !== null && previewIndex < images.length - 1
 
@@ -92,48 +106,82 @@ export default function AppointmentDetailScreen() {
 
   return (
     <YStack flex={1} bg="$background" position="relative">
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <Link href={`/appointment/${appointment.id}/edit`} asChild>
-              <XStack
-                px="$3"
-                py="$1.5"
-                items="center"
-                justify="center"
-                pressStyle={{ opacity: 0.7 }}
-              >
-                <Text fontSize={13} color="$accent" fontWeight="600">
-                  Edit
-                </Text>
-              </XStack>
-            </Link>
-          ),
-        }}
-      />
       <AmbientBackdrop />
+      <XStack
+        px="$5"
+        pt={topInset}
+        pb="$2"
+        items="center"
+        justify="space-between"
+      >
+        <SecondaryButton
+          size="$2"
+          height={36}
+          width={38}
+          px="$2"
+          icon={<ChevronLeft size={16} />}
+          onPress={() => router.back()}
+        />
+        {appointmentId ? (
+          <SecondaryButton
+            size="$2"
+            height={36}
+            width={72}
+            px="$3"
+            onPress={() => router.push(`/appointment/${appointmentId}/edit`)}
+          >
+            <Text
+              fontSize={12}
+              lineHeight={14}
+              fontWeight="700"
+              letterSpacing={isCyberpunk ? 0.8 : 0}
+              textTransform={isCyberpunk ? 'uppercase' : undefined}
+              style={isCyberpunk ? ({ fontFamily: 'SpaceMono' } as any) : undefined}
+              color="$buttonSecondaryFg"
+            >
+              Edit
+            </Text>
+          </SecondaryButton>
+        ) : (
+          <YStack width={72} />
+        )}
+      </XStack>
+      {isBootstrapping ? (
+        <YStack flex={1} items="center" justify="center" bg="$background">
+          <Text fontSize={13} color="$textSecondary">
+            Loading appointment...
+          </Text>
+        </YStack>
+      ) : !appointment ? (
+        <YStack flex={1} items="center" justify="center" bg="$background">
+          <Text fontSize={13} color="$textSecondary">
+            Appointment not found.
+          </Text>
+        </YStack>
+      ) : (
+        <>
       <ScrollView contentContainerStyle={{ pb: "$10" }}>
-        <YStack px="$5" pt="$6" gap="$4">
+        <YStack px="$5" pt="$3" gap="$4">
           <YStack gap="$2">
             <Text fontSize={20} fontWeight="700">
               {getServiceLabel(appointment.services, appointment.notes)}
             </Text>
             <XStack items="center" gap="$2">
-              <CalendarDays size={14} color="$gray8" />
-              <Text fontSize={12} color="$gray8">
-                {formatDateByStyle(appointment.date, appSettings.dateDisplayFormat, {
-                  todayLabel: true,
-                  includeWeekday: appSettings.dateLongIncludeWeekday,
-                })}
+              <CalendarDays size={14} color="$textSecondary" />
+              <Text fontSize={12} color="$textSecondary">
+              {formatDateByStyle(appointment.date, appSettings.dateDisplayFormat, {
+                todayLabel: true,
+                includeWeekday: appSettings.dateLongIncludeWeekday,
+              })}
               </Text>
             </XStack>
           </YStack>
 
           <SectionDivider />
 
-          <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+          <GlassCard rounded={cardRadius} p="$4" gap="$3">
             <XStack items="center" justify="space-between">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Service
               </Text>
               <Text fontSize={12}>
@@ -141,35 +189,35 @@ export default function AppointmentDetailScreen() {
               </Text>
             </XStack>
             <XStack items="center" justify="space-between">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Price
               </Text>
               <Text fontSize={12}>${appointment.price}</Text>
             </XStack>
             <XStack items="center" justify="space-between">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Client
               </Text>
               <Text fontSize={12}>{client?.name ?? 'Client'}</Text>
             </XStack>
-          </YStack>
+          </GlassCard>
 
           <YStack gap="$3">
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Formula / Notes
             </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4">
-              <Text fontSize={12} color="$gray8">
+            <GlassCard rounded={cardRadius} p="$4">
+              <Text fontSize={12} color="$textSecondary">
                 {appointment.notes || 'No notes recorded.'}
               </Text>
-            </YStack>
+            </GlassCard>
           </YStack>
 
           <YStack gap="$3">
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Photos
             </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4">
+            <GlassCard rounded={cardRadius} p="$4">
               {images.length ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <XStack gap="$2">
@@ -178,7 +226,7 @@ export default function AppointmentDetailScreen() {
                         key={`${uri}-${index}`}
                         width={72}
                         height={72}
-                        rounded="$4"
+                        rounded={thumbRadius}
                         overflow="hidden"
                         onPress={() => setPreviewIndex(index)}
                         cursor="pointer"
@@ -190,27 +238,25 @@ export default function AppointmentDetailScreen() {
                   </XStack>
                 </ScrollView>
               ) : (
-                <Text fontSize={12} color="$gray8">
+                <Text fontSize={12} color="$textSecondary">
                   No photos added yet.
                 </Text>
               )}
-            </YStack>
+            </GlassCard>
           </YStack>
 
           <Link href={`/client/${appointment.clientId}`} asChild>
-            <XStack
-              {...cardBorder}
-              rounded="$5"
+            <GlassCard
+              rounded={cardRadius}
               p="$4"
-              items="center"
-              gap="$2"
-              justify="center"
             >
-              <UserRound size={16} color="$accent" />
-              <Text fontSize={13} color="$accent">
-                View Client
-              </Text>
-            </XStack>
+              <XStack items="center" gap="$2" justify="center">
+                <UserRound size={16} color="$accent" />
+                <Text fontSize={13} color="$accent">
+                  View Client
+                </Text>
+              </XStack>
+            </GlassCard>
           </Link>
         </YStack>
       </ScrollView>
@@ -344,6 +390,8 @@ export default function AppointmentDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+        </>
+      )}
     </YStack>
   )
 }

@@ -1,49 +1,60 @@
-import { useMemo, useRef, useState } from 'react'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
-import { Alert, Image, Modal, Pressable } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
-import { useQueryClient } from '@tanstack/react-query'
-import { AmbientBackdrop } from 'components/AmbientBackdrop'
-import { useAppointmentHistory, useClients } from 'components/data/queries'
-import { formatDateMMDDYYYY } from 'components/utils/date'
 import {
-  ErrorPulseBorder,
+  useEffect,
+  useMemo,
+  useRef,
+  useState } from 'react'
+import { useLocalSearchParams,
+  useRouter } from 'expo-router'
+import { Camera, Check, ChevronDown, UploadCloud, X } from '@tamagui/lucide-icons'
+import { ScrollView,
+  Text,
+  XStack,
+  YStack } from 'tamagui'
+import { Alert,
+  Image,
+  Modal,
+  Pressable } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import Animated from 'react-native-reanimated'
+import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { useAppointmentHistory,
+  useClients,
+  useServices,
+  useUpdateAppointmentLog } from 'components/data/queries'
+import { formatDateMMDDYYYY } from 'components/utils/date'
+import { buildFormulaImageInputs } from 'components/utils/formulaImages'
+import { normalizeServiceName } from 'components/utils/services'
+import { ErrorPulseBorder,
   PrimaryButton,
   SecondaryButton,
   SectionDivider,
   TextAreaField,
   TextField,
+  cardSurfaceProps,
 } from 'components/ui/controls'
-import { Camera, UploadCloud, X } from '@tamagui/lucide-icons'
-
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
+import { useExpandablePanel } from 'components/ui/useExpandablePanel'
 
 const parsePrice = (value: string) => {
   const cleaned = value.replace(/[^\d.]/g, '')
+  if (!cleaned) return null
   const parsed = Number(cleaned)
   return Number.isNaN(parsed) ? null : parsed
 }
 
 export default function EditAppointmentScreen() {
   const router = useRouter()
-  const queryClient = useQueryClient()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: clients = [] } = useClients()
+  const { data: serviceCatalog = [] } = useServices('all')
+  const updateAppointmentLog = useUpdateAppointmentLog()
   const scrollRef = useRef<any>(null)
+  const initialServiceIdsRef = useRef<number[]>([])
+  const hasInitializedServicesRef = useRef(false)
   const requiredY = useRef<{ date?: number }>({})
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
+  const [showServicePicker, setShowServicePicker] = useState(false)
 
   const appointment = appointmentHistory.find((item) => item.id === id)
 
@@ -53,7 +64,6 @@ export default function EditAppointmentScreen() {
   const initialForm = useMemo(
     () => ({
       date: appointment ? formatDateMMDDYYYY(appointment.date) : '',
-      services: appointment?.services ?? '',
       price: appointment ? String(appointment.price) : '',
       notes: appointment?.notes ?? '',
     }),
@@ -61,27 +71,84 @@ export default function EditAppointmentScreen() {
   )
 
   const [form, setForm] = useState(initialForm)
+  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([])
   const [images, setImages] = useState<string[]>(appointment?.images ?? [])
   const [previewUri, setPreviewUri] = useState<string | null>(null)
+  const servicePanel = useExpandablePanel(showServicePicker, { hideDelayMs: 220 })
+  const selectedServices = useMemo(
+    () => serviceCatalog.filter((service) => selectedServiceIds.includes(service.id)),
+    [serviceCatalog, selectedServiceIds]
+  )
+  const pickerServices = useMemo(
+    () =>
+      serviceCatalog.filter(
+        (service) => service.isActive || selectedServiceIds.includes(service.id)
+      ),
+    [serviceCatalog, selectedServiceIds]
+  )
+  const selectedServiceSummary = useMemo(() => {
+    if (selectedServices.length === 0) return 'Select services'
+    if (selectedServices.length === 1) return selectedServices[0].name
+    return `${selectedServices[0].name} +${selectedServices.length - 1}`
+  }, [selectedServices])
+  const selectedServiceSet = useMemo(
+    () => new Set(selectedServiceIds),
+    [selectedServiceIds]
+  )
+
+  useEffect(() => {
+    if (!appointment || hasInitializedServicesRef.current) return
+
+    const appointmentServiceIds = appointment.serviceIds ?? []
+    if (appointmentServiceIds.length > 0 && serviceCatalog.length === 0) return
+
+    const validIds = appointmentServiceIds.filter((serviceId) =>
+      serviceCatalog.some((service) => service.id === serviceId)
+    )
+
+    let initialIds = validIds
+    if (initialIds.length === 0 && appointment.services) {
+      const normalized = normalizeServiceName(appointment.services).toLowerCase()
+      const match = serviceCatalog.find((service) => service.normalizedName === normalized)
+      if (match) {
+        initialIds = [match.id]
+      }
+    }
+
+    initialServiceIdsRef.current = initialIds
+    setSelectedServiceIds(initialIds)
+    hasInitializedServicesRef.current = true
+  }, [appointment, serviceCatalog])
 
   const isDirty = useMemo(() => {
+    const selectedSnapshot = selectedServiceIds.join('|')
+    const initialSnapshot = initialServiceIdsRef.current.join('|')
     return (
       form.date !== initialForm.date ||
-      form.services !== initialForm.services ||
       form.price !== initialForm.price ||
       form.notes !== initialForm.notes ||
+      selectedSnapshot !== initialSnapshot ||
       images.join('|') !== (appointment?.images ?? []).join('|')
     )
-  }, [form, images, initialForm, appointment?.images])
+  }, [form, images, initialForm, appointment?.images, selectedServiceIds])
 
   const hasRequired = useMemo(() => {
     return Boolean(form.date.trim())
   }, [form.date])
 
-  const canSave = isDirty
+  const canSave = isDirty && !updateAppointmentLog.isPending
   const showDateError = attemptedSave && !form.date.trim()
 
-  const handleSave = () => {
+  const toggleServiceSelection = (serviceId: number) => {
+    setSelectedServiceIds((current) => {
+      if (current.includes(serviceId)) {
+        return current.filter((id) => id !== serviceId)
+      }
+      return [...current, serviceId]
+    })
+  }
+
+  const handleSave = async () => {
     setAttemptedSave(true)
     if (!hasRequired || !isDirty) {
       if (!hasRequired && typeof requiredY.current.date === 'number') {
@@ -100,22 +167,28 @@ export default function EditAppointmentScreen() {
 
     if (!appointment) return
 
-    queryClient.setQueryData(['appointments'], (current: typeof appointmentHistory = []) => {
-      return current.map((item) => {
-        if (item.id !== appointment.id) return item
-        const parsedPrice = parsePrice(form.price)
-        return {
-          ...item,
-          date: form.date.trim(),
-          services: form.services.trim() || item.services,
-          price: parsedPrice ?? item.price,
-          notes: form.notes,
-          images,
-        }
+    try {
+      const parsedPrice = parsePrice(form.price)
+      const primaryService = selectedServices[0]?.name
+      await updateAppointmentLog.mutateAsync({
+        formulaId: appointment.id,
+        serviceIds: selectedServiceIds,
+        serviceType: primaryService ? normalizeServiceName(primaryService) : null,
+        notes: form.notes,
+        price: parsedPrice,
+        date: form.date,
+        images: buildFormulaImageInputs(images, appointment.imageRefs ?? []),
       })
-    })
 
-    router.back()
+      router.back()
+    } catch (error) {
+      Alert.alert(
+        'Save Failed',
+        error instanceof Error
+          ? error.message
+          : 'Unable to save appointment log right now. Please try again.'
+      )
+    }
   }
 
   const addImages = (uris: string[]) => {
@@ -133,7 +206,7 @@ export default function EditAppointmentScreen() {
       if (status !== 'granted') return
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.8,
       })
@@ -150,7 +223,7 @@ export default function EditAppointmentScreen() {
     if (status !== 'granted') return
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     })
@@ -162,7 +235,7 @@ export default function EditAppointmentScreen() {
   if (!appointment) {
     return (
       <YStack flex={1} bg="$background" items="center" justify="center">
-        <Text fontSize={13} color="$gray8">
+        <Text fontSize={13} color="$textSecondary">
           Appointment not found.
         </Text>
       </YStack>
@@ -172,10 +245,14 @@ export default function EditAppointmentScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ pb: "$10" }}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ pb: "$10" }}
+        onScrollBeginDrag={() => setShowServicePicker(false)}
+      >
         <YStack px="$5" pt="$5" gap="$3">
           <YStack gap="$1">
-            <Text fontSize={11} letterSpacing={1} color="$gray7">
+            <Text fontSize={11} letterSpacing={1} color="$textMuted">
               EDIT APPOINTMENT LOG
             </Text>
             <Text fontFamily="$heading" fontSize={20} fontWeight="700" color="$color">
@@ -185,14 +262,14 @@ export default function EditAppointmentScreen() {
 
           <SectionDivider />
 
-          <YStack {...cardBorder} rounded="$5" p="$4" gap="$2.5">
+          <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$2.5">
             <YStack
               gap="$2"
               onLayout={(event) => {
                 requiredY.current.date = event.nativeEvent.layout.y
               }}
             >
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Date
               </Text>
               <YStack position="relative">
@@ -202,7 +279,7 @@ export default function EditAppointmentScreen() {
                   onChangeText={(text) =>
                     setForm((prev) => ({ ...prev, date: text }))
                   }
-                  borderColor={showDateError ? '$red10' : '$gray3'}
+                  borderColor={showDateError ? '$red10' : '$borderSubtle'}
                 />
                 <ErrorPulseBorder active={showDateError} pulseKey={pulseKey} />
               </YStack>
@@ -213,48 +290,213 @@ export default function EditAppointmentScreen() {
               ) : null}
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Services
               </Text>
-              <TextField
-                placeholder="Balayage, Glaze, Cut..."
-                value={form.services}
-                onChangeText={(text) =>
-                  setForm((prev) => ({ ...prev, services: text }))
-                }
-              />
+              <YStack position="relative">
+                <XStack
+                  height={44}
+                  px="$3"
+                  rounded="$4"
+                  borderWidth={1}
+                  borderColor={showServicePicker ? '$accent' : '$borderSubtle'}
+                  bg="$background"
+                  items="center"
+                  justify="space-between"
+                  onPress={() => setShowServicePicker((current) => !current)}
+                >
+                  <Text
+                    fontSize={14}
+                    color={selectedServices.length ? '$color' : '$textSecondary'}
+                  >
+                    {selectedServiceSummary}
+                  </Text>
+                  <ChevronDown size={16} color="$textSecondary" />
+                </XStack>
+              </YStack>
+              {servicePanel.showPanel ? (
+                <YStack position="relative">
+                  <YStack
+                    position="absolute"
+                    l={0}
+                    r={0}
+                    t={0}
+                    opacity={0}
+                    pointerEvents="none"
+                    onLayout={(event) => {
+                      servicePanel.setMeasured(event.nativeEvent.layout.height)
+                    }}
+                  >
+                    <YStack rounded="$4" borderWidth={1} borderColor="$borderSubtle" p="$2" bg="$background">
+                      <YStack gap="$1">
+                        <XStack
+                          px="$3"
+                          py="$2.5"
+                          rounded="$3"
+                          items="center"
+                          justify="space-between"
+                          bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
+                          borderWidth={1}
+                          borderColor={
+                            !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
+                          }
+                          onPress={() => {
+                            setSelectedServiceIds([])
+                          }}
+                        >
+                          <Text
+                            fontSize={13}
+                            color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
+                          >
+                            Clear all
+                          </Text>
+                          {!selectedServiceIds.length ? (
+                            <Check size={14} color="$accent" />
+                          ) : null}
+                        </XStack>
+                        {pickerServices.map((service) => {
+                          const isActive = selectedServiceSet.has(service.id)
+                          return (
+                            <XStack
+                              key={service.id}
+                              px="$3"
+                              py="$2.5"
+                              rounded="$3"
+                              items="center"
+                              justify="space-between"
+                              bg={isActive ? '$accentMuted' : '$background'}
+                              borderWidth={1}
+                              borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
+                              onPress={() => {
+                                toggleServiceSelection(service.id)
+                              }}
+                            >
+                              <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
+                                {service.name}
+                              </Text>
+                              {isActive ? <Check size={14} color="$accent" /> : null}
+                            </XStack>
+                          )
+                        })}
+                      </YStack>
+                    </YStack>
+                  </YStack>
+                  <Animated.View style={[{ overflow: 'hidden' }, servicePanel.animatedStyle]}>
+                    <YStack
+                      rounded="$4"
+                      borderWidth={1}
+                      borderColor="$borderSubtle"
+                      p="$2"
+                      bg="$background"
+                      shadowColor="rgba(15,23,42,0.12)"
+                      shadowRadius={14}
+                      shadowOpacity={1}
+                      shadowOffset={{ width: 0, height: 6 }}
+                      elevation={2}
+                    >
+                      <YStack gap="$1">
+                        <XStack
+                          px="$3"
+                          py="$2.5"
+                          rounded="$3"
+                          items="center"
+                          justify="space-between"
+                          bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
+                          borderWidth={1}
+                          borderColor={
+                            !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
+                          }
+                          onPress={() => {
+                            setSelectedServiceIds([])
+                          }}
+                        >
+                          <Text
+                            fontSize={13}
+                            color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
+                          >
+                            Clear all
+                          </Text>
+                          {!selectedServiceIds.length ? (
+                            <Check size={14} color="$accent" />
+                          ) : null}
+                        </XStack>
+                        {pickerServices.map((service) => {
+                          const isActive = selectedServiceSet.has(service.id)
+                          return (
+                            <XStack
+                              key={service.id}
+                              px="$3"
+                              py="$2.5"
+                              rounded="$3"
+                              items="center"
+                              justify="space-between"
+                              bg={isActive ? '$accentMuted' : '$background'}
+                              borderWidth={1}
+                              borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
+                              onPress={() => {
+                                toggleServiceSelection(service.id)
+                              }}
+                            >
+                              <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
+                                {service.name}
+                              </Text>
+                              {isActive ? <Check size={14} color="$accent" /> : null}
+                            </XStack>
+                          )
+                        })}
+                      </YStack>
+                    </YStack>
+                  </Animated.View>
+                </YStack>
+              ) : null}
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Price
               </Text>
               <TextField
                 placeholder="$0.00"
                 value={form.price}
+                onFocus={() => setShowServicePicker(false)}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, price: text }))}
               />
             </YStack>
             <YStack gap="$2">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 Formula / Notes
               </Text>
               <TextAreaField
                 placeholder="Color formula, technique, notes..."
                 value={form.notes}
+                onFocus={() => setShowServicePicker(false)}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
               />
             </YStack>
           </YStack>
 
-          <YStack {...cardBorder} rounded="$5" p="$4" gap="$2.5">
+          <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$2.5">
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Photos
             </Text>
             <XStack gap="$3" flexWrap="wrap">
-              <SecondaryButton icon={<Camera size={16} />} size="$4" onPress={handleCapture}>
+              <SecondaryButton
+                icon={<Camera size={16} />}
+                size="$4"
+                onPress={() => {
+                  setShowServicePicker(false)
+                  void handleCapture()
+                }}
+              >
                 Capture
               </SecondaryButton>
-              <SecondaryButton icon={<UploadCloud size={16} />} size="$4" onPress={handleUpload}>
+              <SecondaryButton
+                icon={<UploadCloud size={16} />}
+                size="$4"
+                onPress={() => {
+                  setShowServicePicker(false)
+                  void handleUpload()
+                }}
+              >
                 Upload
               </SecondaryButton>
             </XStack>
@@ -296,7 +538,7 @@ export default function EditAppointmentScreen() {
                 </XStack>
               </ScrollView>
             ) : (
-              <Text fontSize={11} color="$gray8">
+              <Text fontSize={11} color="$textSecondary">
                 No images added yet.
               </Text>
             )}
@@ -308,11 +550,13 @@ export default function EditAppointmentScreen() {
             </SecondaryButton>
             <PrimaryButton
               flex={1}
-              onPress={handleSave}
+              onPress={() => {
+                void handleSave()
+              }}
               disabled={!canSave}
               opacity={canSave ? 1 : 0.5}
             >
-              Save
+              {updateAppointmentLog.isPending ? 'Saving...' : 'Save'}
             </PrimaryButton>
           </XStack>
         </YStack>

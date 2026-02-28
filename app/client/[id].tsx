@@ -1,6 +1,11 @@
-import { Link, Stack, useLocalSearchParams, type Href } from 'expo-router'
+import { useCallback } from 'react'
 import {
-  ChevronRight,
+  Link,
+  useLocalSearchParams,
+  useRouter,
+  type Href } from 'expo-router'
+import { ChevronRight,
+  ChevronLeft,
   Mail,
   MessageCircle,
   Pin,
@@ -9,57 +14,164 @@ import {
   Phone,
   List,
   Scissors,
-} from '@tamagui/lucide-icons'
-import { Image, Linking } from 'react-native'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
+  } from '@tamagui/lucide-icons'
+import { Image,
+  Linking } from 'react-native'
+import { ScrollView,
+  Text,
+  XStack,
+  YStack } from 'tamagui'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
-import {
-  useAppointmentHistory,
+import { useThemePrefs } from 'components/ThemePrefs'
+import { useAppointmentHistory,
   useClients,
+  useColorAnalysisForClient,
   useColorAnalysisByClient,
-} from 'components/data/queries'
-import { SectionDivider } from 'components/ui/controls'
+  } from 'components/data/queries'
+import { SectionDivider,
+  SecondaryButton,
+  SurfaceCard,
+  cardSurfaceProps,
+} from 'components/ui/controls'
 import { formatDateByStyle } from 'components/utils/date'
+import { getServiceLabel } from 'components/utils/services'
 import { useStudioStore } from 'components/state/studioStore'
 
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
-
 export default function ClientDetailScreen() {
+  const { aesthetic } = useThemePrefs()
+  const isCyberpunk = aesthetic === 'cyberpunk'
+  const isGlass = aesthetic === 'glass'
+  const cardRadius = isCyberpunk ? 0 : isGlass ? 24 : 14
+  const controlRadius = isCyberpunk ? 0 : isGlass ? 20 : 10
+  const thumbRadius = isCyberpunk ? 0 : isGlass ? 14 : 8
+  const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: clients = [] } = useClients()
+  const resolvedClientId = typeof id === 'string' ? id : ''
+  const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
   const { pinnedClientIds, togglePinnedClient, appSettings } = useStudioStore()
+  const topInset = Math.max(insets.top + 8, 16)
 
-  const client = clients.find((item) => item.id === id) ?? clients[0]
+  const client = clients.find((item) => item.id === resolvedClientId)
+  const { data: colorAnalysisForClient } = useColorAnalysisForClient(
+    resolvedClientId || undefined
+  )
 
   const editHref: Href =
-    id && typeof id === 'string'
-      ? { pathname: '/client/[id]/edit', params: { id } }
+    resolvedClientId
+      ? { pathname: '/client/[id]/edit', params: { id: resolvedClientId } }
       : '/clients'
+  const history = appointmentHistory.filter(
+    (item) => item.clientId === resolvedClientId
+  )
+  const colorAnalysis =
+    colorAnalysisForClient ??
+    (resolvedClientId ? colorAnalysisByClient[resolvedClientId] : undefined)
+  const hasColorChartData = Boolean(colorAnalysis)
+  const isPinned = resolvedClientId
+    ? pinnedClientIds.includes(resolvedClientId)
+    : false
+  const isBootstrapping = clientsLoading && !clients.length
+  const handleTogglePinned = useCallback(
+    () => {
+      if (!resolvedClientId) return
+      togglePinnedClient(resolvedClientId)
+    },
+    [resolvedClientId, togglePinnedClient]
+  )
+  const topBar = (
+    <XStack
+      px="$5"
+      pt={topInset}
+      pb="$2"
+      items="center"
+      justify="space-between"
+    >
+      <SecondaryButton
+        size="$2"
+        height={36}
+        width={38}
+        px="$2"
+        icon={<ChevronLeft size={16} />}
+        onPress={() => router.back()}
+      />
+      {resolvedClientId ? (
+        <XStack gap="$2">
+          <SecondaryButton
+            size="$2"
+            height={36}
+            width={38}
+            px="$2"
+            icon={isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+            onPress={handleTogglePinned}
+          />
+          <SecondaryButton
+            size="$2"
+            height={36}
+            width={72}
+            px="$3"
+            onPress={() => router.push(editHref)}
+          >
+            <Text
+              fontSize={12}
+              lineHeight={14}
+              fontWeight="700"
+              letterSpacing={isCyberpunk ? 0.8 : 0}
+              textTransform={isCyberpunk ? 'uppercase' : undefined}
+              style={isCyberpunk ? ({ fontFamily: 'SpaceMono' } as any) : undefined}
+              color="$buttonSecondaryFg"
+            >
+              Edit
+            </Text>
+          </SecondaryButton>
+        </XStack>
+      ) : (
+        <YStack width={112} />
+      )}
+    </XStack>
+  )
+
+  const GlassCard = ({
+    children,
+    ...props
+  }: React.ComponentProps<typeof YStack>) =>
+    isGlass ? (
+      <SurfaceCard mode="alwaysCard" tone="secondary" gap="$0" {...props}>
+        {children}
+      </SurfaceCard>
+    ) : (
+      <YStack {...cardSurfaceProps} {...props}>
+        {children}
+      </YStack>
+    )
+
+  if (isBootstrapping) {
+    return (
+      <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        {topBar}
+        <Text fontSize={13} color="$textSecondary">
+          Loading client...
+        </Text>
+      </YStack>
+    )
+  }
 
   if (!client) {
     return (
       <YStack flex={1} bg="$background" items="center" justify="center">
-        <Text fontSize={13} color="$gray8">
+        <AmbientBackdrop />
+        {topBar}
+        <Text fontSize={13} color="$textSecondary">
           Client not found.
         </Text>
       </YStack>
     )
   }
 
-  const history = appointmentHistory.filter((item) => item.clientId === client.id)
-  const colorAnalysis = colorAnalysisByClient[client.id]
-  const isPinned = pinnedClientIds.includes(client.id)
   const activeCutoff = new Date()
   activeCutoff.setMonth(activeCutoff.getMonth() - appSettings.activeStatusMonths)
   // "Active" status is user-configurable in Settings via activeStatusMonths.
@@ -87,66 +199,18 @@ export default function ClientDetailScreen() {
     }
   }
 
-  const getServiceLabel = (serviceType: string, notes: string) => {
-    const normalizedService = (serviceType || '').trim()
-    if (normalizedService && normalizedService.toLowerCase() !== 'service') {
-      return normalizedService
-    }
-    const trimmed = (notes || '').trim()
-    if (!trimmed) return normalizedService || 'Service'
-    const firstLine = trimmed.split('\n')[0].trim()
-    if (!firstLine) return normalizedService || 'Service'
-    const colonIndex = firstLine.indexOf(':')
-    if (colonIndex > 0) return firstLine.slice(0, colonIndex).trim()
-    return firstLine
-  }
-
   return (
     <YStack flex={1} bg="$background" position="relative">
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <XStack items="center" gap="$2">
-              <XStack
-                px="$2"
-                py="$1.5"
-                items="center"
-                justify="center"
-                pressStyle={{ opacity: 0.7 }}
-                onPress={() => togglePinnedClient(client.id)}
-              >
-                {isPinned ? (
-                  <PinOff size={16} color="$accent" />
-                ) : (
-                  <Pin size={16} color="$gray8" />
-                )}
-              </XStack>
-              <Link href={editHref} asChild>
-                <XStack
-                  px="$3"
-                  py="$1.5"
-                  items="center"
-                  justify="center"
-                  pressStyle={{ opacity: 0.7 }}
-                >
-                  <Text fontSize={13} color="$accent" fontWeight="600">
-                    Edit
-                  </Text>
-                </XStack>
-              </Link>
-            </XStack>
-          ),
-        }}
-      />
       <AmbientBackdrop />
+      {topBar}
       <ScrollView contentContainerStyle={{ pb: "$10" }}>
-        <YStack px="$5" pt="$6" gap="$4">
+        <YStack px="$5" pt="$3" gap="$4">
           <YStack gap="$2">
             <Text fontSize={20} fontWeight="700">
               {client.name}
             </Text>
             <XStack items="center" gap="$2" flexWrap="wrap">
-              <Text fontSize={12} color="$gray8">
+              <Text fontSize={12} color="$textSecondary">
                 {client.type}
               </Text>
               {showStatus ? (
@@ -155,12 +219,12 @@ export default function ClientDetailScreen() {
                 </Text>
               ) : null}
               {client.tag ? (
-                <Text fontSize={11} color="$gray7">
+                <Text fontSize={11} color="$textMuted">
                   {client.tag}
                 </Text>
               ) : null}
             </XStack>
-            <Text fontSize={12} color="$gray8">
+            <Text fontSize={12} color="$textSecondary">
               Last visit{' '}
               {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
                 todayLabel: true,
@@ -168,20 +232,20 @@ export default function ClientDetailScreen() {
               })}
             </Text>
           </YStack>
-          <YStack {...cardBorder} rounded="$5" p="$4" gap="$2">
+          <GlassCard rounded={cardRadius} p="$4" gap="$2">
             <XStack items="center" gap="$2">
-              <Mail size={14} color="$gray8" />
-              <Text fontSize={12} color="$gray8">
+              <Mail size={14} color="$textSecondary" />
+              <Text fontSize={12} color="$textSecondary">
                 {client.email}
               </Text>
             </XStack>
             <XStack items="center" gap="$2">
-              <Phone size={14} color="$gray8" />
-              <Text fontSize={12} color="$gray8">
+              <Phone size={14} color="$textSecondary" />
+              <Text fontSize={12} color="$textSecondary">
                 {client.phone}
               </Text>
             </XStack>
-          </YStack>
+          </GlassCard>
 
           <SectionDivider />
 
@@ -190,54 +254,51 @@ export default function ClientDetailScreen() {
               Quick Actions
             </Text>
             <XStack gap="$2">
-              <XStack
-                {...cardBorder}
-                rounded="$4"
+              <GlassCard
+                rounded={controlRadius}
                 px="$3"
                 py="$2.5"
-                items="center"
-                gap="$2"
                 flex={1}
                 opacity={phoneUrl ? 1 : 0.4}
                 onPress={() => openExternal(phoneUrl)}
               >
-                <Phone size={14} color="$accent" />
-                <Text fontSize={12} color="$accent">
-                  Call
-                </Text>
-              </XStack>
-              <XStack
-                {...cardBorder}
-                rounded="$4"
+                <XStack items="center" gap="$2">
+                  <Phone size={14} color="$accent" />
+                  <Text fontSize={12} color="$accent">
+                    Call
+                  </Text>
+                </XStack>
+              </GlassCard>
+              <GlassCard
+                rounded={controlRadius}
                 px="$3"
                 py="$2.5"
-                items="center"
-                gap="$2"
                 flex={1}
                 opacity={smsUrl ? 1 : 0.4}
                 onPress={() => openExternal(smsUrl)}
               >
-                <MessageCircle size={14} color="$accent" />
-                <Text fontSize={12} color="$accent">
-                  Text
-                </Text>
-              </XStack>
-              <XStack
-                {...cardBorder}
-                rounded="$4"
+                <XStack items="center" gap="$2">
+                  <MessageCircle size={14} color="$accent" />
+                  <Text fontSize={12} color="$accent">
+                    Text
+                  </Text>
+                </XStack>
+              </GlassCard>
+              <GlassCard
+                rounded={controlRadius}
                 px="$3"
                 py="$2.5"
-                items="center"
-                gap="$2"
                 flex={1}
                 opacity={emailUrl ? 1 : 0.4}
                 onPress={() => openExternal(emailUrl)}
               >
-                <Mail size={14} color="$accent" />
-                <Text fontSize={12} color="$accent">
-                  Email
-                </Text>
-              </XStack>
+                <XStack items="center" gap="$2">
+                  <Mail size={14} color="$accent" />
+                  <Text fontSize={12} color="$accent">
+                    Email
+                  </Text>
+                </XStack>
+              </GlassCard>
             </XStack>
           </YStack>
 
@@ -247,11 +308,11 @@ export default function ClientDetailScreen() {
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Notes
             </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4">
-              <Text fontSize={12} color="$gray8">
+            <GlassCard rounded={cardRadius} p="$4">
+              <Text fontSize={12} color="$textSecondary">
                 {client.notes}
               </Text>
-            </YStack>
+            </GlassCard>
           </YStack>
 
           <SectionDivider />
@@ -264,91 +325,86 @@ export default function ClientDetailScreen() {
             </XStack>
             <XStack gap="$2">
               <Link href={`/client/${client.id}/new-appointment`} asChild>
-                <XStack
-                  {...cardBorder}
-                  rounded="$4"
+                <GlassCard
+                  rounded={controlRadius}
                   px="$3"
                   py="$2.5"
-                  items="center"
-                  gap="$2"
                   flex={1}
-                  justify="center"
                 >
-                  <Scissors size={14} color="$accent" />
-                  <Text fontSize={12} color="$accent">
-                    New Appointment Log
-                  </Text>
-                </XStack>
+                  <XStack items="center" gap="$2" justify="center">
+                    <Scissors size={14} color="$accent" />
+                    <Text fontSize={12} color="$accent">
+                      New Appointment Log
+                    </Text>
+                  </XStack>
+                </GlassCard>
               </Link>
               <Link href={`/appointments?clientId=${client.id}`} asChild>
-                <XStack
-                  {...cardBorder}
-                  rounded="$4"
+                <GlassCard
+                  rounded={controlRadius}
                   px="$3"
                   py="$2.5"
-                  items="center"
-                  gap="$2"
                   flex={1}
-                  justify="center"
                 >
-                  <List size={14} color="$accent" />
-                  <Text fontSize={12} color="$accent">
-                    View All
-                  </Text>
-                </XStack>
+                  <XStack items="center" gap="$2" justify="center">
+                    <List size={14} color="$accent" />
+                    <Text fontSize={12} color="$accent">
+                      View All
+                    </Text>
+                  </XStack>
+                </GlassCard>
               </Link>
             </XStack>
             <YStack gap="$3">
               {history.length === 0 ? (
-                <YStack {...cardBorder} rounded="$5" p="$4">
-                  <Text fontSize={12} color="$gray8">
+                <GlassCard rounded={cardRadius} p="$4">
+                  <Text fontSize={12} color="$textSecondary">
                     No appointment logs yet.
                   </Text>
-                </YStack>
+                </GlassCard>
               ) : (
                 history.map((entry) => (
                   <Link key={entry.id} href={`/appointment/${entry.id}`} asChild>
-                    <XStack
-                      {...cardBorder}
-                      rounded="$5"
+                    <GlassCard
+                      rounded={cardRadius}
                       p="$4"
-                      items="center"
-                      justify="space-between"
-                      gap="$2"
                       pressStyle={{ opacity: 0.85 }}
                     >
-                      <YStack flex={1} gap="$1">
-                        <Text fontSize={13} fontWeight="600">
-                          {getServiceLabel(entry.services, entry.notes)}
-                        </Text>
-                        <Text fontSize={12} color="$gray8">
-                          {formatDateByStyle(entry.date, 'short', {
-                            todayLabel: true,
-                          })}
-                        </Text>
-                      </YStack>
-                      <XStack items="center" gap="$2">
-                        <Text fontSize={12} fontWeight="700">
-                          ${entry.price}
-                        </Text>
-                        {entry.images?.length ? (
-                          <YStack
-                            width={34}
-                            height={34}
-                            rounded="$3"
-                            overflow="hidden"
-                            borderWidth={1}
-                            borderColor="$gray3"
-                          >
-                            <Image
-                              source={{ uri: entry.images[0] }}
-                              style={{ width: '100%', height: '100%' }}
-                            />
-                          </YStack>
-                        ) : null}
-                        <ChevronRight size={16} color="$gray7" />
+                      <XStack items="center" justify="space-between" gap="$2">
+                        <YStack flex={1} gap="$1">
+                          <Text fontSize={13} fontWeight="600">
+                            {getServiceLabel(entry.services, entry.notes)}
+                          </Text>
+                          <Text fontSize={12} color="$textSecondary">
+                            {formatDateByStyle(entry.date, appSettings.dateDisplayFormat, {
+                              todayLabel: true,
+                              includeWeekday: appSettings.dateLongIncludeWeekday,
+                            })}
+                          </Text>
+                        </YStack>
+                        <XStack items="center" gap="$2">
+                          <Text fontSize={12} fontWeight="700">
+                            ${entry.price}
+                          </Text>
+                          {entry.images?.length ? (
+                            <YStack
+                              width={34}
+                              height={34}
+                              rounded={thumbRadius}
+                              overflow="hidden"
+                              borderWidth={1}
+                              borderColor="$borderSubtle"
+                            >
+                              <Image
+                                source={{ uri: entry.images[0] }}
+                                style={{ width: '100%', height: '100%' }}
+                              />
+                            </YStack>
+                          ) : null}
+                          <ChevronRight size={16} color="$textMuted" />
+                        </XStack>
                       </XStack>
-                    </XStack>
+                    </GlassCard>
                   </Link>
                 ))
               )}
@@ -360,44 +416,46 @@ export default function ClientDetailScreen() {
           <YStack gap="$3">
             <XStack items="center" justify="space-between">
               <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
-                Color Analysis
+                Color Chart
               </Text>
-              <XStack items="center" gap="$1">
-                <Palette size={14} color="$accent" />
-                <Text fontSize={12} color="$accent">
-                  View full chart
-                </Text>
-              </XStack>
+              <Link href={`/client/${client.id}/color-chart`} asChild>
+                <XStack items="center" gap="$1">
+                  <Palette size={14} color="$accent" />
+                  <Text fontSize={12} color="$accent">
+                    {hasColorChartData ? 'View Full Chart' : 'Start Color Chart'}
+                  </Text>
+                </XStack>
+              </Link>
             </XStack>
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$2">
+            <GlassCard rounded={cardRadius} p="$4" gap="$2">
               {colorAnalysis ? (
                 <>
                   <XStack justify="space-between">
-                    <Text fontSize={12} color="$gray8">
+                    <Text fontSize={12} color="$textSecondary">
                       Porosity
                     </Text>
                     <Text fontSize={12}>{colorAnalysis.porosity}</Text>
                   </XStack>
                   <XStack justify="space-between">
-                    <Text fontSize={12} color="$gray8">
+                    <Text fontSize={12} color="$textSecondary">
                       Texture
                     </Text>
                     <Text fontSize={12}>{colorAnalysis.texture}</Text>
                   </XStack>
                   <XStack justify="space-between">
-                    <Text fontSize={12} color="$gray8">
+                    <Text fontSize={12} color="$textSecondary">
                       Elasticity
                     </Text>
                     <Text fontSize={12}>{colorAnalysis.elasticity}</Text>
                   </XStack>
                   <XStack justify="space-between">
-                    <Text fontSize={12} color="$gray8">
+                    <Text fontSize={12} color="$textSecondary">
                       Scalp
                     </Text>
                     <Text fontSize={12}>{colorAnalysis.scalpCondition}</Text>
                   </XStack>
                   <XStack justify="space-between">
-                    <Text fontSize={12} color="$gray8">
+                    <Text fontSize={12} color="$textSecondary">
                       Levels
                     </Text>
                     <Text fontSize={12}>
@@ -405,18 +463,18 @@ export default function ClientDetailScreen() {
                     </Text>
                   </XStack>
                   <XStack justify="space-between">
-                    <Text fontSize={12} color="$gray8">
+                    <Text fontSize={12} color="$textSecondary">
                       Pigment
                     </Text>
                     <Text fontSize={12}>{colorAnalysis.contributingPigment}</Text>
                   </XStack>
                 </>
               ) : (
-                <Text fontSize={12} color="$gray8">
-                  Color analysis not recorded yet.
+                <Text fontSize={12} color="$textSecondary">
+                  Color chart not recorded yet.
                 </Text>
               )}
-            </YStack>
+            </GlassCard>
           </YStack>
 
         </YStack>

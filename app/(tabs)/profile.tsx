@@ -1,32 +1,78 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'expo-router'
-import { LogOut, Mail, Phone, Settings } from '@tamagui/lucide-icons'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
-import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import {
+  useEffect,
+  useMemo,
+  useState } from 'react'
+import { Link } from 'expo-router'
+import { LogOut,
+  Mail,
+  Phone,
+  Settings } from '@tamagui/lucide-icons'
+import { ScrollView,
+  Text,
+  XStack,
+  YStack } from 'tamagui'
+import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { FieldLabel,
+  OptionChip,
+  OptionChipLabel,
+  PreviewContainer,
   PrimaryButton,
   SecondaryButton,
   SectionDivider,
+  SurfaceCard,
   TextField,
+  ThemedHeadingText,
   ThemedSwitch,
 } from 'components/ui/controls'
-import { useThemePrefs } from 'components/ThemePrefs'
+import {
+  useThemePrefs,
+  type ThemeAesthetic,
+  type ThemePalette,
+} from 'components/ThemePrefs'
 import { useStudioStore } from 'components/state/studioStore'
 import { useAuth } from 'components/auth/AuthProvider'
 
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
+const PALETTE_OPTIONS: Array<{ id: ThemePalette; label: string }> = [
+  { id: 'signal', label: 'Signal' },
+  { id: 'alloy', label: 'Alloy' },
+  { id: 'pearl', label: 'Pearl' },
+]
+
+const AESTHETIC_OPTIONS: Array<{
+  id: ThemeAesthetic
+  label: string
+  description: string
+}> = [
+  {
+    id: 'modern',
+    label: 'Modern',
+    description: 'Balanced neutral depth for day-to-day use.',
+  },
+  {
+    id: 'cyberpunk',
+    label: 'Cyberpunk',
+    description: 'Higher contrast with bolder accent energy.',
+  },
+  {
+    id: 'glass',
+    label: 'Glass',
+    description: 'Lighter layered surfaces with a polished feel.',
+  },
+]
 
 export default function ProfileScreen() {
-  const { mode, palette, setMode, setPalette } = useThemePrefs()
+  const {
+    mode,
+    palette,
+    aesthetic,
+    setMode,
+    setPalette,
+    setAesthetic,
+  } = useThemePrefs()
+  const isGlass = aesthetic === 'glass'
+  const isModern = aesthetic === 'modern'
+  const sectionGap = isModern ? '$4' : '$3'
+  const cardTone = isGlass ? 'secondary' : 'default'
   const { profile, preferences, setProfile, setPreferences } = useStudioStore()
   const { user, signOutUser, canUseFirebaseAuth } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
@@ -68,20 +114,15 @@ export default function ProfileScreen() {
   }
 
   return (
-    <YStack flex={1} bg="$background" position="relative">
+    <YStack flex={1} bg="$surfacePage" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ pb: "$10" }}>
-        <YStack px="$5" pt="$6" gap="$4">
-          <YStack
-            {...cardBorder}
-            rounded="$5"
-            p="$5"
-            gap="$3"
-                                  >
+      <ScrollView contentContainerStyle={{ pb: '$10' }}>
+        <YStack px="$5" pt="$6" gap={isModern ? '$5' : '$4'}>
+          <SurfaceCard p={isModern ? '$6' : '$5'} gap={sectionGap} tone={cardTone}>
             <XStack items="center" justify="space-between">
-              <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+              <ThemedHeadingText fontWeight="700" fontSize={16}>
                 Profile
-              </Text>
+              </ThemedHeadingText>
               <XStack
                 px="$2"
                 py="$1"
@@ -94,8 +135,8 @@ export default function ProfileScreen() {
                 </Text>
               </XStack>
             </XStack>
-            <Text fontSize={13} color="$gray8">
-            Your personal contact details.
+            <Text fontSize={13} color="$textSecondary">
+              Your personal contact details.
             </Text>
             <YStack gap="$2">
               {isEditing ? (
@@ -126,18 +167,18 @@ export default function ProfileScreen() {
                 </YStack>
               ) : (
                 <>
-                  <Text fontSize={16} fontWeight="700">
+                  <Text fontSize={16} fontWeight="700" color="$textPrimary">
                     {profile.name}
                   </Text>
                   <XStack items="center" gap="$2">
-                    <Mail size={14} color="$gray8" />
-                    <Text fontSize={12} color="$gray8">
+                    <Mail size={14} color="$textSecondary" />
+                    <Text fontSize={12} color="$textSecondary">
                       {profile.email}
                     </Text>
                   </XStack>
                   <XStack items="center" gap="$2">
-                    <Phone size={14} color="$gray8" />
-                    <Text fontSize={12} color="$gray8">
+                    <Phone size={14} color="$textSecondary" />
+                    <Text fontSize={12} color="$textSecondary">
                       {profile.phone}
                     </Text>
                   </XStack>
@@ -159,17 +200,19 @@ export default function ProfileScreen() {
                 </PrimaryButton>
               </XStack>
             ) : null}
-          </YStack>
+          </SurfaceCard>
 
           <SectionDivider />
 
-          <YStack gap="$3">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+          <YStack gap={sectionGap}>
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
               Preferences
-            </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+            </ThemedHeadingText>
+            <SurfaceCard tone={cardTone}>
               <XStack items="center" justify="space-between">
-                <Text fontSize={13}>Notifications</Text>
+                <Text fontSize={13} color="$textPrimary">
+                  Notifications
+                </Text>
                 <ThemedSwitch
                   size="$2"
                   checked={preferences.notificationsEnabled}
@@ -179,119 +222,146 @@ export default function ProfileScreen() {
                 />
               </XStack>
               <YStack gap="$2">
-                <Text fontSize={12} color="$gray8">
-                  Auto rebook prompts
-                </Text>
+                <FieldLabel>Auto rebook prompts</FieldLabel>
                 <XStack gap="$2" flexWrap="wrap">
                   {preferenceOptions.autoRebook.map((option) => {
                     const isActive = preferences.autoRebook === option
                     return (
-                      <XStack
+                      <OptionChip
                         key={option}
-                        {...cardBorder}
-                        rounded="$3"
-                        px="$2.5"
-                        py="$1.5"
-                        items="center"
-                        bg={isActive ? '$accentMuted' : '$background'}
-                        borderColor={isActive ? '$accentSoft' : '$borderColor'}
+                        active={isActive}
                         onPress={() => setPreferences({ autoRebook: option })}
                       >
-                        <Text fontSize={11} color={isActive ? '$accent' : '$gray8'}>
-                          {option}
-                        </Text>
-                      </XStack>
+                        <OptionChipLabel active={isActive}>{option}</OptionChipLabel>
+                      </OptionChip>
                     )
                   })}
                 </XStack>
               </YStack>
               <YStack gap="$2">
-                <Text fontSize={12} color="$gray8">
-                  Data exports
-                </Text>
+                <FieldLabel>Data exports</FieldLabel>
                 <XStack gap="$2" flexWrap="wrap">
                   {preferenceOptions.dataExports.map((option) => {
                     const isActive = preferences.dataExports === option
                     return (
-                      <XStack
+                      <OptionChip
                         key={option}
-                        {...cardBorder}
-                        rounded="$3"
-                        px="$2.5"
-                        py="$1.5"
-                        items="center"
-                        bg={isActive ? '$accentMuted' : '$background'}
-                        borderColor={isActive ? '$accentSoft' : '$borderColor'}
+                        active={isActive}
                         onPress={() => setPreferences({ dataExports: option })}
                       >
-                        <Text fontSize={11} color={isActive ? '$accent' : '$gray8'}>
-                          {option}
-                        </Text>
-                      </XStack>
+                        <OptionChipLabel active={isActive}>{option}</OptionChipLabel>
+                      </OptionChip>
                     )
                   })}
                 </XStack>
               </YStack>
-            </YStack>
+            </SurfaceCard>
           </YStack>
 
           <SectionDivider />
 
-          <YStack gap="$3">
-              <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
-                Appearance
-              </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+          <YStack gap={sectionGap}>
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
+              Appearance
+            </ThemedHeadingText>
+            <SurfaceCard tone={cardTone}>
               <XStack items="center" justify="space-between">
-                <Text fontSize={13}>Dark mode</Text>
+                <Text fontSize={13} color="$textPrimary">
+                  Dark mode
+                </Text>
                 <ThemedSwitch
                   size="$2"
                   checked={mode === 'dark'}
                   onCheckedChange={(checked) => setMode(checked ? 'dark' : 'light')}
                 />
               </XStack>
-              <Text fontSize={12} color="$gray8">
-                Color palette
-              </Text>
-              <XStack gap="$2" flexWrap="wrap">
-                {[
-                  { id: 'studio', label: 'Studio' },
-                  { id: 'slate', label: 'Slate' },
-                  { id: 'sand', label: 'Sand' },
-                ].map((option) => {
-                  const isActive = palette === option.id
-                  return (
-                    <XStack
-                      key={option.id}
-                      {...cardBorder}
-                      rounded="$3"
-                      px="$2.5"
-                      py="$1.5"
-                      items="center"
-                      bg={isActive ? '$accentMuted' : '$background'}
-                      borderColor={isActive ? '$accentSoft' : '$borderColor'}
-                      onPress={() => setPalette(option.id as any)}
-                    >
-                      <Text fontSize={11} color={isActive ? '$accent' : '$gray8'}>
-                        {option.label}
-                      </Text>
-                    </XStack>
-                  )
-                })}
-              </XStack>
-            </YStack>
+
+              <YStack gap="$2">
+                <FieldLabel>Color palette</FieldLabel>
+                <XStack gap="$2" flexWrap="wrap">
+                  {PALETTE_OPTIONS.map((option) => {
+                    const isActive = palette === option.id
+                    return (
+                      <OptionChip
+                        key={option.id}
+                        active={isActive}
+                        onPress={() => setPalette(option.id)}
+                      >
+                        <OptionChipLabel active={isActive}>{option.label}</OptionChipLabel>
+                      </OptionChip>
+                    )
+                  })}
+                </XStack>
+              </YStack>
+
+              <YStack gap="$2">
+                <FieldLabel>Aesthetic</FieldLabel>
+                <YStack gap="$2">
+                  {AESTHETIC_OPTIONS.map((option) => {
+                    const isActive = aesthetic === option.id
+                    return (
+                      <OptionChip
+                        key={option.id}
+                        active={isActive}
+                        onPress={() => setAesthetic(option.id)}
+                        justify="space-between"
+                      >
+                        <OptionChipLabel active={isActive}>
+                          {option.label}
+                        </OptionChipLabel>
+                        <Text
+                          fontSize={11}
+                          color="$textSecondary"
+                          maxW="72%"
+                          style={{ textAlign: 'right' }}
+                        >
+                          {option.description}
+                        </Text>
+                      </OptionChip>
+                    )
+                  })}
+                </YStack>
+              </YStack>
+
+              <PreviewContainer>
+                <FieldLabel>Theme preview</FieldLabel>
+                <ThemedHeadingText fontWeight="700" fontSize={13}>
+                  Section Header
+                </ThemedHeadingText>
+                <Text fontSize={11} color="$textSecondary">
+                  Surface, chips, toggles, and button contrast preview.
+                </Text>
+                <XStack gap="$2" flexWrap="wrap">
+                  <OptionChip active>
+                    <OptionChipLabel active>Selected</OptionChipLabel>
+                  </OptionChip>
+                  <OptionChip>
+                    <OptionChipLabel>Idle chip</OptionChipLabel>
+                  </OptionChip>
+                  <ThemedSwitch checked />
+                </XStack>
+                <XStack gap="$2">
+                  <SecondaryButton flex={1} size="$3">
+                    Secondary
+                  </SecondaryButton>
+                  <PrimaryButton flex={1} size="$3">
+                    Primary
+                  </PrimaryButton>
+                </XStack>
+              </PreviewContainer>
+            </SurfaceCard>
           </YStack>
 
           <SectionDivider />
 
           {canUseFirebaseAuth ? (
             <>
-              <YStack gap="$3">
-                <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+              <YStack gap={sectionGap}>
+                <ThemedHeadingText fontWeight="700" fontSize={14}>
                   Session
-                </Text>
-                <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
-                  <Text fontSize={12} color="$gray8">
+                </ThemedHeadingText>
+                <SurfaceCard tone={cardTone}>
+                  <Text fontSize={12} color="$textSecondary">
                     Signed in as {user?.email ?? profile.email}
                   </Text>
                   <SecondaryButton
@@ -308,19 +378,21 @@ export default function ProfileScreen() {
                   >
                     {isSigningOut ? 'Signing out...' : 'Sign out'}
                   </SecondaryButton>
-                </YStack>
+                </SurfaceCard>
               </YStack>
               <SectionDivider />
             </>
           ) : null}
 
           <Link href="/settings" asChild>
-            <XStack {...cardBorder} rounded="$5" p="$4" items="center" gap="$3">
-              <Settings size={16} color="$gray8" />
-              <Text fontSize={13} color="$gray8">
-                App settings
-              </Text>
-            </XStack>
+            <SurfaceCard mode="section" p="$4" tone={cardTone}>
+              <XStack items="center" gap="$3">
+                <Settings size={16} color="$textSecondary" />
+                <Text fontSize={13} color="$textSecondary">
+                  App settings
+                </Text>
+              </XStack>
+            </SurfaceCard>
           </Link>
         </YStack>
       </ScrollView>

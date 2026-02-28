@@ -1,27 +1,80 @@
-import { Alert, Platform, Pressable } from 'react-native'
-import { HelpCircle } from '@tamagui/lucide-icons'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
+import { useMemo, useState } from 'react'
+import { useRouter } from 'expo-router'
+import {
+  Alert,
+  Platform,
+  Pressable,
+} from 'react-native'
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  HelpCircle,
+  Plus,
+  RotateCcw,
+} from '@tamagui/lucide-icons'
+import {
+  ScrollView,
+  Text,
+  XStack,
+  YStack,
+} from 'tamagui'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
-import { SectionDivider, ThemedSwitch } from 'components/ui/controls'
+import {
+  FieldLabel,
+  OptionChip,
+  OptionChipLabel,
+  PrimaryButton,
+  SecondaryButton,
+  SectionDivider,
+  SurfaceCard,
+  ThemedHeadingText,
+  ThemedSwitch,
+  TextField,
+} from 'components/ui/controls'
 import {
   useStudioStore,
   type AppointmentDateFormat,
   type OverviewSectionId,
 } from 'components/state/studioStore'
-
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
+import {
+  useCreateService,
+  useDeactivateService,
+  useReactivateService,
+  useServices,
+  useUpdateService,
+} from 'components/data/queries'
+import { normalizeServiceName } from 'components/utils/services'
 
 export default function SettingsScreen() {
+  const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const topInset = Math.max(insets.top + 8, 16)
   const { appSettings, setAppSettings } = useStudioStore()
+  const [serviceDraft, setServiceDraft] = useState('')
+  const [renameDrafts, setRenameDrafts] = useState<Record<number, string>>({})
+  const { data: serviceCatalog = [] } = useServices('all')
+  const createService = useCreateService()
+  const updateService = useUpdateService()
+  const deactivateService = useDeactivateService()
+  const reactivateService = useReactivateService()
+  const activeServices = useMemo(
+    () =>
+      serviceCatalog
+        .filter((service) => service.isActive)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+    [serviceCatalog]
+  )
+  const inactiveServices = useMemo(
+    () =>
+      serviceCatalog
+        .filter((service) => !service.isActive)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [serviceCatalog]
+  )
+  const canAddService = Boolean(normalizeServiceName(serviceDraft))
+
   const appointmentDateOptions: Array<{ id: AppointmentDateFormat; label: string }> = [
     { id: 'short', label: 'MM/DD/YYYY' },
     { id: 'long', label: 'Long format' },
@@ -44,20 +97,155 @@ export default function SettingsScreen() {
       style={{ paddingHorizontal: 4, paddingVertical: 2 }}
       hitSlop={6}
     >
-      <HelpCircle size={14} color="#94A3B8" />
+      <HelpCircle size={14} color="$textSecondary" />
     </Pressable>
   )
 
+  const handleAddService = async () => {
+    const normalized = normalizeServiceName(serviceDraft)
+    if (!normalized) return
+
+    const alreadyExists = serviceCatalog.some(
+      (service) => service.normalizedName === normalized.toLowerCase()
+    )
+    if (alreadyExists) {
+      showInfo('Already listed', `${normalized} is already in your service list.`)
+      return
+    }
+
+    try {
+      await createService.mutateAsync({
+        name: normalized,
+        sortOrder: activeServices.length,
+      })
+      setServiceDraft('')
+    } catch (error) {
+      showInfo(
+        'Unable to add service',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
+  const handleDeactivateService = async (serviceId: number) => {
+    if (activeServices.length <= 1) {
+      showInfo('At least one service', 'Keep at least one active service in the list.')
+      return
+    }
+
+    try {
+      await deactivateService.mutateAsync(serviceId)
+    } catch (error) {
+      showInfo(
+        'Unable to remove service',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
+  const handleReactivateService = async (serviceId: number) => {
+    try {
+      await reactivateService.mutateAsync(serviceId)
+      await updateService.mutateAsync({
+        serviceId,
+        sortOrder: activeServices.length,
+      })
+    } catch (error) {
+      showInfo(
+        'Unable to reactivate service',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
+  const handleRenameService = async (serviceId: number, currentName: string) => {
+    const draft = renameDrafts[serviceId]
+    if (draft === undefined) return
+
+    const normalized = normalizeServiceName(draft)
+    if (!normalized) {
+      setRenameDrafts((prev) => ({ ...prev, [serviceId]: currentName }))
+      return
+    }
+    if (normalized === currentName) {
+      setRenameDrafts((prev) => {
+        const next = { ...prev }
+        delete next[serviceId]
+        return next
+      })
+      return
+    }
+
+    try {
+      await updateService.mutateAsync({
+        serviceId,
+        name: normalized,
+      })
+      setRenameDrafts((prev) => {
+        const next = { ...prev }
+        delete next[serviceId]
+        return next
+      })
+    } catch (error) {
+      showInfo(
+        'Unable to rename service',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
+  const handleMoveService = async (serviceId: number, direction: 'up' | 'down') => {
+    const ids = activeServices.map((service) => service.id)
+    const currentIndex = ids.indexOf(serviceId)
+    if (currentIndex < 0) return
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= ids.length) return
+
+    const nextOrder = [...ids]
+    const [moved] = nextOrder.splice(currentIndex, 1)
+    nextOrder.splice(targetIndex, 0, moved)
+
+    try {
+      for (let index = 0; index < nextOrder.length; index += 1) {
+        const id = nextOrder[index]
+        const current = activeServices.find((service) => service.id === id)
+        if (!current || current.sortOrder === index) continue
+        await updateService.mutateAsync({
+          serviceId: id,
+          sortOrder: index,
+        })
+      }
+    } catch (error) {
+      showInfo(
+        'Unable to reorder services',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
   return (
-    <YStack flex={1} bg="$background" position="relative">
+    <YStack flex={1} bg="$surfacePage" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ pb: "$10" }}>
-        <YStack px="$5" pt="$6" gap="$4">
+      <XStack px="$5" pt={topInset} pb="$2" items="center" justify="space-between">
+        <SecondaryButton
+          size="$2"
+          height={36}
+          width={38}
+          px="$2"
+          icon={<ChevronLeft size={16} />}
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
+        />
+        <YStack width={38} />
+      </XStack>
+      <ScrollView contentContainerStyle={{ pb: '$10' }}>
+        <YStack px="$5" pt="$3" gap="$4">
           <YStack gap="$2">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={16}>
               App Settings
-            </Text>
-            <Text fontSize={12} color="$gray8">
+            </ThemedHeadingText>
+            <Text fontSize={12} color="$textSecondary">
               Configure how the app behaves day to day.
             </Text>
           </YStack>
@@ -65,10 +253,10 @@ export default function SettingsScreen() {
           <SectionDivider />
 
           <YStack gap="$3">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
               Clients
-            </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+            </ThemedHeadingText>
+            <SurfaceCard mode="section">
               <XStack items="center" justify="space-between">
                 <YStack gap="$0.5" flex={1} pr="$3">
                   <XStack items="center" gap="$2">
@@ -78,7 +266,7 @@ export default function SettingsScreen() {
                       message="Toggle status labels that show whether a client has visited recently."
                     />
                   </XStack>
-                  <Text fontSize={11} color="$gray8">
+                  <Text fontSize={11} color="$textSecondary">
                     Show client status labels in the list.
                   </Text>
                 </YStack>
@@ -91,7 +279,7 @@ export default function SettingsScreen() {
                 />
               </XStack>
               {appSettings.clientsShowStatus ? (
-                <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$gray3">
+                <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$borderSubtle">
                   <XStack items="center" justify="space-between">
                     <YStack gap="$0.5" flex={1} pr="$3">
                       <XStack items="center" gap="$2">
@@ -101,7 +289,7 @@ export default function SettingsScreen() {
                           message="Show Active/Inactive status on the Clients list."
                         />
                       </XStack>
-                      <Text fontSize={11} color="$gray8">
+                      <Text fontSize={11} color="$textSecondary">
                         Show status labels on the client list.
                       </Text>
                     </YStack>
@@ -124,7 +312,7 @@ export default function SettingsScreen() {
                           message="Show Active/Inactive status on the client details screen."
                         />
                       </XStack>
-                      <Text fontSize={11} color="$gray8">
+                      <Text fontSize={11} color="$textSecondary">
                         Show status labels on client detail pages.
                       </Text>
                     </YStack>
@@ -149,7 +337,7 @@ export default function SettingsScreen() {
                       message="Choose how far back a visit counts as active."
                     />
                   </XStack>
-                  <Text fontSize={11} color="$gray8">
+                  <Text fontSize={11} color="$textSecondary">
                     Clients are active if they visited within this timeframe.
                   </Text>
                 </YStack>
@@ -158,36 +346,26 @@ export default function SettingsScreen() {
                 {[3, 6, 12, 18].map((months) => {
                   const isActive = appSettings.activeStatusMonths === months
                   return (
-                    <XStack
+                    <OptionChip
                       key={months}
-                      {...cardBorder}
-                      rounded="$3"
-                      px="$2.5"
-                      py="$1.5"
-                      items="center"
-                      bg={isActive ? '$accentMuted' : '$background'}
-                      borderColor={isActive ? '$accentSoft' : '$borderColor'}
-                      onPress={() =>
-                        setAppSettings({ activeStatusMonths: months })
-                      }
+                      active={isActive}
+                      onPress={() => setAppSettings({ activeStatusMonths: months })}
                     >
-                      <Text fontSize={11} color={isActive ? '$accent' : '$gray8'}>
-                        {months} mo
-                      </Text>
-                    </XStack>
+                      <OptionChipLabel active={isActive}>{months} mo</OptionChipLabel>
+                    </OptionChip>
                   )
                 })}
               </XStack>
-            </YStack>
+            </SurfaceCard>
           </YStack>
 
           <SectionDivider />
 
           <YStack gap="$3">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
               Dates
-            </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+            </ThemedHeadingText>
+            <SurfaceCard mode="section">
               <YStack gap="$2">
                 <XStack items="center" justify="space-between">
                   <YStack gap="$0.5" flex={1} pr="$3">
@@ -198,7 +376,7 @@ export default function SettingsScreen() {
                         message="Controls the app-wide date display style. Today is still shown as 'Today'."
                       />
                     </XStack>
-                    <Text fontSize={11} color="$gray8">
+                    <Text fontSize={11} color="$textSecondary">
                       Applies globally, with compact cards kept short for readability.
                     </Text>
                   </YStack>
@@ -207,31 +385,23 @@ export default function SettingsScreen() {
                   {appointmentDateOptions.map((option) => {
                     const isActive = appSettings.dateDisplayFormat === option.id
                     return (
-                      <XStack
+                      <OptionChip
                         key={option.id}
-                        {...cardBorder}
-                        rounded="$3"
-                        px="$2.5"
-                        py="$1.5"
-                        items="center"
-                        bg={isActive ? '$accentMuted' : '$background'}
-                        borderColor={isActive ? '$accentSoft' : '$borderColor'}
+                        active={isActive}
                         onPress={() =>
                           setAppSettings({
                             dateDisplayFormat: option.id,
                           })
                         }
                       >
-                        <Text fontSize={11} color={isActive ? '$accent' : '$gray8'}>
-                          {option.label}
-                        </Text>
-                      </XStack>
+                        <OptionChipLabel active={isActive}>{option.label}</OptionChipLabel>
+                      </OptionChip>
                     )
                   })}
                 </XStack>
               </YStack>
               {appSettings.dateDisplayFormat === 'long' ? (
-                <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$gray3">
+                <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$borderSubtle">
                   <XStack items="center" justify="space-between">
                     <YStack gap="$0.5" flex={1} pr="$3">
                       <XStack items="center" gap="$2">
@@ -241,7 +411,7 @@ export default function SettingsScreen() {
                           message="When long format is enabled, include the weekday in dates."
                         />
                       </XStack>
-                      <Text fontSize={11} color="$gray8">
+                      <Text fontSize={11} color="$textSecondary">
                         Example: Monday, October 4th 2026
                       </Text>
                     </YStack>
@@ -257,16 +427,159 @@ export default function SettingsScreen() {
                   </XStack>
                 </YStack>
               ) : null}
-            </YStack>
+            </SurfaceCard>
           </YStack>
 
           <SectionDivider />
 
           <YStack gap="$3">
-            <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
+              Appointment Logs
+            </ThemedHeadingText>
+            <SurfaceCard mode="section">
+              <XStack items="center" justify="space-between">
+                <YStack gap="$0.5" flex={1} pr="$3">
+                  <XStack items="center" gap="$2">
+                    <Text fontSize={13}>Service dropdown options</Text>
+                    <InfoButton
+                      title="Service dropdown options"
+                      message="Controls the selectable services shown when creating or editing an appointment log."
+                    />
+                  </XStack>
+                  <Text fontSize={11} color="$textSecondary">
+                    Names are formatted automatically (example: balayage → Balayage).
+                  </Text>
+                </YStack>
+              </XStack>
+
+              <YStack gap="$2">
+                <FieldLabel>Active services</FieldLabel>
+                {activeServices.map((service, index) => (
+                  <XStack
+                    key={service.id}
+                    items="center"
+                    gap="$2"
+                    borderWidth={1}
+                    borderColor="$borderSubtle"
+                    rounded="$4"
+                    p="$2"
+                  >
+                    <TextField
+                      flex={1}
+                      value={renameDrafts[service.id] ?? service.name}
+                      onChangeText={(text) =>
+                        setRenameDrafts((prev) => ({
+                          ...prev,
+                          [service.id]: text,
+                        }))
+                      }
+                      onBlur={() => {
+                        void handleRenameService(service.id, service.name)
+                      }}
+                    />
+                    <SecondaryButton
+                      size="$2"
+                      px="$2"
+                      icon={<ArrowUp size={14} />}
+                      disabled={index === 0}
+                      opacity={index === 0 ? 0.45 : 1}
+                      onPress={() => {
+                        void handleMoveService(service.id, 'up')
+                      }}
+                    />
+                    <SecondaryButton
+                      size="$2"
+                      px="$2"
+                      icon={<ArrowDown size={14} />}
+                      disabled={index === activeServices.length - 1}
+                      opacity={index === activeServices.length - 1 ? 0.45 : 1}
+                      onPress={() => {
+                        void handleMoveService(service.id, 'down')
+                      }}
+                    />
+                    <SecondaryButton
+                      size="$2"
+                      px="$2"
+                      onPress={() => {
+                        void handleDeactivateService(service.id)
+                      }}
+                    >
+                      Remove
+                    </SecondaryButton>
+                  </XStack>
+                ))}
+              </YStack>
+
+              {inactiveServices.length ? (
+                <YStack gap="$2">
+                  <FieldLabel>Inactive services</FieldLabel>
+                  <YStack gap="$1.5">
+                    {inactiveServices.map((service) => (
+                      <XStack
+                        key={service.id}
+                        items="center"
+                        justify="space-between"
+                        borderWidth={1}
+                        borderColor="$borderSubtle"
+                        rounded="$4"
+                        p="$2.5"
+                      >
+                        <Text fontSize={12} color="$textSecondary">
+                          {service.name}
+                        </Text>
+                        <SecondaryButton
+                          size="$2"
+                          icon={<RotateCcw size={14} />}
+                          onPress={() => {
+                            void handleReactivateService(service.id)
+                          }}
+                        >
+                          Reactivate
+                        </SecondaryButton>
+                      </XStack>
+                    ))}
+                  </YStack>
+                </YStack>
+              ) : null}
+
+              <YStack gap="$2">
+                <FieldLabel>Add service</FieldLabel>
+                <XStack gap="$2">
+                  <TextField
+                    flex={1}
+                    placeholder="ex: single process"
+                    value={serviceDraft}
+                    onChangeText={setServiceDraft}
+                    onBlur={() => {
+                      setServiceDraft((current) => normalizeServiceName(current))
+                    }}
+                    onSubmitEditing={() => {
+                      void handleAddService()
+                    }}
+                    returnKeyType="done"
+                  />
+                  <PrimaryButton
+                    icon={<Plus size={14} />}
+                    disabled={!canAddService || createService.isPending}
+                    onPress={() => {
+                      void handleAddService()
+                    }}
+                    opacity={canAddService && !createService.isPending ? 1 : 0.5}
+                  >
+                    {createService.isPending ? 'Adding...' : 'Add'}
+                  </PrimaryButton>
+                </XStack>
+              </YStack>
+            </SurfaceCard>
+          </YStack>
+
+          <SectionDivider />
+
+          <YStack gap="$3">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
               Overview
-            </Text>
-            <YStack {...cardBorder} rounded="$5" p="$4" gap="$3">
+            </ThemedHeadingText>
+            <SurfaceCard mode="section">
               {(
                 [
                   {
@@ -319,9 +632,8 @@ export default function SettingsScreen() {
                   />
                 </XStack>
               ))}
-            </YStack>
+            </SurfaceCard>
           </YStack>
-
         </YStack>
       </ScrollView>
     </YStack>

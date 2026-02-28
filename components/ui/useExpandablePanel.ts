@@ -7,6 +7,14 @@ const SPRING_DELAY = 140
 
 type ExpandablePanelOptions = {
   hideDelayMs?: number
+  panelDelayMs?: number
+  panelDurationMs?: number
+  springDelayMs?: number
+  springConfig?: {
+    damping?: number
+    stiffness?: number
+    mass?: number
+  }
 }
 
 export const useExpandablePanel = (
@@ -18,7 +26,13 @@ export const useExpandablePanel = (
   const height = useSharedValue(0)
   const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const springTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hideDelay = options.hideDelayMs ?? PANEL_BOX_DURATION + 140
+  const panelDelay = options.panelDelayMs ?? PANEL_BOX_DELAY
+  const panelDuration = options.panelDurationMs ?? PANEL_BOX_DURATION
+  const springDelay = options.springDelayMs ?? SPRING_DELAY
+  const springDamping = options.springConfig?.damping ?? 26
+  const springStiffness = options.springConfig?.stiffness ?? 200
+  const springMass = options.springConfig?.mass ?? 0.5
+  const hideDelay = options.hideDelayMs ?? panelDuration + 140
 
   useEffect(() => {
     if (visible) {
@@ -30,39 +44,50 @@ export const useExpandablePanel = (
       }
       setShowPanel(true)
       height.value = withDelay(
-        PANEL_BOX_DELAY,
+        panelDelay,
         withTiming(measured || 0, {
-          duration: PANEL_BOX_DURATION,
+          duration: panelDuration,
           easing: Easing.out(Easing.cubic),
         })
       )
       springTimeout.current = setTimeout(() => {
         height.value = withSpring(measured || 0, {
-          damping: 26,
-          stiffness: 200,
-          mass: 0.5,
+          damping: springDamping,
+          stiffness: springStiffness,
+          mass: springMass,
         })
-      }, SPRING_DELAY)
+      }, springDelay)
     } else {
       if (springTimeout.current) {
         clearTimeout(springTimeout.current)
       }
       height.value = withTiming(0, {
-        duration: PANEL_BOX_DURATION,
+        duration: panelDuration,
         easing: Easing.in(Easing.cubic),
       })
       springTimeout.current = setTimeout(() => {
         height.value = withSpring(0, {
-          damping: 26,
-          stiffness: 200,
-          mass: 0.5,
+          damping: springDamping,
+          stiffness: springStiffness,
+          mass: springMass,
         })
-      }, SPRING_DELAY)
+      }, springDelay)
       hideTimeout.current = setTimeout(() => {
         setShowPanel(false)
       }, hideDelay)
     }
-  }, [height, hideDelay, measured, visible])
+  }, [
+    height,
+    hideDelay,
+    measured,
+    panelDelay,
+    panelDuration,
+    springDamping,
+    springStiffness,
+    springMass,
+    springDelay,
+    visible,
+  ])
 
   useEffect(() => {
     return () => {

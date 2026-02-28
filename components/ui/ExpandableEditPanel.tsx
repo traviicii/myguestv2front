@@ -7,14 +7,12 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated'
-import {
-  PANEL_BOX_DELAY,
-  PANEL_BOX_DURATION,
-  useExpandablePanel,
-} from 'components/ui/useExpandablePanel'
+import { useExpandablePanel } from 'components/ui/useExpandablePanel'
 
-const LINE_DURATION = 320
-const LINE_UNDRAW_DELAY = PANEL_BOX_DELAY + PANEL_BOX_DURATION
+const PANEL_DELAY = 90
+const PANEL_DURATION = 220
+const LINE_DURATION = 250
+const LINE_UNDRAW_DELAY = PANEL_DELAY + PANEL_DURATION
 const EXIT_HIDE_DELAY = LINE_UNDRAW_DELAY + LINE_DURATION + 60
 
 type ExpandableEditPanelProps = {
@@ -34,7 +32,12 @@ export const ExpandableEditPanel = ({
   // so the line + panel expansion/collapse stay consistent across the app.
   const lineWidth = useSharedValue(0)
   const lineProgress = useSharedValue(visible ? 1 : 0)
-  const panel = useExpandablePanel(visible, { hideDelayMs: EXIT_HIDE_DELAY })
+  const panel = useExpandablePanel(visible, {
+    hideDelayMs: EXIT_HIDE_DELAY,
+    panelDelayMs: PANEL_DELAY,
+    panelDurationMs: PANEL_DURATION,
+  })
+  const shouldRenderLine = visible || panel.showPanel
 
   useEffect(() => {
     if (visible) {
@@ -71,26 +74,37 @@ export const ExpandableEditPanel = ({
   }
 
   const renderContent = children
+  if (!visible && !panel.showPanel) {
+    return null
+  }
 
   return (
-    <YStack gap="$2">
-      <YStack
-        onLayout={(event) => {
-          lineWidth.value = event.nativeEvent.layout.width
-        }}
-        items="flex-end"
-      >
-        <Animated.View
-          style={[
-            {
-              height: 2,
-              backgroundColor: lineColor,
-              borderRadius: 999,
-            },
-            lineStyle,
-          ]}
-        />
-      </YStack>
+    <YStack position="relative">
+      {shouldRenderLine ? (
+        <YStack
+          position="absolute"
+          l={0}
+          r={0}
+          t={0}
+          pointerEvents="none"
+          style={{ zIndex: 2 }}
+          onLayout={(event) => {
+            lineWidth.value = event.nativeEvent.layout.width
+          }}
+          items="flex-end"
+        >
+          <Animated.View
+            style={[
+              {
+                height: 2,
+                backgroundColor: lineColor,
+                borderRadius: 999,
+              },
+              lineStyle,
+            ]}
+          />
+        </YStack>
+      ) : null}
       {panel.showPanel ? (
         <YStack position="relative">
           <YStack
@@ -104,10 +118,14 @@ export const ExpandableEditPanel = ({
               panel.setMeasured(event.nativeEvent.layout.height)
             }}
           >
-            <YStack {...cardStyle}>{renderContent()}</YStack>
+            <YStack pt="$2">
+              <YStack {...cardStyle}>{renderContent()}</YStack>
+            </YStack>
           </YStack>
           <Animated.View style={[{ overflow: 'hidden' }, panel.animatedStyle]}>
-            <YStack {...cardStyle}>{renderContent()}</YStack>
+            <YStack pt="$2">
+              <YStack {...cardStyle}>{renderContent()}</YStack>
+            </YStack>
           </Animated.View>
         </YStack>
       ) : null}

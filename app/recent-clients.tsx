@@ -1,31 +1,17 @@
 import { Link } from 'expo-router'
+import { cardSurfaceProps } from 'components/ui/controls'
 import { useMemo } from 'react'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
+import { useStudioStore } from 'components/state/studioStore'
+import { sortClientsByNewest } from 'components/utils/clientSort'
 import { formatDateByStyle } from 'components/utils/date'
-
-const cardBorder = {
-  bg: '$gray1',
-  borderWidth: 1,
-  borderColor: '$gray3',
-  shadowColor: 'rgba(15,23,42,0.08)',
-  shadowRadius: 18,
-  shadowOpacity: 1,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 2,
-} as const
-
-const getDateValue = (dateString: string) => {
-  if (!dateString || dateString === '—') return null
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return null
-  return date.getTime()
-}
 
 export default function RecentClientsScreen() {
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
+  const appSettings = useStudioStore((state) => state.appSettings)
 
   const lastVisitByClient = useMemo(() => {
     return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
@@ -38,13 +24,8 @@ export default function RecentClientsScreen() {
   }, [appointmentHistory])
 
   const sortedClients = useMemo(() => {
-    return [...clients].sort((a, b) => {
-      const aDate = getDateValue(lastVisitByClient[a.id] ?? a.lastVisit) ?? -1
-      const bDate = getDateValue(lastVisitByClient[b.id] ?? b.lastVisit) ?? -1
-      if (aDate !== bDate) return bDate - aDate
-      return a.name.localeCompare(b.name)
-    })
-  }, [clients, lastVisitByClient])
+    return sortClientsByNewest(clients)
+  }, [clients])
 
   return (
     <YStack flex={1} bg="$background" position="relative">
@@ -55,15 +36,15 @@ export default function RecentClientsScreen() {
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
               Recent Clients
             </Text>
-            <Text fontSize={12} color="$gray8">
-              Last visit dates sorted from most recent.
+            <Text fontSize={12} color="$textSecondary">
+              Newest clients in your database.
             </Text>
           </YStack>
 
           <YStack gap="$3">
             {sortedClients.length === 0 ? (
-              <YStack {...cardBorder} rounded="$5" p="$4">
-                <Text fontSize={12} color="$gray8">
+              <YStack {...cardSurfaceProps} rounded="$5" p="$4">
+                <Text fontSize={12} color="$textSecondary">
                   No clients yet.
                 </Text>
               </YStack>
@@ -73,7 +54,7 @@ export default function RecentClientsScreen() {
                 return (
                   <Link key={client.id} href={`/client/${client.id}`} asChild>
                     <XStack
-                      {...cardBorder}
+                      {...cardSurfaceProps}
                       p="$4"
                       rounded="$5"
                       items="center"
@@ -84,10 +65,11 @@ export default function RecentClientsScreen() {
                         <Text fontSize={14} fontWeight="600">
                           {client.name}
                         </Text>
-                        <Text fontSize={12} color="$gray8">
+                        <Text fontSize={12} color="$textSecondary">
                           {client.type} • Last visit{' '}
-                          {formatDateByStyle(lastVisit || '—', 'short', {
+                          {formatDateByStyle(lastVisit || '—', appSettings.dateDisplayFormat, {
                             todayLabel: true,
+                            includeWeekday: appSettings.dateLongIncludeWeekday,
                           })}
                         </Text>
                       </YStack>
