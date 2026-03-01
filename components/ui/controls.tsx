@@ -632,6 +632,66 @@ export function SurfaceCard({
   )
 }
 
+export function PreviewCard({
+  mode,
+  tone,
+  children,
+  ...props
+}: React.ComponentProps<typeof YStack> & { mode?: CardMode; tone?: SurfaceTone }) {
+  const profile = useAestheticProfile()
+  const { aesthetic, mode: themeMode } = useThemePrefs()
+  const isGlass = aesthetic === 'glass'
+  const resolvedMode = mode ?? 'section'
+  const resolvedTone = tone ?? (isGlass ? 'tabGlass' : 'default')
+  const {
+    p,
+    px,
+    py,
+    pt,
+    pb,
+    pl,
+    pr,
+    gap,
+    rounded,
+    ...rest
+  } = props
+  const padding = p ?? '$4'
+  const contentGap = gap ?? '$3'
+
+  if (!isGlass) {
+    return (
+      <YStack
+        {...cardSurfaceProps}
+        rounded={rounded ?? profile.cardRadius}
+        p={padding}
+        gap={contentGap}
+        {...rest}
+      >
+        {children}
+      </YStack>
+    )
+  }
+
+  return (
+    <SurfaceCard
+      mode={resolvedMode}
+      tone={resolvedTone}
+      rounded={rounded ?? profile.cardRadius}
+      p={padding}
+      gap={contentGap}
+      px={px}
+      py={py}
+      pt={pt}
+      pb={pb}
+      pl={pl}
+      pr={pr}
+      {...rest}
+    >
+      {children}
+    </SurfaceCard>
+  )
+}
+
 export function GlassOrbAction({
   label,
   icon,
