@@ -10,8 +10,10 @@ import {
   ArrowUp,
   ChevronLeft,
   HelpCircle,
+  Minus,
   Plus,
   RotateCcw,
+  Trash2,
 } from '@tamagui/lucide-icons'
 import {
   ScrollView,
@@ -41,6 +43,7 @@ import {
 import {
   useCreateService,
   useDeactivateService,
+  usePermanentlyDeleteService,
   useReactivateService,
   useServices,
   useUpdateService,
@@ -53,11 +56,14 @@ export default function SettingsScreen() {
   const topInset = Math.max(insets.top + 8, 16)
   const { appSettings, setAppSettings } = useStudioStore()
   const [serviceDraft, setServiceDraft] = useState('')
+  const [servicePriceDraft, setServicePriceDraft] = useState('')
   const [renameDrafts, setRenameDrafts] = useState<Record<number, string>>({})
+  const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({})
   const { data: serviceCatalog = [] } = useServices('all')
   const createService = useCreateService()
   const updateService = useUpdateService()
   const deactivateService = useDeactivateService()
+  const permanentlyDeleteService = usePermanentlyDeleteService()
   const reactivateService = useReactivateService()
   const activeServices = useMemo(
     () =>
@@ -79,6 +85,54 @@ export default function SettingsScreen() {
     { id: 'short', label: 'MM/DD/YYYY' },
     { id: 'long', label: 'Long format' },
   ]
+  const displayRows = [
+    {
+      id: 'overviewRecentAppointmentsCount',
+      label: 'Overview recent appointments',
+      help: 'How many recent appointment logs are shown on the Overview screen.',
+      value: appSettings.overviewRecentAppointmentsCount,
+    },
+    {
+      id: 'overviewRecentClientsCount',
+      label: 'Overview recent clients',
+      help: 'How many recent clients are shown on the Overview screen.',
+      value: appSettings.overviewRecentClientsCount,
+    },
+    {
+      id: 'clientDetailsAppointmentLogsCount',
+      label: 'Client details appointment logs',
+      help: 'How many appointment logs are previewed on each client details screen.',
+      value: appSettings.clientDetailsAppointmentLogsCount,
+    },
+  ] as const
+
+  const formatPriceInput = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return ''
+    const formatted = (value / 100).toFixed(2)
+    return formatted.replace(/\.00$/, '')
+  }
+
+  const parsePriceInputToCents = (value: string): number | null | undefined => {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const normalized = trimmed.replace(/[$,\s]/g, '')
+    if (!/^\d+(\.\d{0,2})?$/.test(normalized)) return undefined
+    const parsed = Number(normalized)
+    if (!Number.isFinite(parsed) || parsed < 0) return undefined
+    return Math.round(parsed * 100)
+  }
+
+  const updatePreviewCount = (
+    key:
+      | 'overviewRecentAppointmentsCount'
+      | 'overviewRecentClientsCount'
+      | 'clientDetailsAppointmentLogsCount',
+    delta: number
+  ) => {
+    const currentValue = appSettings[key]
+    const nextValue = Math.min(12, Math.max(1, currentValue + delta))
+    setAppSettings({ [key]: nextValue })
+  }
 
   const showInfo = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -104,6 +158,11 @@ export default function SettingsScreen() {
   const handleAddService = async () => {
     const normalized = normalizeServiceName(serviceDraft)
     if (!normalized) return
+    const defaultPriceCents = parsePriceInputToCents(servicePriceDraft)
+    if (defaultPriceCents === undefined) {
+      showInfo('Invalid price', 'Use a valid amount like 95 or 95.50, or leave blank.')
+      return
+    }
 
     const alreadyExists = serviceCatalog.some(
       (service) => service.normalizedName === normalized.toLowerCase()
@@ -117,8 +176,10 @@ export default function SettingsScreen() {
       await createService.mutateAsync({
         name: normalized,
         sortOrder: activeServices.length,
+        defaultPriceCents,
       })
       setServiceDraft('')
+      setServicePriceDraft('')
     } catch (error) {
       showInfo(
         'Unable to add service',
@@ -194,6 +255,50 @@ export default function SettingsScreen() {
     }
   }
 
+  const handlePriceBlur = async (
+    serviceId: number,
+    currentDefaultPriceCents: number | null
+  ) => {
+    const draft = priceDrafts[serviceId]
+    if (draft === undefined) return
+
+    const parsed = parsePriceInputToCents(draft)
+    if (parsed === undefined) {
+      showInfo('Invalid price', 'Use a valid amount like 95 or 95.50, or leave blank.')
+      setPriceDrafts((prev) => ({
+        ...prev,
+        [serviceId]: formatPriceInput(currentDefaultPriceCents),
+      }))
+      return
+    }
+
+    if (parsed === currentDefaultPriceCents) {
+      setPriceDrafts((prev) => {
+        const next = { ...prev }
+        delete next[serviceId]
+        return next
+      })
+      return
+    }
+
+    try {
+      await updateService.mutateAsync({
+        serviceId,
+        defaultPriceCents: parsed,
+      })
+      setPriceDrafts((prev) => {
+        const next = { ...prev }
+        delete next[serviceId]
+        return next
+      })
+    } catch (error) {
+      showInfo(
+        'Unable to update price',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
   const handleMoveService = async (serviceId: number, direction: 'up' | 'down') => {
     const ids = activeServices.map((service) => service.id)
     const currentIndex = ids.indexOf(serviceId)
@@ -222,6 +327,36 @@ export default function SettingsScreen() {
         error instanceof Error ? error.message : 'Please try again.'
       )
     }
+  }
+
+  const handlePermanentlyDeleteService = (serviceId: number, serviceName: string, usageCount: number) => {
+    if (usageCount > 0) {
+      showInfo(
+        'Service in use',
+        `${serviceName} is used in ${usageCount} appointment log${usageCount === 1 ? '' : 's'} and cannot be permanently deleted.`
+      )
+      return
+    }
+
+    Alert.alert(
+      'Delete permanently?',
+      `${serviceName} will be removed permanently. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void permanentlyDeleteService.mutateAsync(serviceId).catch((error) => {
+              showInfo(
+                'Unable to delete service',
+                error instanceof Error ? error.message : 'Please try again.'
+              )
+            })
+          },
+        },
+      ]
+    )
   }
 
   return (
@@ -434,6 +569,52 @@ export default function SettingsScreen() {
 
           <YStack gap="$3">
             <ThemedHeadingText fontWeight="700" fontSize={14}>
+              Display
+            </ThemedHeadingText>
+            <SurfaceCard mode="section">
+              {displayRows.map((row) => (
+                <XStack key={row.id} items="center" justify="space-between">
+                  <YStack gap="$0.5" flex={1} pr="$3">
+                    <XStack items="center" gap="$2">
+                      <Text fontSize={13}>{row.label}</Text>
+                      <InfoButton title={row.label} message={row.help} />
+                    </XStack>
+                    <Text fontSize={11} color="$textSecondary">
+                      Currently showing {row.value} items.
+                    </Text>
+                  </YStack>
+                  <XStack items="center" gap="$1.5">
+                    <SecondaryButton
+                      size="$2"
+                      px="$2"
+                      icon={<Minus size={14} />}
+                      disabled={row.value <= 1}
+                      opacity={row.value <= 1 ? 0.45 : 1}
+                      onPress={() => updatePreviewCount(row.id, -1)}
+                    />
+                    <YStack width={30} items="center">
+                      <Text fontSize={13} fontWeight="700">
+                        {row.value}
+                      </Text>
+                    </YStack>
+                    <SecondaryButton
+                      size="$2"
+                      px="$2"
+                      icon={<Plus size={14} />}
+                      disabled={row.value >= 12}
+                      opacity={row.value >= 12 ? 0.45 : 1}
+                      onPress={() => updatePreviewCount(row.id, 1)}
+                    />
+                  </XStack>
+                </XStack>
+              ))}
+            </SurfaceCard>
+          </YStack>
+
+          <SectionDivider />
+
+          <YStack gap="$3">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
               Appointment Logs
             </ThemedHeadingText>
             <SurfaceCard mode="section">
@@ -455,58 +636,114 @@ export default function SettingsScreen() {
               <YStack gap="$2">
                 <FieldLabel>Active services</FieldLabel>
                 {activeServices.map((service, index) => (
-                  <XStack
+                  <YStack
                     key={service.id}
-                    items="center"
                     gap="$2"
                     borderWidth={1}
                     borderColor="$borderSubtle"
                     rounded="$4"
-                    p="$2"
+                    p="$2.5"
                   >
-                    <TextField
-                      flex={1}
-                      value={renameDrafts[service.id] ?? service.name}
-                      onChangeText={(text) =>
-                        setRenameDrafts((prev) => ({
-                          ...prev,
-                          [service.id]: text,
-                        }))
-                      }
-                      onBlur={() => {
-                        void handleRenameService(service.id, service.name)
-                      }}
-                    />
-                    <SecondaryButton
-                      size="$2"
-                      px="$2"
-                      icon={<ArrowUp size={14} />}
-                      disabled={index === 0}
-                      opacity={index === 0 ? 0.45 : 1}
-                      onPress={() => {
-                        void handleMoveService(service.id, 'up')
-                      }}
-                    />
-                    <SecondaryButton
-                      size="$2"
-                      px="$2"
-                      icon={<ArrowDown size={14} />}
-                      disabled={index === activeServices.length - 1}
-                      opacity={index === activeServices.length - 1 ? 0.45 : 1}
-                      onPress={() => {
-                        void handleMoveService(service.id, 'down')
-                      }}
-                    />
-                    <SecondaryButton
-                      size="$2"
-                      px="$2"
-                      onPress={() => {
-                        void handleDeactivateService(service.id)
-                      }}
+                    <XStack
+                      items="center"
+                      justify="space-between"
+                      gap="$2"
                     >
-                      Remove
-                    </SecondaryButton>
-                  </XStack>
+                      <Text fontSize={11} color="$textSecondary">
+                        {service.usageCount > 0
+                          ? `Used in ${service.usageCount} log${service.usageCount === 1 ? '' : 's'}`
+                          : 'Unused'}
+                      </Text>
+                      <XStack gap="$1.5">
+                        <SecondaryButton
+                          size="$2"
+                          px="$2"
+                          icon={<ArrowUp size={14} />}
+                          disabled={index === 0}
+                          opacity={index === 0 ? 0.45 : 1}
+                          onPress={() => {
+                            void handleMoveService(service.id, 'up')
+                          }}
+                        />
+                        <SecondaryButton
+                          size="$2"
+                          px="$2"
+                          icon={<ArrowDown size={14} />}
+                          disabled={index === activeServices.length - 1}
+                          opacity={index === activeServices.length - 1 ? 0.45 : 1}
+                          onPress={() => {
+                            void handleMoveService(service.id, 'down')
+                          }}
+                        />
+                      </XStack>
+                    </XStack>
+                    <XStack
+                      items="center"
+                      gap="$2"
+                    >
+                      <TextField
+                        flex={1}
+                        value={renameDrafts[service.id] ?? service.name}
+                        onChangeText={(text) =>
+                          setRenameDrafts((prev) => ({
+                            ...prev,
+                            [service.id]: text,
+                          }))
+                        }
+                        onBlur={() => {
+                          void handleRenameService(service.id, service.name)
+                        }}
+                      />
+                      <TextField
+                        width={120}
+                        placeholder="Price (opt.)"
+                        keyboardType="decimal-pad"
+                        value={priceDrafts[service.id] ?? formatPriceInput(service.defaultPriceCents)}
+                        onChangeText={(text) =>
+                          setPriceDrafts((prev) => ({
+                            ...prev,
+                            [service.id]: text,
+                          }))
+                        }
+                        onBlur={() => {
+                          void handlePriceBlur(service.id, service.defaultPriceCents)
+                        }}
+                      />
+                    </XStack>
+                    <XStack
+                      items="center"
+                      justify="space-between"
+                    gap="$2"
+                    >
+                      <SecondaryButton
+                        size="$2"
+                        px="$2"
+                        onPress={() => {
+                          void handleDeactivateService(service.id)
+                        }}
+                      >
+                        Remove
+                      </SecondaryButton>
+                      <SecondaryButton
+                        size="$2"
+                        px="$2"
+                        disabled={service.usageCount > 0 || permanentlyDeleteService.isPending}
+                        opacity={service.usageCount > 0 ? 0.45 : 1}
+                        borderColor="$red8"
+                        bg="$red2"
+                        icon={<Trash2 size={14} />}
+                        onPress={() =>
+                          handlePermanentlyDeleteService(
+                            service.id,
+                            service.name,
+                            service.usageCount
+                          )
+                        }
+                      >
+                        Delete
+                      </SecondaryButton>
+                    </XStack>
+                  </YStack>
                 ))}
               </YStack>
 
@@ -515,28 +752,54 @@ export default function SettingsScreen() {
                   <FieldLabel>Inactive services</FieldLabel>
                   <YStack gap="$1.5">
                     {inactiveServices.map((service) => (
-                      <XStack
+                      <YStack
                         key={service.id}
-                        items="center"
-                        justify="space-between"
+                        gap="$2"
                         borderWidth={1}
                         borderColor="$borderSubtle"
                         rounded="$4"
                         p="$2.5"
                       >
-                        <Text fontSize={12} color="$textSecondary">
-                          {service.name}
-                        </Text>
-                        <SecondaryButton
-                          size="$2"
-                          icon={<RotateCcw size={14} />}
-                          onPress={() => {
-                            void handleReactivateService(service.id)
-                          }}
-                        >
-                          Reactivate
-                        </SecondaryButton>
-                      </XStack>
+                        <XStack items="center" justify="space-between">
+                          <Text fontSize={12} color="$textSecondary">
+                            {service.name}
+                          </Text>
+                          <Text fontSize={11} color="$textSecondary">
+                            {service.usageCount > 0
+                              ? `Used in ${service.usageCount} log${service.usageCount === 1 ? '' : 's'}`
+                              : 'Unused'}
+                          </Text>
+                        </XStack>
+                        <XStack items="center" justify="space-between" gap="$2">
+                          <SecondaryButton
+                            size="$2"
+                            icon={<RotateCcw size={14} />}
+                            onPress={() => {
+                              void handleReactivateService(service.id)
+                            }}
+                          >
+                            Reactivate
+                          </SecondaryButton>
+                          <SecondaryButton
+                            size="$2"
+                            px="$2"
+                            disabled={service.usageCount > 0 || permanentlyDeleteService.isPending}
+                            opacity={service.usageCount > 0 ? 0.45 : 1}
+                            borderColor="$red8"
+                            bg="$red2"
+                            icon={<Trash2 size={14} />}
+                            onPress={() =>
+                              handlePermanentlyDeleteService(
+                                service.id,
+                                service.name,
+                                service.usageCount
+                              )
+                            }
+                          >
+                            Delete
+                          </SecondaryButton>
+                        </XStack>
+                      </YStack>
                     ))}
                   </YStack>
                 </YStack>
@@ -557,6 +820,13 @@ export default function SettingsScreen() {
                       void handleAddService()
                     }}
                     returnKeyType="done"
+                  />
+                  <TextField
+                    width={120}
+                    placeholder="Price (opt.)"
+                    keyboardType="decimal-pad"
+                    value={servicePriceDraft}
+                    onChangeText={setServicePriceDraft}
                   />
                   <PrimaryButton
                     icon={<Plus size={14} />}

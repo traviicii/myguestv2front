@@ -2,9 +2,12 @@ import {
   useEffect,
   useMemo,
   useState } from 'react'
-import { useLocalSearchParams,
+import { Stack,
+  useLocalSearchParams,
   useRouter } from 'expo-router'
 import { useToastController } from '@tamagui/toast'
+import { Keyboard, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScrollView,
   Text,
   XStack,
@@ -13,6 +16,7 @@ import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useClients,
   useColorAnalysisByClient,
   useColorAnalysisForClient,
+  useUpsertColorAnalysisForClient,
   } from 'components/data/queries'
 import { COLOR_CHART_FIELD_LABELS,
   COLOR_CHART_GROUPS,
@@ -39,6 +43,8 @@ import { PrimaryButton,
   ThemedEyebrowText,
   ThemedHeadingText,
 } from 'components/ui/controls'
+import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
+import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import { useThemePrefs } from 'components/ThemePrefs'
 
 type OtherInputState = Record<ColorChartPicklistFieldKey, boolean>
@@ -65,12 +71,15 @@ export default function EditClientColorChartScreen() {
   const { aesthetic } = useThemePrefs()
   const isGlass = aesthetic === 'glass'
   const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const topInset = Math.max(insets.top + 8, 16)
   const toast = useToastController()
+  const upsertColorChart = useUpsertColorAnalysisForClient()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: clients = [] } = useClients()
+  const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
 
-  const client = clients.find((item) => item.id === id) ?? clients[0]
+  const client = clients.find((item) => item.id === id)
   const clientId = client?.id
   const { data: colorAnalysisForClient } = useColorAnalysisForClient(clientId)
   const colorAnalysis = client
@@ -90,6 +99,7 @@ export default function EditClientColorChartScreen() {
   const [otherInputs, setOtherInputs] = useState<OtherInputState>(() =>
     buildOtherInputState(sourceForm)
   )
+  const isBootstrapping = clientsLoading && !clients.length
 
   useEffect(() => {
     const nextState = normalizeFormState(sourceForm)
@@ -103,15 +113,32 @@ export default function EditClientColorChartScreen() {
     [form, initialSnapshot]
   )
 
+  if (isBootstrapping) {
+    return (
+      <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+        <Text fontSize={13} color="$textSecondary">
+          Loading client...
+        </Text>
+      </YStack>
+    )
+  }
+
   if (!client) {
     return (
       <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
         <Text fontSize={13} color="$textSecondary">
           Client not found.
         </Text>
       </YStack>
     )
   }
+
+  const keyboardAccessoryId = 'color-chart-edit-keyboard-dismiss'
+  const keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag'
 
   const setField = (field: keyof ColorChartFormState, value: string) => {
     setForm((prev) => ({
@@ -120,15 +147,29 @@ export default function EditClientColorChartScreen() {
     }))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isDirty) return
     const nextBaseline = normalizeFormState(form)
-    setForm(nextBaseline)
-    setInitialSnapshot(nextBaseline)
-    setOtherInputs(buildOtherInputState(nextBaseline))
-    toast.show('Saved', {
-      message: 'UI flow only — persistence will be added next phase.',
-    })
+    try {
+      await upsertColorChart.mutateAsync({
+        clientId: client.id,
+        input: nextBaseline,
+      })
+      setForm(nextBaseline)
+      setInitialSnapshot(nextBaseline)
+      setOtherInputs(buildOtherInputState(nextBaseline))
+      toast.show('Saved', {
+        message: 'Color chart updated.',
+      })
+      router.back()
+    } catch (error) {
+      toast.show('Save failed', {
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unable to save color chart. Please try again.',
+      })
+    }
   }
 
   const renderPicklistField = (
@@ -179,6 +220,7 @@ export default function EditClientColorChartScreen() {
           <TextField
             placeholder={placeholder}
             value={form[field]}
+            inputAccessoryViewID={keyboardAccessoryId}
             onChangeText={(text) => setField(field, text)}
           />
         ) : null}
@@ -187,10 +229,19 @@ export default function EditClientColorChartScreen() {
   }
 
   return (
-    <YStack flex={1} bg="$background" position="relative">
-      <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ pb: '$10' }} keyboardShouldPersistTaps="handled">
-        <YStack px="$5" pt="$6" gap="$4">
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <YStack flex={1} bg="$background" position="relative">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+        <KeyboardDismissAccessory nativeID={keyboardAccessoryId} />
+        <ScrollView
+          contentContainerStyle={{ pb: '$10' }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={keyboardDismissMode}
+          onScrollBeginDrag={Keyboard.dismiss}
+        >
+          <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$1">
             <ThemedEyebrowText>
               EDIT COLOR CHART
@@ -243,6 +294,7 @@ export default function EditClientColorChartScreen() {
                       <TextField
                         placeholder={placeholderMap[field] ?? 'Enter value'}
                         value={form[field]}
+                        inputAccessoryViewID={keyboardAccessoryId}
                         onChangeText={(text) => setField(field, text)}
                       />
                     </YStack>
@@ -259,15 +311,16 @@ export default function EditClientColorChartScreen() {
             </SecondaryButton>
             <PrimaryButton
               flex={1}
-              onPress={handleSave}
-              disabled={!isDirty}
-              opacity={isDirty ? 1 : 0.5}
+              onPress={() => void handleSave()}
+              disabled={!isDirty || upsertColorChart.isPending}
+              opacity={isDirty && !upsertColorChart.isPending ? 1 : 0.5}
             >
-              Save
+              {upsertColorChart.isPending ? 'Saving…' : 'Save'}
             </PrimaryButton>
           </XStack>
-        </YStack>
-      </ScrollView>
-    </YStack>
+          </YStack>
+        </ScrollView>
+      </YStack>
+    </>
   )
 }

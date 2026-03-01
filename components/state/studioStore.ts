@@ -35,6 +35,9 @@ type AppSettings = {
   clientsShowStatusDetails: boolean
   dateDisplayFormat: AppointmentDateFormat
   dateLongIncludeWeekday: boolean
+  overviewRecentAppointmentsCount: number
+  overviewRecentClientsCount: number
+  clientDetailsAppointmentLogsCount: number
   overviewQuickActions: Record<QuickActionId, boolean>
   overviewQuickActionOrder: QuickActionId[]
   overviewSections: Record<OverviewSectionId, boolean>
@@ -81,6 +84,11 @@ const normalizeQuickActionOrder = (order?: QuickActionId[]) => {
   return unique
 }
 
+const clampPreviewCount = (value: number | undefined, fallback: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
+  return Math.min(12, Math.max(1, Math.round(value)))
+}
+
 // App-wide preference/profile settings that should persist for this device.
 export const useStudioStore = create<StudioStore>()(
   persist(
@@ -101,6 +109,9 @@ export const useStudioStore = create<StudioStore>()(
         clientsShowStatusDetails: true,
         dateDisplayFormat: 'short',
         dateLongIncludeWeekday: true,
+        overviewRecentAppointmentsCount: 3,
+        overviewRecentClientsCount: 3,
+        clientDetailsAppointmentLogsCount: 5,
         overviewQuickActions: {
           newClient: true,
           newAppointmentLog: true,
@@ -179,6 +190,14 @@ export const useStudioStore = create<StudioStore>()(
         // when older persisted payloads are missing keys.
         return {
           ...merged,
+          profile: {
+            ...current.profile,
+            ...(persistedState.profile ?? {}),
+          },
+          preferences: {
+            ...current.preferences,
+            ...(persistedState.preferences ?? {}),
+          },
           appSettings: {
             ...current.appSettings,
             ...(persistedApp ?? {}),
@@ -201,6 +220,21 @@ export const useStudioStore = create<StudioStore>()(
             dateLongIncludeWeekday:
               persistedApp?.dateLongIncludeWeekday ??
               current.appSettings.dateLongIncludeWeekday,
+            overviewRecentAppointmentsCount:
+              clampPreviewCount(
+                persistedApp?.overviewRecentAppointmentsCount,
+                current.appSettings.overviewRecentAppointmentsCount
+              ),
+            overviewRecentClientsCount:
+              clampPreviewCount(
+                persistedApp?.overviewRecentClientsCount,
+                current.appSettings.overviewRecentClientsCount
+              ),
+            clientDetailsAppointmentLogsCount:
+              clampPreviewCount(
+                persistedApp?.clientDetailsAppointmentLogsCount,
+                current.appSettings.clientDetailsAppointmentLogsCount
+              ),
             overviewQuickActionOrder: normalizeQuickActionOrder(
               persistedApp?.overviewQuickActionOrder ??
                 current.appSettings.overviewQuickActionOrder

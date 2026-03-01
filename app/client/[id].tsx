@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   Link,
   useLocalSearchParams,
@@ -29,7 +29,8 @@ import { useAppointmentHistory,
   useColorAnalysisForClient,
   useColorAnalysisByClient,
   } from 'components/data/queries'
-import { SectionDivider,
+import { PrimaryButton,
+  SectionDivider,
   SecondaryButton,
   SurfaceCard,
   cardSurfaceProps,
@@ -64,9 +65,31 @@ export default function ClientDetailScreen() {
     resolvedClientId
       ? { pathname: '/client/[id]/edit', params: { id: resolvedClientId } }
       : '/clients'
-  const history = appointmentHistory.filter(
-    (item) => item.clientId === resolvedClientId
+  const formatLastVisitLabel = (value: string) => {
+    if (!value || value === 'No visits yet' || value === '—') return 'No visits yet'
+    return formatDateByStyle(value, appSettings.dateDisplayFormat, {
+      todayLabel: true,
+      includeWeekday: appSettings.dateLongIncludeWeekday,
+    })
+  }
+  const history = useMemo(
+    () =>
+      appointmentHistory
+        .filter((item) => item.clientId === resolvedClientId)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, appSettings.clientDetailsAppointmentLogsCount),
+    [
+      appSettings.clientDetailsAppointmentLogsCount,
+      appointmentHistory,
+      resolvedClientId,
+    ]
   )
+  const latestHistoryDate = useMemo(() => {
+    const matching = appointmentHistory.filter((item) => item.clientId === resolvedClientId)
+    if (!matching.length) return null
+    return [...matching].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+      .date
+  }, [appointmentHistory, resolvedClientId])
   const colorAnalysis =
     colorAnalysisForClient ??
     (resolvedClientId ? colorAnalysisByClient[resolvedClientId] : undefined)
@@ -218,7 +241,7 @@ export default function ClientDetailScreen() {
                   {statusLabel}
                 </Text>
               ) : null}
-              {client.tag ? (
+              {client.tag && client.tag !== client.type ? (
                 <Text fontSize={11} color="$textMuted">
                   {client.tag}
                 </Text>
@@ -226,10 +249,7 @@ export default function ClientDetailScreen() {
             </XStack>
             <Text fontSize={12} color="$textSecondary">
               Last visit{' '}
-              {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                todayLabel: true,
-                includeWeekday: appSettings.dateLongIncludeWeekday,
-              })}
+              {formatLastVisitLabel(latestHistoryDate ?? client.lastVisit)}
             </Text>
           </YStack>
           <GlassCard rounded={cardRadius} p="$4" gap="$2">
@@ -254,51 +274,94 @@ export default function ClientDetailScreen() {
               Quick Actions
             </Text>
             <XStack gap="$2">
-              <GlassCard
-                rounded={controlRadius}
-                px="$3"
-                py="$2.5"
-                flex={1}
-                opacity={phoneUrl ? 1 : 0.4}
-                onPress={() => openExternal(phoneUrl)}
-              >
-                <XStack items="center" gap="$2">
-                  <Phone size={14} color="$accent" />
-                  <Text fontSize={12} color="$accent">
+              {isGlass ? (
+                <>
+                  <PrimaryButton
+                    size="$2"
+                    height={36}
+                    px="$3"
+                    flex={1}
+                    icon={<Phone size={14} />}
+                    disabled={!phoneUrl}
+                    opacity={phoneUrl ? 1 : 0.4}
+                    onPress={() => openExternal(phoneUrl)}
+                  >
                     Call
-                  </Text>
-                </XStack>
-              </GlassCard>
-              <GlassCard
-                rounded={controlRadius}
-                px="$3"
-                py="$2.5"
-                flex={1}
-                opacity={smsUrl ? 1 : 0.4}
-                onPress={() => openExternal(smsUrl)}
-              >
-                <XStack items="center" gap="$2">
-                  <MessageCircle size={14} color="$accent" />
-                  <Text fontSize={12} color="$accent">
+                  </PrimaryButton>
+                  <PrimaryButton
+                    size="$2"
+                    height={36}
+                    px="$3"
+                    flex={1}
+                    icon={<MessageCircle size={14} />}
+                    disabled={!smsUrl}
+                    opacity={smsUrl ? 1 : 0.4}
+                    onPress={() => openExternal(smsUrl)}
+                  >
                     Text
-                  </Text>
-                </XStack>
-              </GlassCard>
-              <GlassCard
-                rounded={controlRadius}
-                px="$3"
-                py="$2.5"
-                flex={1}
-                opacity={emailUrl ? 1 : 0.4}
-                onPress={() => openExternal(emailUrl)}
-              >
-                <XStack items="center" gap="$2">
-                  <Mail size={14} color="$accent" />
-                  <Text fontSize={12} color="$accent">
+                  </PrimaryButton>
+                  <PrimaryButton
+                    size="$2"
+                    height={36}
+                    px="$3"
+                    flex={1}
+                    icon={<Mail size={14} />}
+                    disabled={!emailUrl}
+                    opacity={emailUrl ? 1 : 0.4}
+                    onPress={() => openExternal(emailUrl)}
+                  >
                     Email
-                  </Text>
-                </XStack>
-              </GlassCard>
+                  </PrimaryButton>
+                </>
+              ) : (
+                <>
+                  <GlassCard
+                    rounded={controlRadius}
+                    px="$3"
+                    py="$2.5"
+                    flex={1}
+                    opacity={phoneUrl ? 1 : 0.4}
+                    onPress={() => openExternal(phoneUrl)}
+                  >
+                    <XStack items="center" gap="$2">
+                      <Phone size={14} color="$accent" />
+                      <Text fontSize={12} color="$accent">
+                        Call
+                      </Text>
+                    </XStack>
+                  </GlassCard>
+                  <GlassCard
+                    rounded={controlRadius}
+                    px="$3"
+                    py="$2.5"
+                    flex={1}
+                    opacity={smsUrl ? 1 : 0.4}
+                    onPress={() => openExternal(smsUrl)}
+                  >
+                    <XStack items="center" gap="$2">
+                      <MessageCircle size={14} color="$accent" />
+                      <Text fontSize={12} color="$accent">
+                        Text
+                      </Text>
+                    </XStack>
+                  </GlassCard>
+                  <GlassCard
+                    rounded={controlRadius}
+                    px="$3"
+                    py="$2.5"
+                    flex={1}
+                    opacity={emailUrl ? 1 : 0.4}
+                    onPress={() => openExternal(emailUrl)}
+                  >
+                    <XStack items="center" gap="$2">
+                      <Mail size={14} color="$accent" />
+                      <Text fontSize={12} color="$accent">
+                        Email
+                      </Text>
+                    </XStack>
+                  </GlassCard>
+                </>
+              )}
             </XStack>
           </YStack>
 
@@ -325,34 +388,58 @@ export default function ClientDetailScreen() {
             </XStack>
             <XStack gap="$2">
               <Link href={`/client/${client.id}/new-appointment`} asChild>
-                <GlassCard
-                  rounded={controlRadius}
-                  px="$3"
-                  py="$2.5"
-                  flex={1}
-                >
-                  <XStack items="center" gap="$2" justify="center">
-                    <Scissors size={14} color="$accent" />
-                    <Text fontSize={12} color="$accent">
-                      New Appointment Log
-                    </Text>
-                  </XStack>
-                </GlassCard>
+                {isGlass ? (
+                  <PrimaryButton
+                    size="$2"
+                    height={36}
+                    px="$3"
+                    flex={1}
+                    icon={<Scissors size={14} />}
+                  >
+                    New Appointment Log
+                  </PrimaryButton>
+                ) : (
+                  <GlassCard
+                    rounded={controlRadius}
+                    px="$3"
+                    py="$2.5"
+                    flex={1}
+                  >
+                    <XStack items="center" gap="$2" justify="center">
+                      <Scissors size={14} color="$accent" />
+                      <Text fontSize={12} color="$accent">
+                        New Appointment Log
+                      </Text>
+                    </XStack>
+                  </GlassCard>
+                )}
               </Link>
               <Link href={`/appointments?clientId=${client.id}`} asChild>
-                <GlassCard
-                  rounded={controlRadius}
-                  px="$3"
-                  py="$2.5"
-                  flex={1}
-                >
-                  <XStack items="center" gap="$2" justify="center">
-                    <List size={14} color="$accent" />
-                    <Text fontSize={12} color="$accent">
-                      View All
-                    </Text>
-                  </XStack>
-                </GlassCard>
+                {isGlass ? (
+                  <PrimaryButton
+                    size="$2"
+                    height={36}
+                    px="$3"
+                    flex={1}
+                    icon={<List size={14} />}
+                  >
+                    View All
+                  </PrimaryButton>
+                ) : (
+                  <GlassCard
+                    rounded={controlRadius}
+                    px="$3"
+                    py="$2.5"
+                    flex={1}
+                  >
+                    <XStack items="center" gap="$2" justify="center">
+                      <List size={14} color="$accent" />
+                      <Text fontSize={12} color="$accent">
+                        View All
+                      </Text>
+                    </XStack>
+                  </GlassCard>
+                )}
               </Link>
             </XStack>
             <YStack gap="$3">

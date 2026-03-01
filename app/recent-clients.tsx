@@ -12,20 +12,26 @@ export default function RecentClientsScreen() {
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const appSettings = useStudioStore((state) => state.appSettings)
+  const formatLastVisitLabel = (value: string) => {
+    if (!value || value === 'No visits yet' || value === '—') return 'No visits yet'
+    return formatDateByStyle(value, appSettings.dateDisplayFormat, {
+      todayLabel: true,
+      includeWeekday: appSettings.dateLongIncludeWeekday,
+    })
+  }
 
-  const lastVisitByClient = useMemo(() => {
+  const sortedClients = useMemo(() => {
+    return sortClientsByNewest(clients)
+  }, [clients])
+  const derivedLastVisitByClient = useMemo(() => {
     return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
       const current = acc[entry.clientId]
-      if (!current || entry.date > current) {
+      if (!current || new Date(entry.date) > new Date(current)) {
         acc[entry.clientId] = entry.date
       }
       return acc
     }, {})
   }, [appointmentHistory])
-
-  const sortedClients = useMemo(() => {
-    return sortClientsByNewest(clients)
-  }, [clients])
 
   return (
     <YStack flex={1} bg="$background" position="relative">
@@ -50,7 +56,6 @@ export default function RecentClientsScreen() {
               </YStack>
             ) : (
               sortedClients.map((client) => {
-                const lastVisit = lastVisitByClient[client.id] ?? client.lastVisit
                 return (
                   <Link key={client.id} href={`/client/${client.id}`} asChild>
                     <XStack
@@ -67,10 +72,9 @@ export default function RecentClientsScreen() {
                         </Text>
                         <Text fontSize={12} color="$textSecondary">
                           {client.type} • Last visit{' '}
-                          {formatDateByStyle(lastVisit || '—', appSettings.dateDisplayFormat, {
-                            todayLabel: true,
-                            includeWeekday: appSettings.dateLongIncludeWeekday,
-                          })}
+                          {formatLastVisitLabel(
+                            derivedLastVisitByClient[client.id] ?? client.lastVisit
+                          )}
                         </Text>
                       </YStack>
                     </XStack>

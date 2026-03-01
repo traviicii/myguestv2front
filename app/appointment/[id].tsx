@@ -25,6 +25,7 @@ import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { useAppointmentHistory,
   useClients } from 'components/data/queries'
+import { FALLBACK_COLORS } from 'components/utils/color'
 import { formatDateByStyle } from 'components/utils/date'
 import { getServiceLabel } from 'components/utils/services'
 import { SecondaryButton,
@@ -70,8 +71,7 @@ export default function AppointmentDetailScreen() {
     )
 
   const appointment = appointmentHistory.find((item) => item.id === id)
-  const client =
-    clients.find((item) => item.id === appointment?.clientId) ?? clients[0]
+  const client = clients.find((item) => item.id === appointment?.clientId)
   const images = appointment?.images ?? []
   const canGoPrev = previewIndex !== null && previewIndex > 0
   const canGoNext = previewIndex !== null && previewIndex < images.length - 1
@@ -270,7 +270,7 @@ export default function AppointmentDetailScreen() {
         <Pressable
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.85)',
+            backgroundColor: FALLBACK_COLORS.overlayStrong,
             alignItems: 'center',
             justifyContent: 'center',
             padding: 24,
@@ -340,7 +340,7 @@ export default function AppointmentDetailScreen() {
                     borderRadius: 22,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    backgroundColor: FALLBACK_COLORS.overlayDim,
                     opacity: canGoPrev ? 1 : 0.3,
                   }}
                 >
@@ -363,7 +363,7 @@ export default function AppointmentDetailScreen() {
                     borderRadius: 22,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    backgroundColor: FALLBACK_COLORS.overlayDim,
                     opacity: canGoNext ? 1 : 0.3,
                   }}
                 >
@@ -383,7 +383,7 @@ export default function AppointmentDetailScreen() {
               borderRadius: 18,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.6)',
+              backgroundColor: FALLBACK_COLORS.overlayMedium,
             }}
           >
             <X size={16} color="white" />

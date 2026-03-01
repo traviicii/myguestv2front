@@ -11,27 +11,34 @@ import { ScrollView,
   XStack,
   YStack } from 'tamagui'
 import { Alert,
+  Keyboard,
   Image,
   Modal,
+  Platform,
   Pressable } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import Animated from 'react-native-reanimated'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { useThemePrefs } from 'components/ThemePrefs'
 import { useAppointmentHistory,
   useClients,
   useServices,
   useUpdateAppointmentLog } from 'components/data/queries'
 import { formatDateMMDDYYYY } from 'components/utils/date'
+import { FALLBACK_COLORS } from 'components/utils/color'
 import { buildFormulaImageInputs } from 'components/utils/formulaImages'
 import { normalizeServiceName } from 'components/utils/services'
 import { ErrorPulseBorder,
   PrimaryButton,
   SecondaryButton,
   SectionDivider,
+  SurfaceCard,
   TextAreaField,
   TextField,
-  cardSurfaceProps,
 } from 'components/ui/controls'
+import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
+import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import { useExpandablePanel } from 'components/ui/useExpandablePanel'
 
 const parsePrice = (value: string) => {
@@ -41,11 +48,23 @@ const parsePrice = (value: string) => {
   return Number.isNaN(parsed) ? null : parsed
 }
 
+const formatPriceFromCents = (value: number | null) => {
+  if (value === null) return ''
+  return (value / 100).toFixed(2).replace(/\.00$/, '')
+}
+
 export default function EditAppointmentScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const topInset = Math.max(insets.top + 8, 16)
+  const { aesthetic } = useThemePrefs()
+  const isGlass = aesthetic === 'glass'
+  const isModern = aesthetic === 'modern'
+  const cardTone = isGlass ? 'secondary' : 'default'
+  const cardMode = isModern ? 'section' : 'alwaysCard'
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: appointmentHistory = [] } = useAppointmentHistory()
-  const { data: clients = [] } = useClients()
+  const { data: appointmentHistory = [], isLoading: historyLoading } = useAppointmentHistory()
+  const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: serviceCatalog = [] } = useServices('all')
   const updateAppointmentLog = useUpdateAppointmentLog()
   const scrollRef = useRef<any>(null)
@@ -58,8 +77,8 @@ export default function EditAppointmentScreen() {
 
   const appointment = appointmentHistory.find((item) => item.id === id)
 
-  const client =
-    clients.find((item) => item.id === appointment?.clientId) ?? clients[0]
+  const client = clients.find((item) => item.id === appointment?.clientId)
+  const isBootstrapping = (historyLoading || clientsLoading) && !appointmentHistory.length
 
   const initialForm = useMemo(
     () => ({
@@ -95,6 +114,13 @@ export default function EditAppointmentScreen() {
     () => new Set(selectedServiceIds),
     [selectedServiceIds]
   )
+  const suggestedPriceCents = useMemo(() => {
+    const prices = selectedServices
+      .map((service) => service.defaultPriceCents)
+      .filter((value): value is number => typeof value === 'number')
+    if (!prices.length) return null
+    return prices.reduce((sum, value) => sum + value, 0)
+  }, [selectedServices])
 
   useEffect(() => {
     if (!appointment || hasInitializedServicesRef.current) return
@@ -138,6 +164,8 @@ export default function EditAppointmentScreen() {
 
   const canSave = isDirty && !updateAppointmentLog.isPending
   const showDateError = attemptedSave && !form.date.trim()
+  const keyboardAccessoryId = 'appointment-edit-keyboard-dismiss'
+  const keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag'
 
   const toggleServiceSelection = (serviceId: number) => {
     setSelectedServiceIds((current) => {
@@ -200,6 +228,16 @@ export default function EditAppointmentScreen() {
     setImages((current) => current.filter((_, idx) => idx !== index))
   }
 
+  const setCoverImage = (index: number) => {
+    setImages((current) => {
+      if (index <= 0 || index >= current.length) return current
+      const next = [...current]
+      const [cover] = next.splice(index, 1)
+      next.unshift(cover)
+      return next
+    })
+  }
+
   const handleCapture = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync()
@@ -232,9 +270,23 @@ export default function EditAppointmentScreen() {
     }
   }
 
+  if (isBootstrapping) {
+    return (
+      <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+        <Text fontSize={13} color="$textSecondary">
+          Loading appointment...
+        </Text>
+      </YStack>
+    )
+  }
+
   if (!appointment) {
     return (
       <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
         <Text fontSize={13} color="$textSecondary">
           Appointment not found.
         </Text>
@@ -245,10 +297,17 @@ export default function EditAppointmentScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
+      <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+      <KeyboardDismissAccessory nativeID={keyboardAccessoryId} />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ pb: "$10" }}
-        onScrollBeginDrag={() => setShowServicePicker(false)}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={keyboardDismissMode}
+        onScrollBeginDrag={() => {
+          Keyboard.dismiss()
+          setShowServicePicker(false)
+        }}
       >
         <YStack px="$5" pt="$5" gap="$3">
           <YStack gap="$1">
@@ -262,7 +321,7 @@ export default function EditAppointmentScreen() {
 
           <SectionDivider />
 
-          <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$2.5">
+          <SurfaceCard mode={cardMode} tone={cardTone} p="$4" gap="$2.5">
             <YStack
               gap="$2"
               onLayout={(event) => {
@@ -276,6 +335,7 @@ export default function EditAppointmentScreen() {
                 <TextField
                   placeholder="MM/DD/YYYY"
                   value={form.date}
+                  inputAccessoryViewID={keyboardAccessoryId}
                   onChangeText={(text) =>
                     setForm((prev) => ({ ...prev, date: text }))
                   }
@@ -300,7 +360,7 @@ export default function EditAppointmentScreen() {
                   rounded="$4"
                   borderWidth={1}
                   borderColor={showServicePicker ? '$accent' : '$borderSubtle'}
-                  bg="$background"
+                  bg="$surfaceField"
                   items="center"
                   justify="space-between"
                   onPress={() => setShowServicePicker((current) => !current)}
@@ -327,125 +387,243 @@ export default function EditAppointmentScreen() {
                       servicePanel.setMeasured(event.nativeEvent.layout.height)
                     }}
                   >
-                    <YStack rounded="$4" borderWidth={1} borderColor="$borderSubtle" p="$2" bg="$background">
-                      <YStack gap="$1">
-                        <XStack
-                          px="$3"
-                          py="$2.5"
-                          rounded="$3"
-                          items="center"
-                          justify="space-between"
-                          bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
-                          borderWidth={1}
-                          borderColor={
-                            !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
-                          }
-                          onPress={() => {
-                            setSelectedServiceIds([])
-                          }}
-                        >
-                          <Text
-                            fontSize={13}
-                            color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
+                    {isGlass ? (
+                      <SurfaceCard mode={cardMode} tone={cardTone} p="$2" gap="$0">
+                        <YStack gap="$1">
+                          <XStack
+                            px="$3"
+                            py="$2.5"
+                            rounded="$3"
+                            items="center"
+                            justify="space-between"
+                            bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
+                            borderWidth={1}
+                            borderColor={
+                              !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
+                            }
+                            onPress={() => {
+                              setSelectedServiceIds([])
+                            }}
                           >
-                            Clear all
-                          </Text>
-                          {!selectedServiceIds.length ? (
-                            <Check size={14} color="$accent" />
-                          ) : null}
-                        </XStack>
-                        {pickerServices.map((service) => {
-                          const isActive = selectedServiceSet.has(service.id)
-                          return (
-                            <XStack
-                              key={service.id}
-                              px="$3"
-                              py="$2.5"
-                              rounded="$3"
-                              items="center"
-                              justify="space-between"
-                              bg={isActive ? '$accentMuted' : '$background'}
-                              borderWidth={1}
-                              borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
-                              onPress={() => {
-                                toggleServiceSelection(service.id)
-                              }}
+                            <Text
+                              fontSize={13}
+                              color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
                             >
-                              <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
-                                {service.name}
-                              </Text>
-                              {isActive ? <Check size={14} color="$accent" /> : null}
-                            </XStack>
-                          )
-                        })}
+                              Clear all
+                            </Text>
+                            {!selectedServiceIds.length ? (
+                              <Check size={14} color="$accent" />
+                            ) : null}
+                          </XStack>
+                          {pickerServices.map((service) => {
+                            const isActive = selectedServiceSet.has(service.id)
+                            return (
+                              <XStack
+                                key={service.id}
+                                px="$3"
+                                py="$2.5"
+                                rounded="$3"
+                                items="center"
+                                justify="space-between"
+                                bg={isActive ? '$accentMuted' : '$background'}
+                                borderWidth={1}
+                                borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
+                                onPress={() => {
+                                  toggleServiceSelection(service.id)
+                                }}
+                              >
+                                <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
+                                  {service.name}
+                                </Text>
+                                {isActive ? <Check size={14} color="$accent" /> : null}
+                              </XStack>
+                            )
+                          })}
+                        </YStack>
+                      </SurfaceCard>
+                    ) : (
+                      <YStack
+                        rounded="$4"
+                        borderWidth={1}
+                        borderColor="$borderSubtle"
+                        p="$2"
+                        bg="$background"
+                      >
+                        <YStack gap="$1">
+                          <XStack
+                            px="$3"
+                            py="$2.5"
+                            rounded="$3"
+                            items="center"
+                            justify="space-between"
+                            bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
+                            borderWidth={1}
+                            borderColor={
+                              !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
+                            }
+                            onPress={() => {
+                              setSelectedServiceIds([])
+                            }}
+                          >
+                            <Text
+                              fontSize={13}
+                              color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
+                            >
+                              Clear all
+                            </Text>
+                            {!selectedServiceIds.length ? (
+                              <Check size={14} color="$accent" />
+                            ) : null}
+                          </XStack>
+                          {pickerServices.map((service) => {
+                            const isActive = selectedServiceSet.has(service.id)
+                            return (
+                              <XStack
+                                key={service.id}
+                                px="$3"
+                                py="$2.5"
+                                rounded="$3"
+                                items="center"
+                                justify="space-between"
+                                bg={isActive ? '$accentMuted' : '$background'}
+                                borderWidth={1}
+                                borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
+                                onPress={() => {
+                                  toggleServiceSelection(service.id)
+                                }}
+                              >
+                                <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
+                                  {service.name}
+                                </Text>
+                                {isActive ? <Check size={14} color="$accent" /> : null}
+                              </XStack>
+                            )
+                          })}
+                        </YStack>
                       </YStack>
-                    </YStack>
+                    )}
                   </YStack>
                   <Animated.View style={[{ overflow: 'hidden' }, servicePanel.animatedStyle]}>
-                    <YStack
-                      rounded="$4"
-                      borderWidth={1}
-                      borderColor="$borderSubtle"
-                      p="$2"
-                      bg="$background"
-                      shadowColor="rgba(15,23,42,0.12)"
-                      shadowRadius={14}
-                      shadowOpacity={1}
-                      shadowOffset={{ width: 0, height: 6 }}
-                      elevation={2}
-                    >
-                      <YStack gap="$1">
-                        <XStack
-                          px="$3"
-                          py="$2.5"
-                          rounded="$3"
-                          items="center"
-                          justify="space-between"
-                          bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
-                          borderWidth={1}
-                          borderColor={
-                            !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
-                          }
-                          onPress={() => {
-                            setSelectedServiceIds([])
-                          }}
-                        >
-                          <Text
-                            fontSize={13}
-                            color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
+                    {isGlass ? (
+                      <SurfaceCard mode={cardMode} tone={cardTone} p="$2" gap="$0">
+                        <YStack gap="$1">
+                          <XStack
+                            px="$3"
+                            py="$2.5"
+                            rounded="$3"
+                            items="center"
+                            justify="space-between"
+                            bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
+                            borderWidth={1}
+                            borderColor={
+                              !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
+                            }
+                            onPress={() => {
+                              setSelectedServiceIds([])
+                            }}
                           >
-                            Clear all
-                          </Text>
-                          {!selectedServiceIds.length ? (
-                            <Check size={14} color="$accent" />
-                          ) : null}
-                        </XStack>
-                        {pickerServices.map((service) => {
-                          const isActive = selectedServiceSet.has(service.id)
-                          return (
-                            <XStack
-                              key={service.id}
-                              px="$3"
-                              py="$2.5"
-                              rounded="$3"
-                              items="center"
-                              justify="space-between"
-                              bg={isActive ? '$accentMuted' : '$background'}
-                              borderWidth={1}
-                              borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
-                              onPress={() => {
-                                toggleServiceSelection(service.id)
-                              }}
+                            <Text
+                              fontSize={13}
+                              color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
                             >
-                              <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
-                                {service.name}
-                              </Text>
-                              {isActive ? <Check size={14} color="$accent" /> : null}
-                            </XStack>
-                          )
-                        })}
+                              Clear all
+                            </Text>
+                            {!selectedServiceIds.length ? (
+                              <Check size={14} color="$accent" />
+                            ) : null}
+                          </XStack>
+                          {pickerServices.map((service) => {
+                            const isActive = selectedServiceSet.has(service.id)
+                            return (
+                              <XStack
+                                key={service.id}
+                                px="$3"
+                                py="$2.5"
+                                rounded="$3"
+                                items="center"
+                                justify="space-between"
+                                bg={isActive ? '$accentMuted' : '$background'}
+                                borderWidth={1}
+                                borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
+                                onPress={() => {
+                                  toggleServiceSelection(service.id)
+                                }}
+                              >
+                                <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
+                                  {service.name}
+                                </Text>
+                                {isActive ? <Check size={14} color="$accent" /> : null}
+                              </XStack>
+                            )
+                          })}
+                        </YStack>
+                      </SurfaceCard>
+                    ) : (
+                      <YStack
+                        rounded="$4"
+                        borderWidth={1}
+                        borderColor="$borderSubtle"
+                        p="$2"
+                        bg="$background"
+                        shadowColor={FALLBACK_COLORS.shadowSoft}
+                        shadowRadius={14}
+                        shadowOpacity={1}
+                        shadowOffset={{ width: 0, height: 6 }}
+                        elevation={2}
+                      >
+                        <YStack gap="$1">
+                          <XStack
+                            px="$3"
+                            py="$2.5"
+                            rounded="$3"
+                            items="center"
+                            justify="space-between"
+                            bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
+                            borderWidth={1}
+                            borderColor={
+                              !selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'
+                            }
+                            onPress={() => {
+                              setSelectedServiceIds([])
+                            }}
+                          >
+                            <Text
+                              fontSize={13}
+                              color={!selectedServiceIds.length ? '$accent' : '$textSecondary'}
+                            >
+                              Clear all
+                            </Text>
+                            {!selectedServiceIds.length ? (
+                              <Check size={14} color="$accent" />
+                            ) : null}
+                          </XStack>
+                          {pickerServices.map((service) => {
+                            const isActive = selectedServiceSet.has(service.id)
+                            return (
+                              <XStack
+                                key={service.id}
+                                px="$3"
+                                py="$2.5"
+                                rounded="$3"
+                                items="center"
+                                justify="space-between"
+                                bg={isActive ? '$accentMuted' : '$background'}
+                                borderWidth={1}
+                                borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
+                                onPress={() => {
+                                  toggleServiceSelection(service.id)
+                                }}
+                              >
+                                <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
+                                  {service.name}
+                                </Text>
+                                {isActive ? <Check size={14} color="$accent" /> : null}
+                              </XStack>
+                            )
+                          })}
+                        </YStack>
                       </YStack>
-                    </YStack>
+                    )}
                   </Animated.View>
                 </YStack>
               ) : null}
@@ -457,9 +635,31 @@ export default function EditAppointmentScreen() {
               <TextField
                 placeholder="$0.00"
                 value={form.price}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onFocus={() => setShowServicePicker(false)}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, price: text }))}
               />
+              {suggestedPriceCents !== null ? (
+                <XStack items="center" justify="space-between" gap="$2">
+                  <Text fontSize={11} color="$textSecondary">
+                    Suggested from services: ${formatPriceFromCents(suggestedPriceCents)}
+                  </Text>
+                  {form.price.trim() !== formatPriceFromCents(suggestedPriceCents) ? (
+                    <SecondaryButton
+                      size="$2"
+                      px="$2"
+                      onPress={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          price: formatPriceFromCents(suggestedPriceCents),
+                        }))
+                      }
+                    >
+                      Apply Suggested
+                    </SecondaryButton>
+                  ) : null}
+                </XStack>
+              ) : null}
             </YStack>
             <YStack gap="$2">
               <Text fontSize={12} color="$textSecondary">
@@ -468,13 +668,14 @@ export default function EditAppointmentScreen() {
               <TextAreaField
                 placeholder="Color formula, technique, notes..."
                 value={form.notes}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onFocus={() => setShowServicePicker(false)}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
               />
             </YStack>
-          </YStack>
+          </SurfaceCard>
 
-          <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$2.5">
+          <SurfaceCard mode={cardMode} tone={cardTone} p="$4" gap="$2.5">
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Photos
             </Text>
@@ -483,6 +684,7 @@ export default function EditAppointmentScreen() {
                 icon={<Camera size={16} />}
                 size="$4"
                 onPress={() => {
+                  Keyboard.dismiss()
                   setShowServicePicker(false)
                   void handleCapture()
                 }}
@@ -493,6 +695,7 @@ export default function EditAppointmentScreen() {
                 icon={<UploadCloud size={16} />}
                 size="$4"
                 onPress={() => {
+                  Keyboard.dismiss()
                   setShowServicePicker(false)
                   void handleUpload()
                 }}
@@ -506,33 +709,68 @@ export default function EditAppointmentScreen() {
                   {images.map((uri, index) => (
                     <YStack
                       key={`${uri}-${index}`}
-                      width={72}
-                      height={72}
-                      rounded="$4"
-                      overflow="hidden"
-                      position="relative"
-                      onPress={() => setPreviewUri(uri)}
-                      cursor="pointer"
-                      pressStyle={{ opacity: 0.85 }}
+                      gap="$1.5"
+                      items="center"
                     >
-                      <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
-                      <XStack
-                        position="absolute"
-                        t={4}
-                        r={4}
-                        width={20}
-                        height={20}
-                        rounded={10}
-                        items="center"
-                        justify="center"
-                        bg="rgba(0,0,0,0.6)"
-                        onPress={(event) => {
-                          event?.stopPropagation?.()
-                          removeImage(index)
-                        }}
+                      <YStack
+                        width={72}
+                        height={72}
+                        rounded="$4"
+                        overflow="hidden"
+                        position="relative"
+                        onPress={() => setPreviewUri(uri)}
+                        cursor="pointer"
+                        pressStyle={{ opacity: 0.85 }}
                       >
-                        <X size={12} color="white" />
-                      </XStack>
+                        <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
+                        <XStack
+                          position="absolute"
+                          t={4}
+                          r={4}
+                          width={20}
+                          height={20}
+                          rounded={10}
+                          items="center"
+                          justify="center"
+                          bg={FALLBACK_COLORS.overlayMedium}
+                          onPress={(event) => {
+                            event?.stopPropagation?.()
+                            removeImage(index)
+                          }}
+                        >
+                          <X size={12} color="white" />
+                        </XStack>
+                        {index === 0 ? (
+                          <XStack
+                            position="absolute"
+                            l={4}
+                            t={4}
+                            px="$1.5"
+                            py="$0.5"
+                            rounded="$2"
+                            bg="$accent"
+                          >
+                            <Text fontSize={9} color="white" fontWeight="700">
+                              Cover
+                            </Text>
+                          </XStack>
+                        ) : null}
+                      </YStack>
+                      {index !== 0 ? (
+                        <SecondaryButton
+                          size="$1"
+                          height={24}
+                          px="$2"
+                          onPress={(event) => {
+                            event?.stopPropagation?.()
+                            setCoverImage(index)
+                          }}
+                        >
+                          <Text fontSize={10} color="$buttonSecondaryFg" fontWeight="700">
+                            Set Cover
+                          </Text>
+                        </SecondaryButton>
+                      ) : null}
                     </YStack>
                   ))}
                 </XStack>
@@ -542,7 +780,7 @@ export default function EditAppointmentScreen() {
                 No images added yet.
               </Text>
             )}
-          </YStack>
+          </SurfaceCard>
 
           <XStack gap="$3">
             <SecondaryButton flex={1} onPress={() => router.back()}>
@@ -551,6 +789,7 @@ export default function EditAppointmentScreen() {
             <PrimaryButton
               flex={1}
               onPress={() => {
+                Keyboard.dismiss()
                 void handleSave()
               }}
               disabled={!canSave}
@@ -570,7 +809,7 @@ export default function EditAppointmentScreen() {
         <Pressable
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.85)',
+            backgroundColor: FALLBACK_COLORS.overlayStrong,
             alignItems: 'center',
             justifyContent: 'center',
             padding: 24,
@@ -600,7 +839,7 @@ export default function EditAppointmentScreen() {
               borderRadius: 18,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.6)',
+              backgroundColor: FALLBACK_COLORS.overlayMedium,
             }}
           >
             <X size={16} color="white" />

@@ -12,7 +12,7 @@ import { ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useThemePrefs } from 'components/ThemePrefs'
-import { useClients } from 'components/data/queries'
+import { useAppointmentHistory, useClients } from 'components/data/queries'
 import { useStudioStore } from 'components/state/studioStore'
 import { SectionDivider,
   SecondaryButton,
@@ -29,8 +29,16 @@ export default function NewAppointmentClientPicker() {
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
   const { data: clients = [] } = useClients()
+  const { data: appointmentHistory = [] } = useAppointmentHistory()
   const appSettings = useStudioStore((state) => state.appSettings)
   const [searchText, setSearchText] = useState('')
+  const formatLastVisitLabel = (value: string) => {
+    if (!value || value === 'No visits yet' || value === '—') return 'No visits yet'
+    return formatDateByStyle(value, appSettings.dateDisplayFormat, {
+      todayLabel: true,
+      includeWeekday: appSettings.dateLongIncludeWeekday,
+    })
+  }
 
   const filteredClients = useMemo(() => {
     const normalized = searchText.trim().toLowerCase()
@@ -45,6 +53,15 @@ export default function NewAppointmentClientPicker() {
       })
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [clients, searchText])
+  const derivedLastVisitByClient = useMemo(() => {
+    return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
+      const current = acc[entry.clientId]
+      if (!current || new Date(entry.date) > new Date(current)) {
+        acc[entry.clientId] = entry.date
+      }
+      return acc
+    }, {})
+  }, [appointmentHistory])
 
   return (
     <YStack flex={1} bg="$background" position="relative">
@@ -159,10 +176,9 @@ export default function NewAppointmentClientPicker() {
                           </Text>
                           <Text fontSize={12} color="$textSecondary">
                             {client.type} • Last visit{' '}
-                            {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                              todayLabel: true,
-                              includeWeekday: appSettings.dateLongIncludeWeekday,
-                            })}
+                            {formatLastVisitLabel(
+                              derivedLastVisitByClient[client.id] ?? client.lastVisit
+                            )}
                           </Text>
                         </YStack>
                         <XStack items="center" gap="$2">
@@ -188,10 +204,9 @@ export default function NewAppointmentClientPicker() {
                         </Text>
                         <Text fontSize={12} color="$textSecondary">
                           {client.type} • Last visit{' '}
-                          {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                            todayLabel: true,
-                            includeWeekday: appSettings.dateLongIncludeWeekday,
-                          })}
+                          {formatLastVisitLabel(
+                            derivedLastVisitByClient[client.id] ?? client.lastVisit
+                          )}
                         </Text>
                       </YStack>
                       <XStack items="center" gap="$2">

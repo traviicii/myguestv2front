@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Alert } from 'react-native'
+import { Alert, Keyboard, Platform } from 'react-native'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 import {
   ErrorPulseBorder,
@@ -15,6 +15,7 @@ import {
   TextField,
   ThemedHeadingText,
 } from './ui/controls'
+import { KeyboardDismissAccessory } from './ui/KeyboardDismissAccessory'
 import { useCreateClient } from './data/queries'
 
 type ClientType = 'Cut' | 'Color' | 'Cut & Color'
@@ -56,6 +57,8 @@ export function NewClientForm() {
   const canSave = isDirty
   const showFirstNameError = attemptedSave && !form.firstName.trim()
   const showLastNameError = attemptedSave && !form.lastName.trim()
+  const keyboardAccessoryId = 'new-client-keyboard-dismiss'
+  const keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag'
 
   const handleSave = async () => {
     setAttemptedSave(true)
@@ -98,14 +101,19 @@ export function NewClientForm() {
   }
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      flex={1}
-      contentContainerStyle={{
-        pb: 40 + insets.bottom,
-      }}
-    >
-      <YStack gap="$4">
+    <>
+      <KeyboardDismissAccessory nativeID={keyboardAccessoryId} />
+      <ScrollView
+        ref={scrollRef}
+        flex={1}
+        contentContainerStyle={{
+          pb: 40 + insets.bottom,
+        }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={keyboardDismissMode}
+        onScrollBeginDrag={Keyboard.dismiss}
+      >
+        <YStack gap="$4">
         <SurfaceCard p="$4" gap="$3">
           <YStack
             gap="$2"
@@ -118,6 +126,7 @@ export function NewClientForm() {
               <TextField
                 placeholder="First name"
                 value={form.firstName}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onChangeText={(text) =>
                   setForm((prev) => ({ ...prev, firstName: text }))
                 }
@@ -142,6 +151,7 @@ export function NewClientForm() {
               <TextField
                 placeholder="Last name"
                 value={form.lastName}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onChangeText={(text) =>
                   setForm((prev) => ({ ...prev, lastName: text }))
                 }
@@ -161,6 +171,7 @@ export function NewClientForm() {
               placeholder="email@example.com"
               keyboardType="email-address"
               value={form.email}
+              inputAccessoryViewID={keyboardAccessoryId}
               onChangeText={(text) => setForm((prev) => ({ ...prev, email: text }))}
             />
           </YStack>
@@ -170,6 +181,7 @@ export function NewClientForm() {
               placeholder="(555) 555-5555"
               keyboardType="phone-pad"
               value={form.phone}
+              inputAccessoryViewID={keyboardAccessoryId}
               onChangeText={(text) => setForm((prev) => ({ ...prev, phone: text }))}
             />
           </YStack>
@@ -178,6 +190,7 @@ export function NewClientForm() {
             <TextField
               placeholder="YYYY-MM-DD"
               value={form.birthday}
+              inputAccessoryViewID={keyboardAccessoryId}
               onChangeText={(text) =>
                 setForm((prev) => ({ ...prev, birthday: text }))
               }
@@ -211,6 +224,7 @@ export function NewClientForm() {
           <TextAreaField
             placeholder="Client preferences, formulas, reminders..."
             value={form.notes}
+            inputAccessoryViewID={keyboardAccessoryId}
             onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
           />
         </SurfaceCard>
@@ -230,7 +244,8 @@ export function NewClientForm() {
             {createClient.isPending ? 'Saving...' : 'Save Client'}
           </PrimaryButton>
         </XStack>
-      </YStack>
-    </ScrollView>
+        </YStack>
+      </ScrollView>
+    </>
   )
 }

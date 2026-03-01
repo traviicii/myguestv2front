@@ -13,7 +13,6 @@ import { useAppointmentHistory,
   useClients } from 'components/data/queries'
 import { OptionChip,
   OptionChipLabel,
-  PrimaryButton,
   SectionDivider,
   SurfaceCard,
   TextField,
@@ -65,8 +64,14 @@ export default function ClientsScreen() {
 
   const activeCutoff = new Date()
   activeCutoff.setMonth(activeCutoff.getMonth() - activeStatusMonths)
-
-  const lastVisitByClient = useMemo(() => {
+  const formatLastVisitLabel = (value: string) => {
+    if (!value || value === 'No visits yet' || value === '—') return 'No visits yet'
+    return formatDateByStyle(value, dateDisplayFormat, {
+      todayLabel: true,
+      includeWeekday: dateLongIncludeWeekday,
+    })
+  }
+  const derivedLastVisitByClient = useMemo(() => {
     return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
       const current = acc[entry.clientId]
       if (!current || new Date(entry.date) > new Date(current)) {
@@ -75,6 +80,8 @@ export default function ClientsScreen() {
       return acc
     }, {})
   }, [appointmentHistory])
+  const resolveLastVisit = (clientId: string, fallback: string) =>
+    derivedLastVisitByClient[clientId] ?? fallback
 
   const isActive = (clientId: string) => {
     const history = appointmentHistory.filter((item) => item.clientId === clientId)
@@ -211,18 +218,10 @@ export default function ClientsScreen() {
                         <Text fontSize={15} fontWeight="600">
                           {client.name}
                         </Text>
-                        {(() => {
-                          const lastVisit = lastVisitByClient[client.id] ?? client.lastVisit
-                          return (
-                            <Text fontSize={12} color="$textSecondary">
-                              {client.type} • Last visit{' '}
-                              {formatDateByStyle(lastVisit, dateDisplayFormat, {
-                                todayLabel: true,
-                                includeWeekday: dateLongIncludeWeekday,
-                              })}
-                            </Text>
-                          )
-                        })()}
+                        <Text fontSize={12} color="$textSecondary">
+                          {client.type} • Last visit{' '}
+                          {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
+                        </Text>
                         <XStack items="center" gap="$2">
                           {showStatus
                             ? (() => {
@@ -234,27 +233,25 @@ export default function ClientsScreen() {
                                 )
                               })()
                             : null}
-                          <Text fontSize={11} color="$textMuted">
-                            {client.tag}
-                          </Text>
+                          {client.tag && client.tag !== client.type ? (
+                            <Text fontSize={11} color="$textMuted">
+                              {client.tag}
+                            </Text>
+                          ) : null}
                         </XStack>
                       </YStack>
                       <YStack items="flex-end" gap="$1">
-                        <PrimaryButton
-                          size="$2"
-                          height={30}
-                          rounded={chipRadius}
-                          px="$2.5"
-                          icon={<PlusCircle size={12} />}
+                        <OptionChip
+                          active
+                          gap="$1.5"
                           onPress={(event) => {
                             event?.stopPropagation?.()
                             router.push(`/client/${client.id}/new-appointment`)
                           }}
                         >
-                          <Text fontSize={11} color="$buttonPrimaryFg" fontWeight="700">
-                            New Log
-                          </Text>
-                        </PrimaryButton>
+                          <PlusCircle size={12} color="$accent" />
+                          <OptionChipLabel active>New Log</OptionChipLabel>
+                        </OptionChip>
                       </YStack>
                     </XStack>
                   </SurfaceCard>
@@ -275,18 +272,10 @@ export default function ClientsScreen() {
                       <Text fontSize={15} fontWeight="600">
                         {client.name}
                       </Text>
-                      {(() => {
-                        const lastVisit = lastVisitByClient[client.id] ?? client.lastVisit
-                        return (
-                          <Text fontSize={12} color="$textSecondary">
-                            {client.type} • Last visit{' '}
-                            {formatDateByStyle(lastVisit, dateDisplayFormat, {
-                              todayLabel: true,
-                              includeWeekday: dateLongIncludeWeekday,
-                            })}
-                          </Text>
-                        )
-                      })()}
+                      <Text fontSize={12} color="$textSecondary">
+                        {client.type} • Last visit{' '}
+                        {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
+                      </Text>
                       <XStack items="center" gap="$2">
                         {showStatus
                           ? (() => {
@@ -298,9 +287,11 @@ export default function ClientsScreen() {
                               )
                             })()
                           : null}
-                        <Text fontSize={11} color="$textMuted">
-                          {client.tag}
-                        </Text>
+                        {client.tag && client.tag !== client.type ? (
+                          <Text fontSize={11} color="$textMuted">
+                            {client.tag}
+                          </Text>
+                        ) : null}
                       </XStack>
                     </YStack>
                     <YStack items="flex-end" gap="$1">

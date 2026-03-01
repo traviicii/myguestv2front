@@ -1,16 +1,18 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState } from 'react'
 import { useRouter,
   useLocalSearchParams } from 'expo-router'
+import { Alert, Keyboard, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScrollView,
   Text,
   XStack,
   YStack } from 'tamagui'
-import { useQueryClient } from '@tanstack/react-query'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
-import { useClients } from 'components/data/queries'
+import { useClients, useDeleteClient, useUpdateClient } from 'components/data/queries'
 import { ErrorPulseBorder,
   PrimaryButton,
   SecondaryButton,
@@ -20,6 +22,8 @@ import { ErrorPulseBorder,
   cardSurfaceProps,
   chipSurfaceProps,
 } from 'components/ui/controls'
+import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
+import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import type { ClientType } from 'components/mockData'
 
 const normalizeType = (value: string, fallback: ClientType) => {
@@ -30,16 +34,29 @@ const normalizeType = (value: string, fallback: ClientType) => {
   return fallback
 }
 
+const splitDisplayName = (value: string) => {
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  if (!normalized) return { firstName: '', lastName: '' }
+  const [firstName, ...rest] = normalized.split(' ')
+  return {
+    firstName,
+    lastName: rest.join(' ').trim(),
+  }
+}
+
 export default function EditClientScreen() {
   const router = useRouter()
-  const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
+  const topInset = Math.max(insets.top + 8, 16)
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: clients = [] } = useClients()
+  const { data: clients = [], isLoading: clientsLoading } = useClients()
+  const deleteClient = useDeleteClient()
+  const updateClient = useUpdateClient()
   const scrollRef = useRef<any>(null)
   const requiredY = useRef<{ name?: number }>({})
 
   const client = useMemo(
-    () => clients.find((item) => item.id === id) ?? clients[0],
+    () => clients.find((item) => item.id === id),
     [clients, id]
   )
 
@@ -49,7 +66,6 @@ export default function EditClientScreen() {
       email: client?.email ?? '',
       phone: client?.phone ?? '',
       type: client?.type ?? 'Cut',
-      tag: client?.tag ?? '',
       notes: client?.notes ?? '',
     }),
     [client]
@@ -60,13 +76,16 @@ export default function EditClientScreen() {
   const [pulseKey, setPulseKey] = useState(0)
   const typeOptions: ClientType[] = ['Cut', 'Color', 'Cut & Color']
 
+  useEffect(() => {
+    setForm(initialForm)
+  }, [initialForm])
+
   const isDirty = useMemo(() => {
     return (
       form.name !== initialForm.name ||
       form.email !== initialForm.email ||
       form.phone !== initialForm.phone ||
       form.type !== initialForm.type ||
-      form.tag !== initialForm.tag ||
       form.notes !== initialForm.notes
     )
   }, [form, initialForm])
@@ -75,12 +94,29 @@ export default function EditClientScreen() {
     return Boolean(form.name.trim())
   }, [form.name])
 
-  const canSave = isDirty
+  const canSave = isDirty && !deleteClient.isPending && !updateClient.isPending
   const showNameError = attemptedSave && !form.name.trim()
+  const keyboardAccessoryId = 'client-edit-keyboard-dismiss'
+  const keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+  const isBootstrapping = clientsLoading && !clients.length
+
+  if (isBootstrapping) {
+    return (
+      <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+        <Text fontSize={13} color="$textSecondary">
+          Loading client...
+        </Text>
+      </YStack>
+    )
+  }
 
   if (!client) {
     return (
       <YStack flex={1} bg="$background" items="center" justify="center">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
         <Text fontSize={13} color="$textSecondary">
           Client not found.
         </Text>
@@ -88,7 +124,7 @@ export default function EditClientScreen() {
     )
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setAttemptedSave(true)
     if (!hasRequired || !isDirty) {
       if (!hasRequired && typeof requiredY.current.name === 'number') {
@@ -104,27 +140,76 @@ export default function EditClientScreen() {
       }
       return
     }
-    queryClient.setQueryData(['clients'], (current: typeof clients = []) => {
-      return current.map((item) => {
-        if (item.id !== client.id) return item
-        return {
-          ...item,
-          name: form.name.trim() || item.name,
-          email: form.email.trim() || item.email,
-          phone: form.phone.trim() || item.phone,
-          type: normalizeType(form.type, item.type),
-          tag: form.tag.trim() || item.tag,
-          notes: form.notes,
-        }
+
+    const nextName = splitDisplayName(form.name)
+    const fallbackName = splitDisplayName(client.name)
+    const firstName = nextName.firstName || fallbackName.firstName
+    const lastName = nextName.lastName || fallbackName.lastName || firstName
+
+    try {
+      await updateClient.mutateAsync({
+        clientId: client.id,
+        firstName,
+        lastName,
+        email: form.email,
+        phone: form.phone,
+        clientType: normalizeType(form.type, client.type),
+        notes: form.notes,
       })
-    })
-    router.back()
+      router.back()
+    } catch (error) {
+      Alert.alert(
+        'Save Failed',
+        error instanceof Error
+          ? error.message
+          : 'Unable to save this client right now. Please try again.'
+      )
+    }
+  }
+
+  const handleDelete = () => {
+    if (!client || deleteClient.isPending) return
+
+    Alert.alert(
+      'Delete Client?',
+      'This will permanently remove the client, appointment logs, and color chart data for this client.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteClient.mutateAsync(client.id)
+                router.replace('/(tabs)/clients')
+              } catch (error) {
+                Alert.alert(
+                  'Delete Failed',
+                  error instanceof Error
+                    ? error.message
+                    : 'Unable to delete this client right now. Please try again.'
+                )
+              }
+            })()
+          },
+        },
+      ]
+    )
   }
 
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ pb: "$10" }}>
+      <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+      <KeyboardDismissAccessory nativeID={keyboardAccessoryId} />
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ pb: "$10" }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={keyboardDismissMode}
+        onScrollBeginDrag={Keyboard.dismiss}
+      >
         <YStack px="$5" pt="$6" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
@@ -150,6 +235,7 @@ export default function EditClientScreen() {
               <YStack position="relative">
                 <TextField
                   value={form.name}
+                  inputAccessoryViewID={keyboardAccessoryId}
                   onChangeText={(text) =>
                     setForm((prev) => ({ ...prev, name: text }))
                   }
@@ -169,6 +255,7 @@ export default function EditClientScreen() {
               </Text>
               <TextField
                 value={form.email}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, email: text }))}
               />
             </YStack>
@@ -178,6 +265,7 @@ export default function EditClientScreen() {
               </Text>
               <TextField
                 value={form.phone}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, phone: text }))}
               />
             </YStack>
@@ -205,15 +293,6 @@ export default function EditClientScreen() {
                 ))}
               </XStack>
             </YStack>
-            <YStack gap="$2">
-              <Text fontSize={12} color="$textSecondary">
-                Tag
-              </Text>
-              <TextField
-                value={form.tag}
-                onChangeText={(text) => setForm((prev) => ({ ...prev, tag: text }))}
-              />
-            </YStack>
           </YStack>
 
           <YStack gap="$3">
@@ -223,6 +302,7 @@ export default function EditClientScreen() {
             <YStack {...cardSurfaceProps} rounded="$5" p="$4">
               <TextAreaField
                 value={form.notes}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
                 placeholder="Client preferences, color history, personal notes..."
               />
@@ -235,13 +315,29 @@ export default function EditClientScreen() {
             </SecondaryButton>
             <PrimaryButton
               flex={1}
-              onPress={handleSave}
+              onPress={() => void handleSave()}
               disabled={!canSave}
               opacity={canSave ? 1 : 0.5}
             >
-              Save
+              {updateClient.isPending ? 'Saving…' : 'Save'}
             </PrimaryButton>
           </XStack>
+
+          <SecondaryButton
+            onPress={handleDelete}
+            disabled={deleteClient.isPending}
+            borderColor="$red8"
+            bg="$red2"
+            pressStyle={{
+              bg: '$red3',
+              borderColor: '$red9',
+              opacity: 0.92,
+            }}
+          >
+            <Text fontWeight="700" color="$red11">
+              {deleteClient.isPending ? 'Deleting…' : 'Delete Client'}
+            </Text>
+          </SecondaryButton>
         </YStack>
       </ScrollView>
     </YStack>

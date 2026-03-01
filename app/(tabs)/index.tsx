@@ -47,7 +47,7 @@ import {
 import { useOverviewStore } from 'components/state/overviewStore'
 import { formatDateByStyle } from 'components/utils/date'
 import { sortClientsByNewest } from 'components/utils/clientSort'
-import { toNativeColor } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { getServiceLabel, normalizeServiceName } from 'components/utils/services'
 import {
   useStudioStore,
@@ -95,17 +95,36 @@ export default function TabOneScreen() {
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
+  const derivedLastVisitByClient = useMemo(() => {
+    return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
+      const current = acc[entry.clientId]
+      if (!current || new Date(entry.date) > new Date(current)) {
+        acc[entry.clientId] = entry.date
+      }
+      return acc
+    }, {})
+  }, [appointmentHistory])
+
+  const formatLastVisitLabel = (value: string) => {
+    if (!value || value === 'No visits yet' || value === '—') return 'No visits yet'
+    return formatDateByStyle(value, appSettings.dateDisplayFormat, {
+      todayLabel: true,
+      includeWeekday: appSettings.dateLongIncludeWeekday,
+    })
+  }
+  const resolveLastVisit = (clientId: string, fallback: string) =>
+    derivedLastVisitByClient[clientId] ?? fallback
 
   const recentClients = useMemo(
-    () => sortClientsByNewest(clients).slice(0, 3),
-    [clients]
+    () => sortClientsByNewest(clients).slice(0, appSettings.overviewRecentClientsCount),
+    [appSettings.overviewRecentClientsCount, clients]
   )
   const recentHistory = useMemo(() => {
     return [...appointmentHistory]
       .filter((entry) => entry.date)
-      .sort((a, b) => (a.date < b.date ? 1 : -1))
-      .slice(0, 3)
-  }, [appointmentHistory])
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, appSettings.overviewRecentAppointmentsCount)
+  }, [appSettings.overviewRecentAppointmentsCount, appointmentHistory])
 
   const activeCutoff = useMemo(() => {
     const date = new Date()
@@ -410,7 +429,7 @@ export default function TabOneScreen() {
     outputRange: [0, 14],
   })
 
-  const lineColor = toNativeColor(theme.borderColor?.val, '#CBD5E1')
+  const lineColor = toNativeColor(theme.borderColor?.val, FALLBACK_COLORS.borderSubtle)
   const renderQuickActionCard = (
     action: QuickAction,
     options?: { isDragging?: boolean }
@@ -458,7 +477,9 @@ export default function TabOneScreen() {
         items="center"
         justify="center"
         gap="$2"
-        shadowColor={isPrimary ? 'rgba(15,23,42,0.2)' : 'rgba(15,23,42,0.08)'}
+        shadowColor={
+          isPrimary ? FALLBACK_COLORS.shadowPrimaryCard : FALLBACK_COLORS.shadowSecondaryCard
+        }
         shadowRadius={16}
         shadowOpacity={1}
         shadowOffset={{ width: 0, height: 8 }}
@@ -703,10 +724,7 @@ export default function TabOneScreen() {
                           </Text>
                           <Text fontSize={12} color="$textSecondary">
                             {client.type} • Last visit{' '}
-                            {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                              todayLabel: true,
-                              includeWeekday: appSettings.dateLongIncludeWeekday,
-                            })}
+                            {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
                           </Text>
                         </YStack>
                         <ArrowRight size={14} color="$accent" />
@@ -728,10 +746,7 @@ export default function TabOneScreen() {
                         </Text>
                         <Text fontSize={12} color="$textSecondary">
                           {client.type} • Last visit{' '}
-                          {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                            todayLabel: true,
-                            includeWeekday: appSettings.dateLongIncludeWeekday,
-                          })}
+                          {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
                         </Text>
                       </YStack>
                       <ArrowRight size={14} color="$accent" />
@@ -899,10 +914,7 @@ export default function TabOneScreen() {
                           </Text>
                           <Text fontSize={12} color="$textSecondary">
                             {client.type} • Last visit{' '}
-                            {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                              todayLabel: true,
-                              includeWeekday: appSettings.dateLongIncludeWeekday,
-                            })}
+                            {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
                           </Text>
                         </YStack>
                       </XStack>
@@ -922,10 +934,7 @@ export default function TabOneScreen() {
                         </Text>
                         <Text fontSize={12} color="$textSecondary">
                           {client.type} • Last visit{' '}
-                          {formatDateByStyle(client.lastVisit, appSettings.dateDisplayFormat, {
-                            todayLabel: true,
-                            includeWeekday: appSettings.dateLongIncludeWeekday,
-                          })}
+                          {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
                         </Text>
                       </YStack>
                     </XStack>

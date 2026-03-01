@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState } from 'react'
@@ -6,11 +7,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { CalendarDays,
   Camera,
   Check,
-  ChevronLeft,
   ChevronDown,
   UploadCloud,
   X } from '@tamagui/lucide-icons'
 import { Alert,
+  Keyboard,
   Image,
   Modal,
   Platform,
@@ -28,6 +29,7 @@ import Animated from 'react-native-reanimated'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { useClients, useCreateAppointmentLog, useServices } from 'components/data/queries'
+import { FALLBACK_COLORS } from 'components/utils/color'
 import { formatDateMMDDYYYY } from 'components/utils/date'
 import { buildFormulaImageInputs } from 'components/utils/formulaImages'
 import { normalizeServiceName } from 'components/utils/services'
@@ -42,6 +44,8 @@ import { ErrorPulseBorder,
   ThemedEyebrowText,
   ThemedHeadingText,
 } from 'components/ui/controls'
+import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
+import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import { useExpandablePanel } from 'components/ui/useExpandablePanel'
 
 const pad = (value: number) => String(value).padStart(2, '0')
@@ -70,6 +74,11 @@ const parsePrice = (value: string) => {
   return Number.isNaN(parsed) ? null : parsed
 }
 
+const formatPriceFromCents = (value: number | null) => {
+  if (value === null) return ''
+  return (value / 100).toFixed(2).replace(/\.00$/, '')
+}
+
 export default function NewAppointmentScreen() {
   const { aesthetic } = useThemePrefs()
   const isGlass = aesthetic === 'glass'
@@ -77,10 +86,10 @@ export default function NewAppointmentScreen() {
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: clients = [] } = useClients()
+  const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: serviceOptions = [] } = useServices('true')
   const createAppointmentLog = useCreateAppointmentLog()
-  const client = clients.find((item) => item.id === id) ?? clients[0]
+  const client = clients.find((item) => item.id === id)
   const scrollRef = useRef<any>(null)
   const requiredY = useRef<{ date?: number }>({})
   const [form, setForm] = useState({
@@ -91,6 +100,7 @@ export default function NewAppointmentScreen() {
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([])
   const [images, setImages] = useState<string[]>([])
   const [previewUri, setPreviewUri] = useState<string | null>(null)
+  const [priceEdited, setPriceEdited] = useState(false)
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -110,6 +120,19 @@ export default function NewAppointmentScreen() {
     () => new Set(selectedServiceIds),
     [selectedServiceIds]
   )
+  const suggestedPriceCents = useMemo(() => {
+    const prices = selectedServices
+      .map((service) => service.defaultPriceCents)
+      .filter((value): value is number => typeof value === 'number')
+    if (!prices.length) return null
+    return prices.reduce((sum, value) => sum + value, 0)
+  }, [selectedServices])
+  const isBootstrapping = clientsLoading && !clients.length
+
+  useEffect(() => {
+    if (priceEdited) return
+    setForm((prev) => ({ ...prev, price: formatPriceFromCents(suggestedPriceCents) }))
+  }, [priceEdited, suggestedPriceCents])
 
   const isDirty = useMemo(() => {
     const hasText =
@@ -129,20 +152,8 @@ export default function NewAppointmentScreen() {
     () => parseDateForPicker(form.date) ?? new Date(),
     [form.date]
   )
-  const topBar = (
-    <XStack px="$5" pt={topInset} pb="$2" items="center" justify="space-between">
-      <SecondaryButton
-        size="$2"
-        height={36}
-        width={38}
-        px="$2"
-        icon={<ChevronLeft size={16} />}
-        onPress={() => router.back()}
-        accessibilityLabel="Go back"
-      />
-      <YStack width={38} />
-    </XStack>
-  )
+  const keyboardAccessoryId = 'new-appointment-keyboard-dismiss'
+  const keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag'
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -150,9 +161,13 @@ export default function NewAppointmentScreen() {
     }
     if (!selectedDate) return
     setForm((prev) => ({ ...prev, date: formatDateFromPicker(selectedDate) }))
+    if (Platform.OS !== 'android') {
+      setShowDatePicker(false)
+    }
   }
 
   const handleDateFieldPress = () => {
+    Keyboard.dismiss()
     setShowServicePicker(false)
     if (Platform.OS === 'android') {
       setShowDatePicker(true)
@@ -162,6 +177,7 @@ export default function NewAppointmentScreen() {
   }
 
   const handleServiceFieldPress = () => {
+    Keyboard.dismiss()
     setShowDatePicker(false)
     setShowServicePicker((current) => !current)
   }
@@ -225,6 +241,16 @@ export default function NewAppointmentScreen() {
     setImages((current) => current.filter((_, idx) => idx !== index))
   }
 
+  const setCoverImage = (index: number) => {
+    setImages((current) => {
+      if (index <= 0 || index >= current.length) return current
+      const next = [...current]
+      const [cover] = next.splice(index, 1)
+      next.unshift(cover)
+      return next
+    })
+  }
+
   const handleCapture = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync()
@@ -257,11 +283,25 @@ export default function NewAppointmentScreen() {
     }
   }
 
+  if (isBootstrapping) {
+    return (
+      <YStack flex={1} bg="$background" position="relative">
+        <AmbientBackdrop />
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+        <YStack flex={1} items="center" justify="center">
+          <Text fontSize={13} color="$textSecondary">
+            Loading client...
+          </Text>
+        </YStack>
+      </YStack>
+    )
+  }
+
   if (!client) {
     return (
       <YStack flex={1} bg="$background" position="relative">
         <AmbientBackdrop />
-        {topBar}
+        <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
         <YStack flex={1} items="center" justify="center">
         <Text fontSize={13} color="$textSecondary">
           Client not found.
@@ -274,18 +314,22 @@ export default function NewAppointmentScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      {topBar}
+      <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
+      <KeyboardDismissAccessory nativeID={keyboardAccessoryId} />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ pb: '$10' }}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={keyboardDismissMode}
         onScrollBeginDrag={() => {
+          Keyboard.dismiss()
           setShowDatePicker(false)
           setShowServicePicker(false)
         }}
       >
         <Pressable
           onPress={() => {
+            Keyboard.dismiss()
             setShowDatePicker(false)
             setShowServicePicker(false)
           }}
@@ -392,7 +436,7 @@ export default function NewAppointmentScreen() {
                         borderColor="$borderSubtle"
                         p="$2"
                         bg="$background"
-                        shadowColor="rgba(15,23,42,0.12)"
+                        shadowColor={FALLBACK_COLORS.shadowSoft}
                         shadowRadius={14}
                         shadowOpacity={1}
                         shadowOffset={{ width: 0, height: 6 }}
@@ -523,7 +567,7 @@ export default function NewAppointmentScreen() {
                         borderColor="$borderSubtle"
                         p="$2"
                         bg="$background"
-                        shadowColor="rgba(15,23,42,0.12)"
+                        shadowColor={FALLBACK_COLORS.shadowSoft}
                         shadowRadius={14}
                         shadowOpacity={1}
                         shadowOffset={{ width: 0, height: 6 }}
@@ -591,18 +635,28 @@ export default function NewAppointmentScreen() {
               <TextField
                 placeholder="$0.00"
                 value={form.price}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onFocus={() => {
                   setShowDatePicker(false)
                   setShowServicePicker(false)
                 }}
-                onChangeText={(text) => setForm((prev) => ({ ...prev, price: text }))}
+                onChangeText={(text) => {
+                  setPriceEdited(true)
+                  setForm((prev) => ({ ...prev, price: text }))
+                }}
               />
+              {suggestedPriceCents !== null ? (
+                <Text fontSize={11} color="$textSecondary">
+                  Suggested from services: ${formatPriceFromCents(suggestedPriceCents)}
+                </Text>
+              ) : null}
             </YStack>
             <YStack gap="$2">
               <FieldLabel>Formula / Notes</FieldLabel>
               <TextAreaField
                 placeholder="Color formula, technique, notes..."
                 value={form.notes}
+                inputAccessoryViewID={keyboardAccessoryId}
                 onFocus={() => {
                   setShowDatePicker(false)
                   setShowServicePicker(false)
@@ -626,6 +680,7 @@ export default function NewAppointmentScreen() {
                 icon={<Camera size={16} />}
                 size="$4"
                 onPress={() => {
+                  Keyboard.dismiss()
                   setShowDatePicker(false)
                   setShowServicePicker(false)
                   void handleCapture()
@@ -637,6 +692,7 @@ export default function NewAppointmentScreen() {
                 icon={<UploadCloud size={16} />}
                 size="$4"
                 onPress={() => {
+                  Keyboard.dismiss()
                   setShowDatePicker(false)
                   setShowServicePicker(false)
                   void handleUpload()
@@ -651,33 +707,68 @@ export default function NewAppointmentScreen() {
                   {images.map((uri, index) => (
                     <YStack
                       key={`${uri}-${index}`}
-                      width={72}
-                      height={72}
-                      rounded="$4"
-                      overflow="hidden"
-                      position="relative"
-                      onPress={() => setPreviewUri(uri)}
-                      cursor="pointer"
-                      pressStyle={{ opacity: 0.85 }}
+                      gap="$1.5"
+                      items="center"
                     >
-                      <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
-                      <XStack
-                        position="absolute"
-                        t={4}
-                        r={4}
-                        width={20}
-                        height={20}
-                        rounded={10}
-                        items="center"
-                        justify="center"
-                        bg="rgba(0,0,0,0.6)"
-                        onPress={(event) => {
-                          event?.stopPropagation?.()
-                          removeImage(index)
-                        }}
+                      <YStack
+                        width={72}
+                        height={72}
+                        rounded="$4"
+                        overflow="hidden"
+                        position="relative"
+                        onPress={() => setPreviewUri(uri)}
+                        cursor="pointer"
+                        pressStyle={{ opacity: 0.85 }}
                       >
-                        <X size={12} color="white" />
-                      </XStack>
+                        <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
+                        <XStack
+                          position="absolute"
+                          t={4}
+                          r={4}
+                          width={20}
+                          height={20}
+                          rounded={10}
+                          items="center"
+                          justify="center"
+                          bg={FALLBACK_COLORS.overlayMedium}
+                          onPress={(event) => {
+                            event?.stopPropagation?.()
+                            removeImage(index)
+                          }}
+                        >
+                          <X size={12} color="white" />
+                        </XStack>
+                        {index === 0 ? (
+                          <XStack
+                            position="absolute"
+                            l={4}
+                            t={4}
+                            px="$1.5"
+                            py="$0.5"
+                            rounded="$2"
+                            bg="$accent"
+                          >
+                            <Text fontSize={9} color="white" fontWeight="700">
+                              Cover
+                            </Text>
+                          </XStack>
+                        ) : null}
+                      </YStack>
+                      {index !== 0 ? (
+                        <SecondaryButton
+                          size="$1"
+                          height={24}
+                          px="$2"
+                          onPress={(event) => {
+                            event?.stopPropagation?.()
+                            setCoverImage(index)
+                          }}
+                        >
+                          <Text fontSize={10} color="$buttonSecondaryFg" fontWeight="700">
+                            Set Cover
+                          </Text>
+                        </SecondaryButton>
+                      ) : null}
                     </YStack>
                   ))}
                 </XStack>
@@ -694,6 +785,7 @@ export default function NewAppointmentScreen() {
             disabled={!canSave}
             opacity={canSave ? 1 : 0.5}
             onPress={() => {
+              Keyboard.dismiss()
               setShowDatePicker(false)
               setShowServicePicker(false)
               void handleSave()
@@ -713,7 +805,7 @@ export default function NewAppointmentScreen() {
         <Pressable
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.85)',
+            backgroundColor: FALLBACK_COLORS.overlayStrong,
             alignItems: 'center',
             justifyContent: 'center',
             padding: 24,
@@ -743,7 +835,7 @@ export default function NewAppointmentScreen() {
               borderRadius: 18,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.6)',
+              backgroundColor: FALLBACK_COLORS.overlayMedium,
             }}
           >
             <X size={16} color="white" />

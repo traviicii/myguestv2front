@@ -10,12 +10,18 @@ import {
   type CreateFormulaInput,
   type CreateServiceInput,
   type CreateClientInput,
+  type UpsertColorChartInput,
+  type UpdateClientInput,
   type UpdateFormulaInput,
   type UpdateServiceInput,
   createFormulaViaApi,
   createClientViaApi,
   createServiceViaApi,
   deactivateServiceViaApi,
+  deleteClientViaApi,
+  permanentlyDeleteServiceViaApi,
+  updateClientViaApi,
+  upsertColorAnalysisForClientViaApi,
   fetchAppointmentHistoryFromApi,
   fetchServicesFromApi,
   fetchColorAnalysisForClientFromApi,
@@ -32,7 +38,9 @@ const mockServices = DEFAULT_APPOINTMENT_SERVICES.map((name, index) => ({
   name,
   normalizedName: name.toLowerCase(),
   sortOrder: index,
+  defaultPriceCents: null,
   isActive: true,
+  usageCount: 0,
 }))
 
 // These hooks are the app's data boundary. They currently return local
@@ -90,6 +98,35 @@ export function useColorAnalysisForClient(clientId?: string) {
   })
 }
 
+export function useUpsertColorAnalysisForClient() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      clientId,
+      input,
+    }: {
+      clientId: string
+      input: UpsertColorChartInput
+    }) => {
+      if (USE_MOCK_DATA) {
+        throw new Error(
+          'Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to save color charts in v2 backend.'
+        )
+      }
+      return upsertColorAnalysisForClientViaApi(clientId, input)
+    },
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['color-analysis'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['color-analysis-client', USE_MOCK_DATA ? 'mock' : 'api', variables.clientId],
+        }),
+      ])
+    },
+  })
+}
+
 export function useImagesByClient() {
   return useQuery({
     queryKey: ['client-images'],
@@ -109,6 +146,50 @@ export function useCreateClient() {
         )
       }
       return createClientViaApi(input)
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+      ])
+    },
+  })
+}
+
+export function useDeleteClient() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (clientId: string) => {
+      if (USE_MOCK_DATA) {
+        throw new Error(
+          'Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to delete clients in v2 backend.'
+        )
+      }
+      await deleteClientViaApi(clientId)
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['color-analysis'] }),
+        queryClient.invalidateQueries({ queryKey: ['color-analysis-client'] }),
+      ])
+    },
+  })
+}
+
+export function useUpdateClient() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: UpdateClientInput) => {
+      if (USE_MOCK_DATA) {
+        throw new Error(
+          'Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to edit clients in v2 backend.'
+        )
+      }
+      return updateClientViaApi(input)
     },
     onSuccess: async () => {
       await Promise.all([
@@ -219,6 +300,28 @@ export function useReactivateService() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['services'] }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+      ])
+    },
+  })
+}
+
+export function usePermanentlyDeleteService() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (serviceId: number) => {
+      if (USE_MOCK_DATA) {
+        throw new Error(
+          'Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to manage services in v2 backend.'
+        )
+      }
+      await permanentlyDeleteServiceViaApi(serviceId)
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['services'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
       ])
     },
   })

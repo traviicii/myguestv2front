@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useTheme } from 'tamagui'
 import { LayoutDashboard, Users, User } from '@tamagui/lucide-icons'
-import { toNativeColor } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { getGlassBlurIntensity, getGlassLayerColors } from 'components/ui/glassStyle'
 
@@ -15,30 +15,38 @@ export default function TabLayout() {
   const isCyberpunk = aesthetic === 'cyberpunk'
   const activeTint = toNativeColor(
     theme.chromeTintActive?.val,
-    toNativeColor(theme.accent?.val, '#0A0A0A')
+    toNativeColor(theme.accent?.val, FALLBACK_COLORS.textPrimary)
   )
   const inactiveTint = toNativeColor(
     theme.chromeTintInactive?.val,
-    toNativeColor(theme.color?.val, '#334155')
+    toNativeColor(theme.color?.val, FALLBACK_COLORS.textSecondary)
   )
   const background = toNativeColor(
     theme.chromeBackground?.val,
-    toNativeColor(theme.background?.val, '#F8F8F8')
+    toNativeColor(theme.background?.val, FALLBACK_COLORS.surfacePage)
   )
   const color = toNativeColor(
     theme.textPrimary?.val,
-    toNativeColor(theme.color?.val, '#0A0A0A')
+    toNativeColor(theme.color?.val, FALLBACK_COLORS.textPrimary)
   )
   const headingFontFamily = aesthetic === 'cyberpunk' ? 'SpaceMono' : 'Inter'
   const shadowColor = toNativeColor(
     isGlass ? theme.surfaceTabGlassShadow?.val : theme.shadowColor?.val,
-    isGlass ? 'rgba(15,23,42,0.28)' : 'rgba(15,23,42,0.12)'
+    isGlass ? FALLBACK_COLORS.shadowGlassStrong : FALLBACK_COLORS.shadowSoft
   )
   const tabInset = isGlass ? 10 : 0
   const tabRadius = isGlass ? 32 : isCyberpunk ? 0 : 0
   const glassColors = getGlassLayerColors(mode, {
-    accent: toNativeColor(theme.backdropAccent?.val, mode === 'dark' ? '#9AB8FF' : '#8FC3FF'),
-    start: toNativeColor(theme.backdropStart?.val, mode === 'dark' ? '#465A84' : '#CFE2FF'),
+    accent: toNativeColor(
+      theme.backdropAccent?.val,
+      mode === 'dark'
+        ? FALLBACK_COLORS.glassAccentDark
+        : FALLBACK_COLORS.glassAccentLight
+    ),
+    start: toNativeColor(
+      theme.backdropStart?.val,
+      mode === 'dark' ? FALLBACK_COLORS.glassStartDark : FALLBACK_COLORS.glassStartLight
+    ),
   })
   const tabBlurIntensity = getGlassBlurIntensity(mode, 'tab')
 

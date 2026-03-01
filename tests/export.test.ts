@@ -16,16 +16,27 @@ test('static export hydrates without Missing theme error', async ({ page }) => {
   await expect(page.getByText('Something went wrong')).not.toBeVisible()
   await expect(page.getByText('Missing theme')).not.toBeVisible()
 
-  // verify tamagui rendered with theme - the heading should be visible
-  const heading = page.getByText('Tamagui + Expo')
-  await expect(heading).toBeVisible()
+  // Verify app hydration regardless of whether auth is required in this environment.
+  const hydrationMarkers = [
+    page.getByText('Sign In'),
+    page.getByText('Overview'),
+    page.getByText('Profile'),
+  ]
+  const markerVisibility = await Promise.all(
+    hydrationMarkers.map((marker) => marker.isVisible().catch(() => false))
+  )
+  expect(markerVisibility.some(Boolean)).toBeTruthy()
+
+  const visibleMarker =
+    hydrationMarkers[markerVisibility.findIndex((visible) => visible)] ??
+    hydrationMarkers[0]
 
   // verify no page errors related to missing theme
   const themeErrors = errors.filter((e) => e.includes('Missing theme'))
   expect(themeErrors).toHaveLength(0)
 
   // verify themed styles are applied (not unstyled)
-  const color = await heading.evaluate((el) => window.getComputedStyle(el).color)
+  const color = await visibleMarker.evaluate((el) => window.getComputedStyle(el).color)
   expect(color).toBeTruthy()
   expect(color).not.toBe('')
 })

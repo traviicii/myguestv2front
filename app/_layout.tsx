@@ -9,7 +9,7 @@ import { Provider } from 'components/Provider'
 import { useTheme } from 'tamagui'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { AuthGate } from 'components/auth/AuthGate'
-import { toNativeColor } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -59,9 +59,12 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
 function RootLayoutNav() {
   const theme = useTheme()
   const { mode, aesthetic } = useThemePrefs()
-  const pageBackground = toNativeColor(theme.surfacePage?.val, '#F8F8F8')
-  const chromeBackground = toNativeColor(theme.chromeBackground?.val, '#F8F8F8')
-  const chromeTint = toNativeColor(theme.textPrimary?.val, '#0A0A0A')
+  const pageBackground = toNativeColor(theme.surfacePage?.val, FALLBACK_COLORS.surfacePage)
+  const chromeBackground = toNativeColor(
+    theme.chromeBackground?.val,
+    FALLBACK_COLORS.surfacePage
+  )
+  const chromeTint = toNativeColor(theme.textPrimary?.val, FALLBACK_COLORS.textPrimary)
   const headingFontFamily = aesthetic === 'cyberpunk' ? 'SpaceMono' : 'Inter'
   const navigationTheme = useMemo(() => {
     const base = mode === 'dark' ? DarkTheme : DefaultTheme
@@ -135,6 +138,7 @@ function RootLayoutNav() {
             name="client/[id]/edit"
             options={{
               title: 'Edit Client',
+              headerShown: false,
             }}
           />
 
@@ -142,6 +146,7 @@ function RootLayoutNav() {
             name="client/[id]/color-chart/index"
             options={{
               title: 'Color Chart',
+              headerShown: false,
             }}
           />
 
@@ -149,6 +154,7 @@ function RootLayoutNav() {
             name="client/[id]/color-chart/edit"
             options={{
               title: 'Edit Color Chart',
+              headerShown: false,
             }}
           />
 
@@ -156,6 +162,7 @@ function RootLayoutNav() {
             name="clients/new"
             options={{
               title: 'New Client',
+              headerShown: false,
             }}
           />
 
@@ -193,6 +200,7 @@ function RootLayoutNav() {
             name="appointment/[id]/edit"
             options={{
               title: 'Edit Appointment Log',
+              headerShown: false,
             }}
           />
 

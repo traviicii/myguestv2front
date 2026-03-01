@@ -42,6 +42,7 @@ type ApiClient = {
   first_name: string
   last_name: string
   created_at?: string | null
+  last_service_at?: string | null
   email: string | null
   phone: string | null
   birthday: string | null
@@ -103,7 +104,9 @@ type ApiService = {
   name: string
   normalized_name: string
   sort_order: number
+  default_price_cents: number | null
   is_active: boolean
+  usage_count: number
   created_at: string
   updated_at: string
 }
@@ -117,7 +120,9 @@ export type ServiceOption = {
   name: string
   normalizedName: string
   sortOrder: number
+  defaultPriceCents: number | null
   isActive: boolean
+  usageCount: number
 }
 
 type ApiColorChart = {
@@ -145,7 +150,26 @@ type ApiColorChartListResponse = {
   items: ApiColorChart[]
 }
 
-let syncPromise: Promise<void> | null = null
+export type UpsertColorChartInput = Partial<
+  Pick<
+    ApiColorChart,
+    | 'porosity'
+    | 'hair_texture'
+    | 'elasticity'
+    | 'scalp_condition'
+    | 'natural_level'
+    | 'desired_level'
+    | 'contrib_pigment'
+    | 'gray_front'
+    | 'gray_sides'
+    | 'gray_back'
+    | 'skin_depth'
+    | 'skin_tone'
+    | 'eye_color'
+  >
+>
+
+const tokenSyncPromises = new Map<string, Promise<void>>()
 let syncedToken: string | null = null
 let authTokenProvider: AuthTokenProvider | null = null
 
@@ -190,16 +214,17 @@ const normalizeColorValue = (value: string | null | undefined) => {
 
 function toClientModel(client: ApiClient): Client {
   const clientType = normalizeClientType(client.client_type)
+  const hasLastVisit = Boolean(client.last_service_at)
   return {
     id: String(client.id),
     name: `${client.first_name} ${client.last_name}`.trim(),
     email: client.email ?? '',
     phone: client.phone ?? '',
     createdAt: client.created_at ?? undefined,
-    lastVisit: '—',
+    lastVisit: hasLastVisit ? (client.last_service_at as string) : 'No visits yet',
     type: clientType,
     revenueYtd: 0,
-    tag: clientType,
+    tag: '',
     status: 'Inactive',
     notes: client.notes ?? '',
   }
@@ -242,7 +267,9 @@ const toServiceOption = (service: ApiService): ServiceOption => ({
   name: service.name,
   normalizedName: service.normalized_name,
   sortOrder: service.sort_order,
+  defaultPriceCents: service.default_price_cents ?? null,
   isActive: service.is_active,
+  usageCount: service.usage_count ?? 0,
 })
 
 const toFormulaId = (formulaId: string) => {
@@ -327,6 +354,22 @@ const getColorChartClientId = (value: unknown): string | null => {
   return toClientIdString(value.client_id ?? value.clientId)
 }
 
+const COLOR_CHART_MUTABLE_FIELDS: ReadonlyArray<keyof UpsertColorChartInput> = [
+  'porosity',
+  'hair_texture',
+  'elasticity',
+  'scalp_condition',
+  'natural_level',
+  'desired_level',
+  'contrib_pigment',
+  'gray_front',
+  'gray_sides',
+  'gray_back',
+  'skin_depth',
+  'skin_tone',
+  'eye_color',
+]
+
 const coerceColorChartItems = (payload: unknown): FlexibleColorChart[] => {
   if (Array.isArray(payload)) {
     return payload.filter((item): item is FlexibleColorChart => isRecord(item))
@@ -376,8 +419,8 @@ const getColorChartForClientFromPayload = (
   const charts = coerceColorChartItems(payload)
   if (!charts.length) return null
 
-  const match =
-    charts.find((item) => getColorChartClientId(item) === clientId) ?? charts[0]
+  const match = charts.find((item) => getColorChartClientId(item) === clientId)
+  if (!match) return null
   return toColorAnalysisModel(match)
 }
 
@@ -484,6 +527,43 @@ export async function fetchColorAnalysisForClientFromApi(
   }
 }
 
+const normalizeColorChartInput = (value: string | null | undefined) => {
+  if (value === undefined) return undefined
+  const trimmed = (value ?? '').trim()
+  return trimmed || null
+}
+
+export async function upsertColorAnalysisForClientViaApi(
+  clientId: string,
+  input: UpsertColorChartInput
+): Promise<ColorAnalysis> {
+  const normalizedClientId = toClientIdString(clientId)
+  if (!normalizedClientId) {
+    throw new Error('Invalid client id.')
+  }
+
+  const payload = COLOR_CHART_MUTABLE_FIELDS.reduce<Record<string, string | null>>(
+    (acc, field) => {
+      const normalizedValue = normalizeColorChartInput(input[field])
+      if (normalizedValue !== undefined) {
+        acc[field] = normalizedValue
+      }
+      return acc
+    },
+    {}
+  )
+
+  const response = await request<ApiColorChart>(
+    `/clients/${normalizedClientId}/color-chart`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }
+  )
+
+  return toColorAnalysisModel(response)
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const text = await response.text()
   const payload = text ? (JSON.parse(text) as T | ApiErrorEnvelope) : ({} as T)
@@ -521,16 +601,22 @@ async function requestRaw<T>(
 
 async function ensureSessionSynced(token: string) {
   if (syncedToken === token) return
-  if (!syncPromise) {
-    syncPromise = requestRaw('/auth/sync', { method: 'POST' }, token)
-      .then(() => {
-        syncedToken = token
-      })
-      .finally(() => {
-        syncPromise = null
-      })
+  const existingSync = tokenSyncPromises.get(token)
+  if (existingSync) {
+    await existingSync
+    return
   }
-  await syncPromise
+
+  const syncForToken = requestRaw('/auth/sync', { method: 'POST' }, token)
+    .then(() => {
+      syncedToken = token
+    })
+    .finally(() => {
+      tokenSyncPromises.delete(token)
+    })
+
+  tokenSyncPromises.set(token, syncForToken)
+  await syncForToken
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -548,6 +634,7 @@ export function hasStaticDevToken() {
 export function setAuthTokenProvider(provider: AuthTokenProvider | null) {
   authTokenProvider = provider
   syncedToken = null
+  tokenSyncPromises.clear()
 }
 
 export async function fetchClientsFromApi(): Promise<Client[]> {
@@ -568,6 +655,17 @@ export type CreateClientInput = {
   notes?: string
 }
 
+export type UpdateClientInput = {
+  clientId: string
+  firstName?: string
+  lastName?: string
+  email?: string | null
+  phone?: string | null
+  birthday?: string | null
+  clientType?: ClientType
+  notes?: string | null
+}
+
 export async function createClientViaApi(input: CreateClientInput): Promise<Client> {
   const payload = {
     first_name: input.firstName.trim(),
@@ -584,6 +682,55 @@ export async function createClientViaApi(input: CreateClientInput): Promise<Clie
     body: JSON.stringify(payload),
   })
   return toClientModel(response)
+}
+
+export async function updateClientViaApi(input: UpdateClientInput): Promise<Client> {
+  const clientId = toClientIdString(input.clientId)
+  if (!clientId) {
+    throw new Error('Invalid client id.')
+  }
+
+  const payload: Record<string, unknown> = {}
+  if (input.firstName !== undefined) {
+    const firstName = input.firstName.trim()
+    if (!firstName) {
+      throw new Error('First name is required.')
+    }
+    payload.first_name = firstName
+  }
+  if (input.lastName !== undefined) {
+    const lastName = input.lastName.trim()
+    if (!lastName) {
+      throw new Error('Last name is required.')
+    }
+    payload.last_name = lastName
+  }
+  if (input.email !== undefined) payload.email = input.email?.trim() || null
+  if (input.phone !== undefined) payload.phone = input.phone?.trim() || null
+  if (input.birthday !== undefined) payload.birthday = input.birthday?.trim() || null
+  if (input.clientType !== undefined) payload.client_type = input.clientType
+  if (input.notes !== undefined) payload.notes = input.notes?.trim() || null
+
+  if (Object.keys(payload).length === 0) {
+    throw new Error('No client fields to update.')
+  }
+
+  const response = await request<ApiClient>(`/clients/${clientId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+  return toClientModel(response)
+}
+
+export async function deleteClientViaApi(clientId: string): Promise<void> {
+  const normalizedClientId = toClientIdString(clientId)
+  if (!normalizedClientId) {
+    throw new Error('Invalid client id.')
+  }
+
+  await request<unknown>(`/clients/${normalizedClientId}`, {
+    method: 'DELETE',
+  })
 }
 
 export type CreateFormulaInput = {
@@ -669,6 +816,7 @@ export async function fetchServicesFromApi(
 export type CreateServiceInput = {
   name: string
   sortOrder?: number
+  defaultPriceCents?: number | null
 }
 
 export async function createServiceViaApi(input: CreateServiceInput): Promise<ServiceOption> {
@@ -677,6 +825,7 @@ export async function createServiceViaApi(input: CreateServiceInput): Promise<Se
     body: JSON.stringify({
       name: input.name,
       sort_order: input.sortOrder,
+      default_price_cents: input.defaultPriceCents ?? null,
     }),
   })
   return toServiceOption(response)
@@ -686,6 +835,7 @@ export type UpdateServiceInput = {
   serviceId: number
   name?: string
   sortOrder?: number
+  defaultPriceCents?: number | null
   isActive?: boolean
 }
 
@@ -693,6 +843,9 @@ export async function updateServiceViaApi(input: UpdateServiceInput): Promise<Se
   const payload: Record<string, unknown> = {}
   if (input.name !== undefined) payload.name = input.name
   if (input.sortOrder !== undefined) payload.sort_order = input.sortOrder
+  if (input.defaultPriceCents !== undefined) {
+    payload.default_price_cents = input.defaultPriceCents
+  }
   if (input.isActive !== undefined) payload.is_active = input.isActive
 
   const response = await request<ApiService>(`/services/${input.serviceId}`, {
@@ -713,6 +866,21 @@ export async function reactivateServiceViaApi(serviceId: number): Promise<Servic
     serviceId,
     isActive: true,
   })
+}
+
+export async function permanentlyDeleteServiceViaApi(serviceId: number): Promise<void> {
+  try {
+    await request<unknown>(`/services/${serviceId}/permanent`, {
+      method: 'DELETE',
+    })
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) {
+      throw new Error(
+        'Permanent delete is not available on your current backend deployment yet.'
+      )
+    }
+    throw error
+  }
 }
 
 export async function fetchAppointmentHistoryFromApi(): Promise<AppointmentHistory[]> {

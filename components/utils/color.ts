@@ -5,6 +5,25 @@ const HSL_COLOR_RE =
   /^hsla?\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)%\s*,\s*(-?\d*\.?\d+)%(?:\s*,\s*(-?\d*\.?\d+)\s*)?\)$/i
 const NAMED_COLOR_RE = /^[a-z]+$/i
 
+// Centralized native-safe fallback colors used across app/layout surfaces.
+export const FALLBACK_COLORS = {
+  textPrimary: '#0A0A0A',
+  textSecondary: '#334155',
+  surfacePage: '#F8F8F8',
+  borderSubtle: '#CBD5E1',
+  glassAccentDark: '#9AB8FF',
+  glassAccentLight: '#8FC3FF',
+  glassStartDark: '#465A84',
+  glassStartLight: '#CFE2FF',
+  shadowGlassStrong: 'rgba(15,23,42,0.28)',
+  shadowSoft: 'rgba(15,23,42,0.12)',
+  shadowPrimaryCard: 'rgba(15,23,42,0.2)',
+  shadowSecondaryCard: 'rgba(15,23,42,0.08)',
+  overlayDim: 'rgba(0,0,0,0.55)',
+  overlayMedium: 'rgba(0,0,0,0.6)',
+  overlayStrong: 'rgba(0,0,0,0.85)',
+} as const
+
 const clamp = (value: number, lower: number, upper: number) =>
   Math.min(upper, Math.max(lower, value))
 
