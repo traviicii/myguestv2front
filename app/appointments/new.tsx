@@ -11,20 +11,16 @@ import { ScrollView,
   YStack } from 'tamagui'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
-import { useThemePrefs } from 'components/ThemePrefs'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
 import { useStudioStore } from 'components/state/studioStore'
 import { SectionDivider,
   SecondaryButton,
-  SurfaceCard,
+  PreviewCard,
   TextField,
-  cardSurfaceProps,
 } from 'components/ui/controls'
 import { formatDateByStyle } from 'components/utils/date'
 
 export default function NewAppointmentClientPicker() {
-  const { aesthetic } = useThemePrefs()
-  const isGlass = aesthetic === 'glass'
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
@@ -89,41 +85,8 @@ export default function NewAppointmentClientPicker() {
             </Text>
           </YStack>
 
-          {isGlass ? (
-            <SurfaceCard
-              mode="alwaysCard"
-              tone="secondary"
-              rounded="$4"
-              p="$0"
-              gap="$0"
-              px="$3"
-              py="$2"
-            >
-              <XStack items="center" gap="$2">
-                <Search size={16} color="$textSecondary" />
-                <TextField
-                  flex={1}
-                  borderWidth={0}
-                  height={36}
-                  px="$0"
-                  placeholder="Search clients"
-                  value={searchText}
-                  onChangeText={setSearchText}
-                  fontSize={12}
-                  color="$color"
-                  placeholderTextColor="$textMuted"
-                />
-              </XStack>
-            </SurfaceCard>
-          ) : (
-            <XStack
-              {...cardSurfaceProps}
-              rounded="$4"
-              px="$3"
-              py="$2"
-              items="center"
-              gap="$2"
-            >
+          <PreviewCard p="$0" gap="$0" px="$3" py="$2">
+            <XStack items="center" gap="$2">
               <Search size={16} color="$textSecondary" />
               <TextField
                 flex={1}
@@ -138,66 +101,22 @@ export default function NewAppointmentClientPicker() {
                 placeholderTextColor="$textMuted"
               />
             </XStack>
-          )}
+          </PreviewCard>
 
           <SectionDivider />
 
           <YStack gap="$3">
             {filteredClients.length === 0 ? (
-              isGlass ? (
-                <SurfaceCard mode="alwaysCard" tone="secondary" rounded="$5" p="$4">
-                  <Text fontSize={12} color="$textSecondary">
-                    No clients match your search.
-                  </Text>
-                </SurfaceCard>
-              ) : (
-                <YStack {...cardSurfaceProps} rounded="$5" p="$4">
-                  <Text fontSize={12} color="$textSecondary">
-                    No clients match your search.
-                  </Text>
-                </YStack>
-              )
+              <PreviewCard p="$4">
+                <Text fontSize={12} color="$textSecondary">
+                  No clients match your search.
+                </Text>
+              </PreviewCard>
             ) : (
               filteredClients.map((client) => (
                 <Link key={client.id} href={`/client/${client.id}/new-appointment`} asChild>
-                  {isGlass ? (
-                    <SurfaceCard
-                      mode="alwaysCard"
-                      tone="secondary"
-                      rounded="$5"
-                      p="$4"
-                      pressStyle={{ opacity: 0.88 }}
-                      cursor="pointer"
-                    >
-                      <XStack items="center" justify="space-between" gap="$3">
-                        <YStack>
-                          <Text fontSize={14} fontWeight="600">
-                            {client.name}
-                          </Text>
-                          <Text fontSize={12} color="$textSecondary">
-                            {client.type} • Last visit{' '}
-                            {formatLastVisitLabel(
-                              derivedLastVisitByClient[client.id] ?? client.lastVisit
-                            )}
-                          </Text>
-                        </YStack>
-                        <XStack items="center" gap="$2">
-                          <UserPlus size={16} color="$accent" />
-                          <Text fontSize={12} color="$accent">
-                            Select
-                          </Text>
-                        </XStack>
-                      </XStack>
-                    </SurfaceCard>
-                  ) : (
-                    <XStack
-                      {...cardSurfaceProps}
-                      rounded="$5"
-                      p="$4"
-                      items="center"
-                      justify="space-between"
-                      gap="$3"
-                    >
+                  <PreviewCard p="$4" pressStyle={{ opacity: 0.88 }} cursor="pointer">
+                    <XStack items="center" justify="space-between" gap="$3">
                       <YStack>
                         <Text fontSize={14} fontWeight="600">
                           {client.name}
@@ -216,7 +135,7 @@ export default function NewAppointmentClientPicker() {
                         </Text>
                       </XStack>
                     </XStack>
-                  )}
+                  </PreviewCard>
                 </Link>
               ))
             )}

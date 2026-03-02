@@ -300,6 +300,10 @@ const SortableGridItemInner = <T,>({
     </Animated.View>
   )
 
+  if (!dragEnabled) {
+    return content
+  }
+
   return <GestureDetector gesture={gesture}>{content}</GestureDetector>
 }
 

@@ -211,6 +211,15 @@ export function PrimaryButton({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const profile = useAestheticProfile()
+  const theme = useTheme()
+  const { aesthetic, mode } = useThemePrefs()
+  const isGlassLight = aesthetic === 'glass' && mode === 'light'
+  const glassLayerColors = isGlassLight
+    ? getGlassLayerColors('light', {
+        accent: toNativeColor(theme.backdropAccent?.val, '#8FC3FF'),
+        start: toNativeColor(theme.backdropStart?.val, '#CFE2FF'),
+      })
+    : null
   const stringChildren = asStringChildren(children)
   const resolvedChildren =
     stringChildren === null ? (
@@ -237,26 +246,45 @@ export function PrimaryButton({
       rounded={profile.controlRadius}
       bg="$buttonPrimaryBg"
       borderWidth={1}
-      borderColor="$buttonPrimaryBg"
+      borderColor="$buttonPrimaryBorder"
+      overflow={isGlassLight ? 'hidden' : undefined}
       icon={withIconColor(icon, '$buttonPrimaryFg')}
       iconAfter={withIconColor(iconAfter, '$buttonPrimaryFg')}
       pressStyle={{
         bg: '$buttonPrimaryBgPress',
-        borderColor: '$buttonPrimaryBgPress',
+        borderColor: '$buttonPrimaryBorderPress',
         opacity: profile.buttonPressOpacity,
       }}
       hoverStyle={{
         bg: '$buttonPrimaryBgPress',
-        borderColor: '$buttonPrimaryBgPress',
+        borderColor: '$buttonPrimaryBorderPress',
       }}
       focusStyle={{ borderColor: '$focusRing' }}
       disabledStyle={{
         opacity: 0.58,
         bg: '$buttonPrimaryBgPress',
-        borderColor: '$buttonPrimaryBgPress',
+        borderColor: '$buttonPrimaryBorderPress',
       }}
       {...props}
     >
+      {isGlassLight ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            glassLayerColors?.tab ?? [
+              'rgba(255, 255, 255, 0.35)',
+              'rgba(255, 255, 255, 0.05)',
+              'rgba(255, 255, 255, 0.2)',
+            ]
+          }
+          start={{ x: 0.12, y: 0 }}
+          end={{ x: 0.88, y: 1 }}
+          style={[
+            StyleSheet.absoluteFillObject,
+            { borderRadius: profile.controlRadius, opacity: 0.6 },
+          ]}
+        />
+      ) : null}
       {resolvedChildren}
     </Button>
   )
@@ -269,6 +297,15 @@ export function SecondaryButton({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const profile = useAestheticProfile()
+  const theme = useTheme()
+  const { aesthetic, mode } = useThemePrefs()
+  const isGlassLight = aesthetic === 'glass' && mode === 'light'
+  const glassLayerColors = isGlassLight
+    ? getGlassLayerColors('light', {
+        accent: toNativeColor(theme.backdropAccent?.val, '#8FC3FF'),
+        start: toNativeColor(theme.backdropStart?.val, '#CFE2FF'),
+      })
+    : null
   const stringChildren = asStringChildren(children)
   const resolvedChildren =
     stringChildren === null ? (
@@ -296,6 +333,7 @@ export function SecondaryButton({
       bg="$buttonSecondaryBg"
       borderWidth={1}
       borderColor="$buttonSecondaryBorder"
+      overflow={isGlassLight ? 'hidden' : undefined}
       icon={withIconColor(icon, '$buttonSecondaryFg')}
       iconAfter={withIconColor(iconAfter, '$buttonSecondaryFg')}
       pressStyle={{
@@ -315,6 +353,24 @@ export function SecondaryButton({
       }}
       {...props}
     >
+      {isGlassLight ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            glassLayerColors?.panel ?? [
+              'rgba(255, 255, 255, 0.25)',
+              'rgba(255, 255, 255, 0.05)',
+              'rgba(255, 255, 255, 0.18)',
+            ]
+          }
+          start={{ x: 0.14, y: 0 }}
+          end={{ x: 0.86, y: 1 }}
+          style={[
+            StyleSheet.absoluteFillObject,
+            { borderRadius: profile.controlRadius, opacity: 0.4 },
+          ]}
+        />
+      ) : null}
       {resolvedChildren}
     </Button>
   )
@@ -641,8 +697,9 @@ export function PreviewCard({
   const profile = useAestheticProfile()
   const { aesthetic, mode: themeMode } = useThemePrefs()
   const isGlass = aesthetic === 'glass'
-  const resolvedMode = mode ?? 'section'
-  const resolvedTone = tone ?? (isGlass ? 'tabGlass' : 'default')
+  const resolvedMode = mode ?? (isGlass ? 'alwaysCard' : 'section')
+  const resolvedTone = tone ?? (isGlass ? 'secondary' : 'default')
+  const resolvedRadius = rounded ?? profile.cardRadius
   const {
     p,
     px,
@@ -662,7 +719,7 @@ export function PreviewCard({
     return (
       <YStack
         {...cardSurfaceProps}
-        rounded={rounded ?? profile.cardRadius}
+        rounded={resolvedRadius}
         p={padding}
         gap={contentGap}
         {...rest}
@@ -676,7 +733,7 @@ export function PreviewCard({
     <SurfaceCard
       mode={resolvedMode}
       tone={resolvedTone}
-      rounded={rounded ?? profile.cardRadius}
+      rounded={resolvedRadius}
       p={padding}
       gap={contentGap}
       px={px}
@@ -685,6 +742,7 @@ export function PreviewCard({
       pb={pb}
       pl={pl}
       pr={pr}
+      position="relative"
       {...rest}
     >
       {children}

@@ -231,6 +231,10 @@ const buildSemanticPalette = (
       pearl: '#FFAFE6',
     }
     accent = mixHex(seed.accent, glassMap[palette], isDark ? 0.56 : 0.58)
+    if (!isDark && palette === 'alloy') {
+      // Glass Alloy Light: softer, airier accent (lower contrast than default).
+      accent = mixHex(seed.accent, glassMap[palette], 0.7)
+    }
   }
 
   if (aesthetic === 'modern') {
@@ -436,9 +440,11 @@ const buildSemanticPalette = (
     buttonPrimaryBg = '#FFFFFF'
     buttonPrimaryFg = '#000000'
   }
-  const buttonPrimaryBgPress = isDark
+  let buttonPrimaryBgPress = isDark
     ? mixHex(buttonPrimaryBg, '#FFFFFF', 0.14)
     : mixHex(buttonPrimaryBg, '#000000', 0.16)
+  let buttonPrimaryBorder = buttonPrimaryBg
+  let buttonPrimaryBorderPress = buttonPrimaryBgPress
 
   let buttonSecondaryBg =
     aesthetic === 'modern' ? mixHex(surfacePage, neutralTint, isDark ? 0.1 : 0.04) : surfacePanel
@@ -449,7 +455,20 @@ const buildSemanticPalette = (
     buttonSecondaryFg = '#FFFFFF'
     buttonSecondaryBorder = '#FFFFFF'
   }
-  const buttonSecondaryBgPress = mixHex(buttonSecondaryBg, accent, isDark ? 0.24 : 0.12)
+  let buttonSecondaryBgPress = mixHex(buttonSecondaryBg, accent, isDark ? 0.24 : 0.12)
+
+  if (aesthetic === 'glass' && !isDark) {
+    buttonPrimaryBg = mixHex(accent, surfacePage, 0.22)
+    buttonPrimaryFg = pickReadableForeground(buttonPrimaryBg, textPrimary)
+    buttonPrimaryBorder = mixHex(accent, '#FFFFFF', 0.55)
+    buttonPrimaryBgPress = mixHex(buttonPrimaryBg, accent, 0.12)
+    buttonPrimaryBorderPress = mixHex(buttonPrimaryBorder, accent, 0.18)
+
+    buttonSecondaryBg = mixHex(surfacePage, '#FFFFFF', 0.08)
+    buttonSecondaryBorder = mixHex(surfacePanelBorder, '#FFFFFF', 0.55)
+    buttonSecondaryFg = pickReadableForeground(buttonSecondaryBg, accent)
+    buttonSecondaryBgPress = mixHex(buttonSecondaryBg, accent, 0.1)
+  }
 
   let surfaceChip =
     aesthetic === 'modern'
@@ -470,10 +489,10 @@ const buildSemanticPalette = (
   let surfaceTabGlassShadow = surfacePanelShadow
 
   if (aesthetic === 'glass') {
-    surfaceSecondary = mixHex(buttonSecondaryBg, '#FFFFFF', isDark ? 0 : 0.1)
+    surfaceSecondary = mixHex(surfacePanel, '#FFFFFF', isDark ? 0 : 0.1)
     surfaceSecondaryBorder = isDark
       ? 'rgba(255, 255, 255, 0)'
-      : mixHex(buttonSecondaryBorder, '#FFFFFF', 0.14)
+      : mixHex(surfacePanelBorder, '#FFFFFF', 0.14)
     surfaceSecondaryPress = mixHex(surfaceSecondary, accent, isDark ? 0.12 : 0.16)
     surfaceTabGlass = mixHex(surfacePanel, isDark ? accent : '#FFFFFF', isDark ? 0.06 : 0.2)
     surfaceTabGlassBorder = isDark
@@ -535,6 +554,8 @@ const buildSemanticPalette = (
     divider,
     buttonPrimaryBg,
     buttonPrimaryBgPress,
+    buttonPrimaryBorder,
+    buttonPrimaryBorderPress,
     buttonPrimaryFg,
     buttonSecondaryBg,
     buttonSecondaryBgPress,

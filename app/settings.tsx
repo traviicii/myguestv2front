@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useRouter } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import {
   Alert,
   Platform,
@@ -23,6 +23,7 @@ import {
 } from 'tamagui'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { useThemePrefs } from 'components/ThemePrefs'
 import {
   FieldLabel,
   OptionChip,
@@ -38,6 +39,8 @@ import {
 import {
   useStudioStore,
   type AppointmentDateFormat,
+  type AvgTicketRange,
+  type PhotoCoverageRange,
   type OverviewSectionId,
 } from 'components/state/studioStore'
 import {
@@ -54,6 +57,9 @@ export default function SettingsScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
+  const { aesthetic } = useThemePrefs()
+  const isGlass = aesthetic === 'glass'
+  const cardTone = isGlass ? 'secondary' : 'default'
   const { appSettings, setAppSettings } = useStudioStore()
   const [serviceDraft, setServiceDraft] = useState('')
   const [servicePriceDraft, setServicePriceDraft] = useState('')
@@ -88,13 +94,13 @@ export default function SettingsScreen() {
   const displayRows = [
     {
       id: 'overviewRecentAppointmentsCount',
-      label: 'Overview recent appointments',
+      label: 'Recent appointments',
       help: 'How many recent appointment logs are shown on the Overview screen.',
       value: appSettings.overviewRecentAppointmentsCount,
     },
     {
       id: 'overviewRecentClientsCount',
-      label: 'Overview recent clients',
+      label: 'Recent clients',
       help: 'How many recent clients are shown on the Overview screen.',
       value: appSettings.overviewRecentClientsCount,
     },
@@ -105,6 +111,20 @@ export default function SettingsScreen() {
       value: appSettings.clientDetailsAppointmentLogsCount,
     },
   ] as const
+
+  const avgTicketOptions: Array<{ id: AvgTicketRange; label: string }> = [
+    { id: '3m', label: 'Last 3 months' },
+    { id: '6m', label: 'Last 6 months' },
+    { id: '12m', label: 'Last 12 months' },
+    { id: '18m', label: 'Last 18 months' },
+    { id: 'allTime', label: 'All time' },
+  ]
+
+  const photoCoverageOptions: Array<{ id: PhotoCoverageRange; label: string }> = [
+    { id: '6m', label: 'Last 6 months' },
+    { id: '12m', label: 'Last 12 months' },
+    { id: 'allTime', label: 'All time' },
+  ]
 
   const formatPriceInput = (value: number | null | undefined) => {
     if (value === null || value === undefined) return ''
@@ -391,7 +411,7 @@ export default function SettingsScreen() {
             <ThemedHeadingText fontWeight="700" fontSize={14}>
               Clients
             </ThemedHeadingText>
-            <SurfaceCard mode="section">
+            <SurfaceCard mode="section" tone={cardTone}>
               <XStack items="center" justify="space-between">
                 <YStack gap="$0.5" flex={1} pr="$3">
                   <XStack items="center" gap="$2">
@@ -415,6 +435,34 @@ export default function SettingsScreen() {
               </XStack>
               {appSettings.clientsShowStatus ? (
                 <YStack gap="$2" pl="$3" borderLeftWidth={1} borderLeftColor="$borderSubtle">
+                  <XStack items="center" justify="space-between">
+                    <YStack gap="$0.5" flex={1} pr="$3">
+                      <XStack items="center" gap="$2">
+                        <Text fontSize={13}>Active window</Text>
+                        <InfoButton
+                          title="Active window"
+                          message="Choose how far back a visit counts as active."
+                        />
+                      </XStack>
+                      <Text fontSize={11} color="$textSecondary">
+                        Clients are active if they visited within this timeframe.
+                      </Text>
+                    </YStack>
+                  </XStack>
+                  <XStack gap="$2" flexWrap="wrap">
+                    {[3, 6, 12, 18].map((months) => {
+                      const isActive = appSettings.activeStatusMonths === months
+                      return (
+                        <OptionChip
+                          key={months}
+                          active={isActive}
+                          onPress={() => setAppSettings({ activeStatusMonths: months })}
+                        >
+                          <OptionChipLabel active={isActive}>{months} mo</OptionChipLabel>
+                        </OptionChip>
+                      )
+                    })}
+                  </XStack>
                   <XStack items="center" justify="space-between">
                     <YStack gap="$0.5" flex={1} pr="$3">
                       <XStack items="center" gap="$2">
@@ -463,34 +511,78 @@ export default function SettingsScreen() {
                   </XStack>
                 </YStack>
               ) : null}
-              <XStack items="center" justify="space-between">
-                <YStack gap="$0.5" flex={1} pr="$3">
-                  <XStack items="center" gap="$2">
-                    <Text fontSize={13}>Active window</Text>
-                    <InfoButton
-                      title="Active window"
-                      message="Choose how far back a visit counts as active."
-                    />
-                  </XStack>
-                  <Text fontSize={11} color="$textSecondary">
-                    Clients are active if they visited within this timeframe.
-                  </Text>
-                </YStack>
-              </XStack>
-              <XStack gap="$2" flexWrap="wrap">
-                {[3, 6, 12, 18].map((months) => {
-                  const isActive = appSettings.activeStatusMonths === months
-                  return (
-                    <OptionChip
-                      key={months}
-                      active={isActive}
-                      onPress={() => setAppSettings({ activeStatusMonths: months })}
-                    >
-                      <OptionChipLabel active={isActive}>{months} mo</OptionChipLabel>
-                    </OptionChip>
-                  )
-                })}
-              </XStack>
+            </SurfaceCard>
+          </YStack>
+
+          <SectionDivider />
+
+          <YStack gap="$3">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
+              Metrics
+            </ThemedHeadingText>
+            <SurfaceCard mode="section" tone={cardTone}>
+              <YStack gap="$2">
+                <XStack items="center" justify="space-between">
+                  <YStack gap="$0.5" flex={1} pr="$3">
+                    <XStack items="center" gap="$2">
+                      <Text fontSize={13}>Average ticket range</Text>
+                      <InfoButton
+                        title="Average ticket range"
+                        message="Choose whether the average ticket uses the active window or all-time appointment logs."
+                      />
+                    </XStack>
+                    <Text fontSize={11} color="$textSecondary">
+                      This is independent from the Active/Inactive client window.
+                    </Text>
+                  </YStack>
+                </XStack>
+                <XStack gap="$2" flexWrap="wrap">
+                  {avgTicketOptions.map((option) => {
+                    const isActive = appSettings.avgTicketRange === option.id
+                    return (
+                      <OptionChip
+                        key={option.id}
+                        active={isActive}
+                        onPress={() => setAppSettings({ avgTicketRange: option.id })}
+                      >
+                        <OptionChipLabel active={isActive}>{option.label}</OptionChipLabel>
+                      </OptionChip>
+                    )
+                  })}
+                </XStack>
+              </YStack>
+              <YStack gap="$2" mt="$2">
+                <XStack items="center" justify="space-between">
+                  <YStack gap="$0.5" flex={1} pr="$3">
+                    <XStack items="center" gap="$2">
+                      <Text fontSize={13}>Photo coverage range</Text>
+                      <InfoButton
+                        title="Photo coverage range"
+                        message="Choose the date range used to calculate photo coverage for appointment logs."
+                      />
+                    </XStack>
+                    <Text fontSize={11} color="$textSecondary">
+                      Photos are counted when an appointment log includes at least one image.
+                    </Text>
+                  </YStack>
+                </XStack>
+                <XStack gap="$2" flexWrap="wrap">
+                  {photoCoverageOptions.map((option) => {
+                    const isActive = appSettings.photoCoverageRange === option.id
+                    return (
+                      <OptionChip
+                        key={option.id}
+                        active={isActive}
+                        onPress={() =>
+                          setAppSettings({ photoCoverageRange: option.id })
+                        }
+                      >
+                        <OptionChipLabel active={isActive}>{option.label}</OptionChipLabel>
+                      </OptionChip>
+                    )
+                  })}
+                </XStack>
+              </YStack>
             </SurfaceCard>
           </YStack>
 
@@ -500,7 +592,7 @@ export default function SettingsScreen() {
             <ThemedHeadingText fontWeight="700" fontSize={14}>
               Dates
             </ThemedHeadingText>
-            <SurfaceCard mode="section">
+            <SurfaceCard mode="section" tone={cardTone}>
               <YStack gap="$2">
                 <XStack items="center" justify="space-between">
                   <YStack gap="$0.5" flex={1} pr="$3">
@@ -569,9 +661,9 @@ export default function SettingsScreen() {
 
           <YStack gap="$3">
             <ThemedHeadingText fontWeight="700" fontSize={14}>
-              Display
+              Overview
             </ThemedHeadingText>
-            <SurfaceCard mode="section">
+            <SurfaceCard mode="section" tone={cardTone}>
               {displayRows.map((row) => (
                 <XStack key={row.id} items="center" justify="space-between">
                   <YStack gap="$0.5" flex={1} pr="$3">
@@ -617,7 +709,7 @@ export default function SettingsScreen() {
             <ThemedHeadingText fontWeight="700" fontSize={14}>
               Appointment Logs
             </ThemedHeadingText>
-            <SurfaceCard mode="section">
+            <SurfaceCard mode="section" tone={cardTone}>
               <XStack items="center" justify="space-between">
                 <YStack gap="$0.5" flex={1} pr="$3">
                   <XStack items="center" gap="$2">
@@ -849,7 +941,7 @@ export default function SettingsScreen() {
             <ThemedHeadingText fontWeight="700" fontSize={14}>
               Overview
             </ThemedHeadingText>
-            <SurfaceCard mode="section">
+            <SurfaceCard mode="section" tone={cardTone}>
               {(
                 [
                   {
@@ -903,6 +995,29 @@ export default function SettingsScreen() {
                 </XStack>
               ))}
             </SurfaceCard>
+          </YStack>
+
+          <SectionDivider />
+
+          <YStack gap="$3">
+            <ThemedHeadingText fontWeight="700" fontSize={14}>
+              Account
+            </ThemedHeadingText>
+            <Link href="/account-delete" asChild>
+              <SurfaceCard mode="section" tone={cardTone} pressStyle={{ opacity: 0.85 }}>
+                <XStack items="center" gap="$3" flexWrap="wrap">
+                  <Trash2 size={16} color="$danger" />
+                  <YStack flex={1} minW={0}>
+                    <Text fontSize={13} color="$danger" fontWeight="600">
+                      Delete account
+                    </Text>
+                    <Text fontSize={11} color="$textSecondary">
+                      Permanently remove your account and all associated data.
+                    </Text>
+                  </YStack>
+                </XStack>
+              </SurfaceCard>
+            </Link>
           </YStack>
         </YStack>
       </ScrollView>

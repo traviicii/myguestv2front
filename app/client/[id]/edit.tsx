@@ -12,11 +12,13 @@ import { ScrollView,
   XStack,
   YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { useThemePrefs } from 'components/ThemePrefs'
 import { useClients, useDeleteClient, useUpdateClient } from 'components/data/queries'
 import { ErrorPulseBorder,
   PrimaryButton,
   SecondaryButton,
   SectionDivider,
+  SurfaceCard,
   TextAreaField,
   TextField,
   cardSurfaceProps,
@@ -48,6 +50,8 @@ export default function EditClientScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
+  const { aesthetic } = useThemePrefs()
+  const isGlass = aesthetic === 'glass'
   const { id } = useLocalSearchParams<{ id: string }>()
   const { data: clients = [], isLoading: clientsLoading } = useClients()
   const deleteClient = useDeleteClient()
@@ -222,91 +226,183 @@ export default function EditClientScreen() {
 
           <SectionDivider />
 
-          <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$3">
-            <YStack
-              gap="$2"
-              onLayout={(event) => {
-                requiredY.current.name = event.nativeEvent.layout.y
-              }}
-            >
-              <Text fontSize={12} color="$textSecondary">
-                Name
-              </Text>
-              <YStack position="relative">
-                <TextField
-                  value={form.name}
-                  inputAccessoryViewID={keyboardAccessoryId}
-                  onChangeText={(text) =>
-                    setForm((prev) => ({ ...prev, name: text }))
-                  }
-                  borderColor={showNameError ? '$red10' : '$borderSubtle'}
-                />
-                <ErrorPulseBorder active={showNameError} pulseKey={pulseKey} />
-              </YStack>
-              {showNameError ? (
-                <Text fontSize={11} color="$red10">
-                  Name is required.
+          {isGlass ? (
+            <SurfaceCard mode="alwaysCard" tone="secondary" p="$4" gap="$3">
+              <YStack
+                gap="$2"
+                onLayout={(event) => {
+                  requiredY.current.name = event.nativeEvent.layout.y
+                }}
+              >
+                <Text fontSize={12} color="$textSecondary">
+                  Name
                 </Text>
-              ) : null}
+                <YStack position="relative">
+                  <TextField
+                    value={form.name}
+                    inputAccessoryViewID={keyboardAccessoryId}
+                    onChangeText={(text) =>
+                      setForm((prev) => ({ ...prev, name: text }))
+                    }
+                    borderColor={showNameError ? '$red10' : '$borderSubtle'}
+                  />
+                  <ErrorPulseBorder active={showNameError} pulseKey={pulseKey} />
+                </YStack>
+                {showNameError ? (
+                  <Text fontSize={11} color="$red10">
+                    Name is required.
+                  </Text>
+                ) : null}
+              </YStack>
+              <YStack gap="$2">
+                <Text fontSize={12} color="$textSecondary">
+                  Email
+                </Text>
+                <TextField
+                  value={form.email}
+                  inputAccessoryViewID={keyboardAccessoryId}
+                  onChangeText={(text) => setForm((prev) => ({ ...prev, email: text }))}
+                />
+              </YStack>
+              <YStack gap="$2">
+                <Text fontSize={12} color="$textSecondary">
+                  Phone
+                </Text>
+                <TextField
+                  value={form.phone}
+                  inputAccessoryViewID={keyboardAccessoryId}
+                  onChangeText={(text) => setForm((prev) => ({ ...prev, phone: text }))}
+                />
+              </YStack>
+              <YStack gap="$2">
+                <Text fontSize={12} color="$textSecondary">
+                  Client Type
+                </Text>
+                <XStack gap="$2" flexWrap="wrap">
+                  {typeOptions.map((type) => (
+                    <XStack
+                      key={type}
+                      {...chipSurfaceProps}
+                      rounded="$3"
+                      px="$3"
+                      py="$2"
+                      items="center"
+                      bg={form.type === type ? '$accentMuted' : '$background'}
+                      borderColor={form.type === type ? '$accentSoft' : '$borderColor'}
+                      onPress={() => setForm((prev) => ({ ...prev, type }))}
+                    >
+                      <Text
+                        fontSize={12}
+                        color={form.type === type ? '$accent' : '$textSecondary'}
+                      >
+                        {type}
+                      </Text>
+                    </XStack>
+                  ))}
+                </XStack>
+              </YStack>
+            </SurfaceCard>
+          ) : (
+            <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$3">
+              <YStack
+                gap="$2"
+                onLayout={(event) => {
+                  requiredY.current.name = event.nativeEvent.layout.y
+                }}
+              >
+                <Text fontSize={12} color="$textSecondary">
+                  Name
+                </Text>
+                <YStack position="relative">
+                  <TextField
+                    value={form.name}
+                    inputAccessoryViewID={keyboardAccessoryId}
+                    onChangeText={(text) =>
+                      setForm((prev) => ({ ...prev, name: text }))
+                    }
+                    borderColor={showNameError ? '$red10' : '$borderSubtle'}
+                  />
+                  <ErrorPulseBorder active={showNameError} pulseKey={pulseKey} />
+                </YStack>
+                {showNameError ? (
+                  <Text fontSize={11} color="$red10">
+                    Name is required.
+                  </Text>
+                ) : null}
+              </YStack>
+              <YStack gap="$2">
+                <Text fontSize={12} color="$textSecondary">
+                  Email
+                </Text>
+                <TextField
+                  value={form.email}
+                  inputAccessoryViewID={keyboardAccessoryId}
+                  onChangeText={(text) => setForm((prev) => ({ ...prev, email: text }))}
+                />
+              </YStack>
+              <YStack gap="$2">
+                <Text fontSize={12} color="$textSecondary">
+                  Phone
+                </Text>
+                <TextField
+                  value={form.phone}
+                  inputAccessoryViewID={keyboardAccessoryId}
+                  onChangeText={(text) => setForm((prev) => ({ ...prev, phone: text }))}
+                />
+              </YStack>
+              <YStack gap="$2">
+                <Text fontSize={12} color="$textSecondary">
+                  Client Type
+                </Text>
+                <XStack gap="$2" flexWrap="wrap">
+                  {typeOptions.map((type) => (
+                    <XStack
+                      key={type}
+                      {...chipSurfaceProps}
+                      rounded="$3"
+                      px="$3"
+                      py="$2"
+                      items="center"
+                      bg={form.type === type ? '$accentMuted' : '$background'}
+                      borderColor={form.type === type ? '$accentSoft' : '$borderColor'}
+                      onPress={() => setForm((prev) => ({ ...prev, type }))}
+                    >
+                      <Text
+                        fontSize={12}
+                        color={form.type === type ? '$accent' : '$textSecondary'}
+                      >
+                        {type}
+                      </Text>
+                    </XStack>
+                  ))}
+                </XStack>
+              </YStack>
             </YStack>
-            <YStack gap="$2">
-              <Text fontSize={12} color="$textSecondary">
-                Email
-              </Text>
-              <TextField
-                value={form.email}
-                inputAccessoryViewID={keyboardAccessoryId}
-                onChangeText={(text) => setForm((prev) => ({ ...prev, email: text }))}
-              />
-            </YStack>
-            <YStack gap="$2">
-              <Text fontSize={12} color="$textSecondary">
-                Phone
-              </Text>
-              <TextField
-                value={form.phone}
-                inputAccessoryViewID={keyboardAccessoryId}
-                onChangeText={(text) => setForm((prev) => ({ ...prev, phone: text }))}
-              />
-            </YStack>
-            <YStack gap="$2">
-              <Text fontSize={12} color="$textSecondary">
-                Client Type
-              </Text>
-              <XStack gap="$2" flexWrap="wrap">
-                {typeOptions.map((type) => (
-                  <XStack
-                    key={type}
-                    {...chipSurfaceProps}
-                    rounded="$3"
-                    px="$3"
-                    py="$2"
-                    items="center"
-                    bg={form.type === type ? '$accentMuted' : '$background'}
-                    borderColor={form.type === type ? '$accentSoft' : '$borderColor'}
-                    onPress={() => setForm((prev) => ({ ...prev, type }))}
-                  >
-                    <Text fontSize={12} color={form.type === type ? '$accent' : '$textSecondary'}>
-                      {type}
-                    </Text>
-                  </XStack>
-                ))}
-              </XStack>
-            </YStack>
-          </YStack>
+          )}
 
           <YStack gap="$3">
             <Text fontFamily="$heading" fontWeight="600" fontSize={14} color="$color">
               Notes
             </Text>
-            <YStack {...cardSurfaceProps} rounded="$5" p="$4">
-              <TextAreaField
-                value={form.notes}
-                inputAccessoryViewID={keyboardAccessoryId}
-                onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
-                placeholder="Client preferences, color history, personal notes..."
-              />
-            </YStack>
+            {isGlass ? (
+              <SurfaceCard mode="alwaysCard" tone="secondary" p="$4">
+                <TextAreaField
+                  value={form.notes}
+                  inputAccessoryViewID={keyboardAccessoryId}
+                  onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
+                  placeholder="Client preferences, color history, personal notes..."
+                />
+              </SurfaceCard>
+            ) : (
+              <YStack {...cardSurfaceProps} rounded="$5" p="$4">
+                <TextAreaField
+                  value={form.notes}
+                  inputAccessoryViewID={keyboardAccessoryId}
+                  onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
+                  placeholder="Client preferences, color history, personal notes..."
+                />
+              </YStack>
+            )}
           </YStack>
 
           <XStack gap="$3">

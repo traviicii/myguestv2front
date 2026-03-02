@@ -1,7 +1,7 @@
 import { Link } from 'expo-router'
-import { cardSurfaceProps } from 'components/ui/controls'
+import { PreviewCard } from 'components/ui/controls'
 import { useMemo } from 'react'
-import { ScrollView, Text, XStack, YStack } from 'tamagui'
+import { ScrollView, Text, YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
 import { useStudioStore } from 'components/state/studioStore'
@@ -49,23 +49,16 @@ export default function RecentClientsScreen() {
 
           <YStack gap="$3">
             {sortedClients.length === 0 ? (
-              <YStack {...cardSurfaceProps} rounded="$5" p="$4">
+              <PreviewCard p="$4">
                 <Text fontSize={12} color="$textSecondary">
                   No clients yet.
                 </Text>
-              </YStack>
+              </PreviewCard>
             ) : (
               sortedClients.map((client) => {
                 return (
                   <Link key={client.id} href={`/client/${client.id}`} asChild>
-                    <XStack
-                      {...cardSurfaceProps}
-                      p="$4"
-                      rounded="$5"
-                      items="center"
-                      justify="space-between"
-                      gap="$3"
-                                                                >
+                    <PreviewCard p="$4" pressStyle={{ opacity: 0.88 }} cursor="pointer">
                       <YStack>
                         <Text fontSize={14} fontWeight="600">
                           {client.name}
@@ -77,7 +70,7 @@ export default function RecentClientsScreen() {
                           )}
                         </Text>
                       </YStack>
-                    </XStack>
+                    </PreviewCard>
                   </Link>
                 )
               })

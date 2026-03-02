@@ -11,6 +11,8 @@ import { ScrollView,
   Text,
   XStack,
   YStack } from 'tamagui'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { FieldLabel,
   OptionChip,
@@ -61,6 +63,8 @@ const AESTHETIC_OPTIONS: Array<{
 ]
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets()
+  const tabBarHeight = useBottomTabBarHeight()
   const {
     mode,
     palette,
@@ -83,6 +87,12 @@ export default function ProfileScreen() {
     setDraftProfile(profile)
   }, [profile])
 
+  useEffect(() => {
+    if (user?.email && user.email !== profile.email) {
+      setProfile({ email: user.email })
+    }
+  }, [profile.email, setProfile, user?.email])
+
   const isProfileDirty = useMemo(() => {
     return (
       draftProfile.name !== profile.name ||
@@ -92,12 +102,14 @@ export default function ProfileScreen() {
   }, [draftProfile, profile])
 
   const canSaveProfile = isProfileDirty
+  const displayEmail = user?.email ?? profile.email
+  const showPhone = Boolean(profile.phone?.trim())
 
   const handleSaveProfile = () => {
     if (!isProfileDirty) return
     setProfile({
       name: draftProfile.name.trim(),
-      email: draftProfile.email.trim(),
+      email: user?.email ?? draftProfile.email.trim(),
       phone: draftProfile.phone.trim(),
     })
     setIsEditing(false)
@@ -116,7 +128,11 @@ export default function ProfileScreen() {
   return (
     <YStack flex={1} bg="$surfacePage" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ pb: '$10' }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: Math.max(24, tabBarHeight + insets.bottom + 12),
+        }}
+      >
         <YStack px="$5" pt="$6" gap={isModern ? '$5' : '$4'}>
           <SurfaceCard p={isModern ? '$6' : '$5'} gap={sectionGap} tone={cardTone}>
             <XStack items="center" justify="space-between">
@@ -151,10 +167,12 @@ export default function ProfileScreen() {
                   <TextField
                     placeholder="Email"
                     keyboardType="email-address"
-                    value={draftProfile.email}
+                    value={displayEmail}
                     onChangeText={(text) =>
                       setDraftProfile((prev) => ({ ...prev, email: text }))
                     }
+                    editable={!user?.email}
+                    opacity={user?.email ? 0.6 : 1}
                   />
                   <TextField
                     placeholder="Phone"
@@ -173,15 +191,17 @@ export default function ProfileScreen() {
                   <XStack items="center" gap="$2">
                     <Mail size={14} color="$textSecondary" />
                     <Text fontSize={12} color="$textSecondary">
-                      {profile.email}
+                      {displayEmail}
                     </Text>
                   </XStack>
-                  <XStack items="center" gap="$2">
-                    <Phone size={14} color="$textSecondary" />
-                    <Text fontSize={12} color="$textSecondary">
-                      {profile.phone}
-                    </Text>
-                  </XStack>
+                  {showPhone ? (
+                    <XStack items="center" gap="$2">
+                      <Phone size={14} color="$textSecondary" />
+                      <Text fontSize={12} color="$textSecondary">
+                        {profile.phone}
+                      </Text>
+                    </XStack>
+                  ) : null}
                 </>
               )}
             </YStack>

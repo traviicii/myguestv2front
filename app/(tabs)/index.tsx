@@ -3,7 +3,7 @@ import {
   useMemo,
   useRef,
   useState } from 'react'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { ScrollView,
   Text,
   XStack,
@@ -30,6 +30,9 @@ import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { ExpandableEditPanel } from 'components/ui/ExpandableEditPanel'
 import { GhostButton,
   GlassOrbAction,
+  PreviewCard,
+  PrimaryButton,
+  SecondaryButton,
   SectionDivider,
   SurfaceCard,
   ThemedHeadingText,
@@ -38,6 +41,7 @@ import { GhostButton,
 } from 'components/ui/controls'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { useIsFocused } from '@react-navigation/native'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   useAppointmentHistory,
@@ -62,7 +66,9 @@ const editPanelCardBorder = {
 } as const
 
 export default function TabOneScreen() {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
+  const tabBarHeight = useBottomTabBarHeight()
   const isFocused = useIsFocused()
   const theme = useTheme()
   const { aesthetic } = useThemePrefs()
@@ -125,6 +131,7 @@ export default function TabOneScreen() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, appSettings.overviewRecentAppointmentsCount)
   }, [appSettings.overviewRecentAppointmentsCount, appointmentHistory])
+  const isEmptyAccount = clients.length === 0 && appointmentHistory.length === 0
 
   const activeCutoff = useMemo(() => {
     const date = new Date()
@@ -132,22 +139,48 @@ export default function TabOneScreen() {
     return date
   }, [appSettings.activeStatusMonths])
 
+  const yearStart = useMemo(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), 0, 1)
+  }, [])
+
   // Derive dashboard metrics from the same query data powering the rest
   // of the app, so totals stay consistent across screens.
   const metrics = useMemo(() => {
-    const entriesLastYear = appointmentHistory.filter((entry) => {
+    const entriesActiveWindow = appointmentHistory.filter((entry) => {
       const d = entry.date ? new Date(entry.date) : null
       return d && !Number.isNaN(d.getTime()) && d >= activeCutoff
     })
 
-    const revenueYtd = entriesLastYear.reduce((sum, entry) => sum + entry.price, 0)
+    const entriesYtd = appointmentHistory.filter((entry) => {
+      const d = entry.date ? new Date(entry.date) : null
+      return d && !Number.isNaN(d.getTime()) && d >= yearStart
+    })
+
+    const revenueYtd = entriesYtd.reduce((sum, entry) => sum + entry.price, 0)
+    const avgTicketEntries = (() => {
+      if (appSettings.avgTicketRange === 'allTime') {
+        return appointmentHistory.filter((entry) => entry.date)
+      }
+      const months = Number(appSettings.avgTicketRange.replace('m', ''))
+      if (!Number.isFinite(months) || months <= 0) {
+        return appointmentHistory.filter((entry) => entry.date)
+      }
+      const cutoff = new Date()
+      cutoff.setMonth(cutoff.getMonth() - months)
+      return appointmentHistory.filter((entry) => {
+        const d = entry.date ? new Date(entry.date) : null
+        return d && !Number.isNaN(d.getTime()) && d >= cutoff
+      })
+    })()
     const avgTicket =
-      entriesLastYear.length > 0
-        ? revenueYtd / entriesLastYear.length
+      avgTicketEntries.length > 0
+        ? avgTicketEntries.reduce((sum, entry) => sum + entry.price, 0) /
+          avgTicketEntries.length
         : 0
 
     const activeClientIds = new Set(
-      entriesLastYear.map((entry) => entry.clientId)
+      entriesActiveWindow.map((entry) => entry.clientId)
     )
 
     const inactiveClients = clients.length - activeClientIds.size
@@ -156,19 +189,14 @@ export default function TabOneScreen() {
       const cutoff = new Date()
       cutoff.setDate(cutoff.getDate() - 90)
       return clients.filter((client) => {
-        const first = appointmentHistory
-          .filter((entry) => entry.clientId === client.id)
-          .map((entry) => entry.date)
-          .filter(Boolean)
-          .sort()[0]
-        if (!first) return false
-        const d = new Date(first)
+        if (!client.createdAt) return false
+        const d = new Date(client.createdAt)
         return !Number.isNaN(d.getTime()) && d >= cutoff
       }).length
     })()
 
     const serviceMix = (() => {
-      const counts = entriesLastYear.reduce<Record<string, number>>(
+      const counts = entriesActiveWindow.reduce<Record<string, number>>(
         (acc, entry) => {
           const normalizedLabels =
             entry.serviceLabels?.map((label) => normalizeServiceName(label)).filter(Boolean) ?? []
@@ -184,7 +212,7 @@ export default function TabOneScreen() {
       )
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
       if (!top) return '—'
-      const percent = Math.round((top[1] / entriesLastYear.length) * 100)
+      const percent = Math.round((top[1] / entriesActiveWindow.length) * 100)
       return `${top[0]} (${percent}%)`
     })()
 
@@ -203,10 +231,28 @@ export default function TabOneScreen() {
     })()
 
     const photoCoverage = (() => {
-      const total = appointmentHistory.length
-      const withPhotos = appointmentHistory.filter(
-        (entry) => (entry.images?.length ?? 0) > 0
-      ).length
+      const cutoffMonths =
+        appSettings.photoCoverageRange === '6m'
+          ? 6
+          : appSettings.photoCoverageRange === '12m'
+            ? 12
+            : null
+      const cutoff = cutoffMonths
+        ? (() => {
+            const d = new Date()
+            d.setMonth(d.getMonth() - cutoffMonths)
+            return d
+          })()
+        : null
+      const scoped = cutoff
+        ? appointmentHistory.filter((entry) => {
+            const d = entry.date ? new Date(entry.date) : null
+            return d && !Number.isNaN(d.getTime()) && d >= cutoff
+          })
+        : appointmentHistory
+      const total = scoped.length
+      const withPhotos = scoped.filter((entry) => (entry.images?.length ?? 0) > 0)
+        .length
       const percent = total > 0 ? Math.round((withPhotos / total) * 100) : 0
       return `${percent}%`
     })()
@@ -222,7 +268,15 @@ export default function TabOneScreen() {
       { id: 'colorCoverage', label: 'Color Chart Coverage', value: colorCoverage },
       { id: 'photoCoverage', label: 'Photo Coverage (Logs)', value: photoCoverage },
     ]
-  }, [appointmentHistory, clients, colorAnalysisByClient, activeCutoff])
+  }, [
+    appointmentHistory,
+    appSettings.avgTicketRange,
+    appSettings.photoCoverageRange,
+    clients,
+    colorAnalysisByClient,
+    activeCutoff,
+    yearStart,
+  ])
 
   type QuickAction = {
     id: QuickActionId
@@ -432,12 +486,13 @@ export default function TabOneScreen() {
   const lineColor = toNativeColor(theme.borderColor?.val, FALLBACK_COLORS.borderSubtle)
   const renderQuickActionCard = (
     action: QuickAction,
-    options?: { isDragging?: boolean }
+    options?: { isDragging?: boolean; onPress?: () => void }
   ) => {
     const Icon = action.icon
     const isPrimary = action.variant === 'primary'
     const isSecondary = action.variant === 'secondary'
     const isDisabled = action.comingSoon
+    const onPress = !isDisabled ? options?.onPress : undefined
 
     if (isGlass) {
       return (
@@ -447,6 +502,7 @@ export default function TabOneScreen() {
             icon={<Icon size={24} />}
             variant={action.variant}
             disabled={Boolean(isDisabled)}
+            onPress={onPress}
           />
         </YStack>
       )
@@ -477,6 +533,7 @@ export default function TabOneScreen() {
         items="center"
         justify="center"
         gap="$2"
+        cursor={isDisabled ? 'default' : 'pointer'}
         shadowColor={
           isPrimary ? FALLBACK_COLORS.shadowPrimaryCard : FALLBACK_COLORS.shadowSecondaryCard
         }
@@ -485,7 +542,8 @@ export default function TabOneScreen() {
         shadowOffset={{ width: 0, height: 8 }}
         elevation={isPrimary ? 4 : 3}
         opacity={isDisabled ? 0.55 : 1}
-        pressStyle={{ opacity: 0.85 }}
+        pressStyle={isDisabled ? undefined : { opacity: 0.85 }}
+        onPress={onPress}
         scale={options?.isDragging ? 0.97 : 1}
       >
         <Icon size={24} color={iconColor} />
@@ -604,15 +662,11 @@ export default function TabOneScreen() {
                     const isDisabled = item.comingSoon
                     const card = renderQuickActionCard(item, {
                       isDragging: isActive,
+                      onPress:
+                        !showQuickActionEditor && item.href && !isDisabled
+                          ? () => router.push(item.href)
+                          : undefined,
                     })
-
-                    if (!showQuickActionEditor && item.href && !isDisabled) {
-                      return (
-                        <Link key={item.id} href={item.href} asChild>
-                          {card}
-                        </Link>
-                      )
-                    }
 
                     if (!showQuickActionEditor && isDisabled) {
                       return (
@@ -710,36 +764,8 @@ export default function TabOneScreen() {
             <YStack gap="$3">
               {pinnedClients.slice(0, 3).map((client) => (
                 <Link key={client.id} href={`/client/${client.id}`} asChild>
-                  {isGlass ? (
-                    <SurfaceCard
-                      tone="secondary"
-                      p="$4"
-                      rounded={sectionCardRadius}
-                      pressStyle={{ opacity: 0.85 }}
-                    >
-                      <XStack items="center" justify="space-between" gap="$3">
-                        <YStack>
-                          <Text fontSize={14} fontWeight="600">
-                            {client.name}
-                          </Text>
-                          <Text fontSize={12} color="$textSecondary">
-                            {client.type} • Last visit{' '}
-                            {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
-                          </Text>
-                        </YStack>
-                        <ArrowRight size={14} color="$accent" />
-                      </XStack>
-                    </SurfaceCard>
-                  ) : (
-                    <XStack
-                      {...cardSurfaceProps}
-                      p="$4"
-                      rounded={sectionCardRadius}
-                      items="center"
-                      justify="space-between"
-                      gap="$3"
-                      pressStyle={{ opacity: 0.85 }}
-                    >
+                  <PreviewCard p="$4" pressStyle={{ opacity: 0.85 }}>
+                    <XStack items="center" justify="space-between" gap="$3">
                       <YStack>
                         <Text fontSize={14} fontWeight="600">
                           {client.name}
@@ -751,7 +777,7 @@ export default function TabOneScreen() {
                       </YStack>
                       <ArrowRight size={14} color="$accent" />
                     </XStack>
-                  )}
+                  </PreviewCard>
                 </Link>
               ))}
             </YStack>
@@ -765,6 +791,8 @@ export default function TabOneScreen() {
     }
 
     if (id === 'recentAppointments') {
+      const hasAppointments = recentHistory.length > 0
+      const canLogAppointment = clients.length > 0
       return (
         <YStack key={id} gap="$3">
           <XStack items="center" justify="space-between">
@@ -780,19 +808,15 @@ export default function TabOneScreen() {
               </XStack>
             </Link>
           </XStack>
-          <YStack gap="$3">
-            {recentHistory.map((entry, entryIndex) => {
-              const clientName =
-                clients.find((client) => client.id === entry.clientId)?.name ?? 'Client'
-              return (
-                <YStack key={entry.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
-                  <Link href={`/appointment/${entry.id}`} asChild>
-                    {isGlass ? (
-                      <SurfaceCard
-                        tone="secondary"
-                        p="$4"
-                        rounded={sectionCardRadius}
-                      >
+          {hasAppointments ? (
+            <YStack gap="$3">
+              {recentHistory.map((entry, entryIndex) => {
+                const clientName =
+                  clients.find((client) => client.id === entry.clientId)?.name ?? 'Client'
+                return (
+                  <YStack key={entry.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
+                    <Link href={`/appointment/${entry.id}`} asChild>
+                      <PreviewCard p="$4">
                         <XStack items="center" justify="space-between" gap="$3">
                           <XStack items="center" gap="$3">
                             <XStack
@@ -825,63 +849,37 @@ export default function TabOneScreen() {
                             ${entry.price}
                           </Text>
                         </XStack>
-                      </SurfaceCard>
-                    ) : (
-                      <XStack
-                        {...cardSurfaceProps}
-                        p="$4"
-                        rounded={sectionCardRadius}
-                        items="center"
-                        justify="space-between"
-                        gap="$3"
-                      >
-                        <XStack items="center" gap="$3">
-                          <XStack
-                            bg="$accentSoft"
-                            rounded={iconBadgeRadius}
-                            p="$2.5"
-                            items="center"
-                            justify="center"
-                          >
-                            <CalendarDays size={18} color="$accent" />
-                          </XStack>
-                          <YStack gap="$1">
-                            <Text fontSize={14} fontWeight="600">
-                              {getServiceLabel(entry.services, entry.notes)}
-                            </Text>
-                            <XStack items="center" gap="$2">
-                              <Text fontSize={12} color="$textSecondary">
-                                {clientName}
-                              </Text>
-                              <Text fontSize={11} color="$textSecondary">
-                                {formatDateByStyle(entry.date, appSettings.dateDisplayFormat, {
-                                  todayLabel: true,
-                                  includeWeekday: appSettings.dateLongIncludeWeekday,
-                                })}
-                              </Text>
-                            </XStack>
-                          </YStack>
-                        </XStack>
-                        <Text fontSize={12} color="$textMuted">
-                          ${entry.price}
-                        </Text>
-                      </XStack>
-                    )}
-                  </Link>
-                  {aesthetic === 'modern' && entryIndex < recentHistory.length - 1 ? (
-                    <YStack items="center">
-                      <SectionDivider width="88%" />
-                    </YStack>
-                  ) : null}
-                </YStack>
-              )
-            })}
-          </YStack>
+                      </PreviewCard>
+                    </Link>
+                    {aesthetic === 'modern' && entryIndex < recentHistory.length - 1 ? (
+                      <YStack items="center">
+                        <SectionDivider width="88%" />
+                      </YStack>
+                    ) : null}
+                  </YStack>
+                )
+              })}
+            </YStack>
+          ) : (
+            <SurfaceCard p="$4" tone={isGlass ? 'secondary' : 'default'} gap="$2">
+              <Text fontSize={12} color="$textSecondary">
+                No appointment logs yet.
+              </Text>
+              <SecondaryButton
+                onPress={() =>
+                  router.push(canLogAppointment ? '/appointments/new' : '/clients/new')
+                }
+              >
+                {canLogAppointment ? 'Log appointment' : 'Add a client first'}
+              </SecondaryButton>
+            </SurfaceCard>
+          )}
         </YStack>
       )
     }
 
     if (id === 'recentClients') {
+      const hasRecentClients = recentClients.length > 0
       return (
         <YStack key={id} gap="$3">
           <XStack items="center" justify="space-between">
@@ -897,16 +895,12 @@ export default function TabOneScreen() {
               </XStack>
             </Link>
           </XStack>
-          <YStack gap="$3">
-            {recentClients.map((client, clientIndex) => (
-              <YStack key={client.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
-                <Link href={`/client/${client.id}`} asChild>
-                  {isGlass ? (
-                    <SurfaceCard
-                      tone="secondary"
-                      p="$4"
-                      rounded={sectionCardRadius}
-                    >
+          {hasRecentClients ? (
+            <YStack gap="$3">
+              {recentClients.map((client, clientIndex) => (
+                <YStack key={client.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
+                  <Link href={`/client/${client.id}`} asChild>
+                    <PreviewCard p="$4">
                       <XStack items="center" justify="space-between" gap="$3">
                         <YStack>
                           <Text fontSize={14} fontWeight="600">
@@ -918,36 +912,26 @@ export default function TabOneScreen() {
                           </Text>
                         </YStack>
                       </XStack>
-                    </SurfaceCard>
-                  ) : (
-                    <XStack
-                      {...cardSurfaceProps}
-                      p="$4"
-                      rounded={sectionCardRadius}
-                      items="center"
-                      justify="space-between"
-                      gap="$3"
-                    >
-                      <YStack>
-                        <Text fontSize={14} fontWeight="600">
-                          {client.name}
-                        </Text>
-                        <Text fontSize={12} color="$textSecondary">
-                          {client.type} • Last visit{' '}
-                          {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
-                        </Text>
-                      </YStack>
-                    </XStack>
-                  )}
-                </Link>
-                {aesthetic === 'modern' && clientIndex < recentClients.length - 1 ? (
-                  <YStack items="center">
-                    <SectionDivider width="88%" />
-                  </YStack>
-                ) : null}
-              </YStack>
-            ))}
-          </YStack>
+                    </PreviewCard>
+                  </Link>
+                  {aesthetic === 'modern' && clientIndex < recentClients.length - 1 ? (
+                    <YStack items="center">
+                      <SectionDivider width="88%" />
+                    </YStack>
+                  ) : null}
+                </YStack>
+              ))}
+            </YStack>
+          ) : (
+            <SurfaceCard p="$4" tone={isGlass ? 'secondary' : 'default'} gap="$2">
+              <Text fontSize={12} color="$textSecondary">
+                No clients yet.
+              </Text>
+              <SecondaryButton onPress={() => router.push('/clients/new')}>
+                Add your first client
+              </SecondaryButton>
+            </SurfaceCard>
+          )}
         </YStack>
       )
     }
@@ -978,10 +962,25 @@ export default function TabOneScreen() {
         </YStack>
       ) : (
         <ScrollView
-          contentContainerStyle={{ pb: '$10' }}
-          scrollEnabled={!showQuickActionEditor && !isQuickActionDragging}
+          contentContainerStyle={{
+            paddingBottom: Math.max(24, tabBarHeight + insets.bottom + 12),
+          }}
+          scrollEnabled={!isQuickActionDragging}
         >
           <YStack px="$5" pt="$6" gap="$5">
+            {isEmptyAccount ? (
+              <SurfaceCard tone={isGlass ? 'secondary' : 'default'} p="$4" gap="$3">
+                <ThemedHeadingText fontWeight="700" fontSize={16}>
+                  Welcome to MyGuest
+                </ThemedHeadingText>
+                <Text fontSize={12} color="$textSecondary">
+                  Start by adding your first client. You can log appointments after.
+                </Text>
+                <PrimaryButton onPress={() => router.push('/clients/new')}>
+                  Add First Client
+                </PrimaryButton>
+              </SurfaceCard>
+            ) : null}
             {visibleSections.map((sectionId, index) => (
               <YStack key={sectionId} gap="$3">
                 {renderSection(sectionId)}
@@ -1022,7 +1021,7 @@ export default function TabOneScreen() {
           position="absolute"
           l={0}
           r={0}
-          b={Math.max(16, insets.bottom + 8)}
+          b={Math.max(16, tabBarHeight + insets.bottom + 8)}
           items="center"
           pointerEvents="box-none"
         >

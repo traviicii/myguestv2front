@@ -13,8 +13,9 @@ import { useAppointmentHistory,
   useClients } from 'components/data/queries'
 import { OptionChip,
   OptionChipLabel,
+  PreviewCard,
+  PrimaryButton,
   SectionDivider,
-  SurfaceCard,
   TextField,
   ThemedHeadingText,
   cardSurfaceProps,
@@ -31,10 +32,10 @@ const statusColors = {
 
 export default function ClientsScreen() {
   const router = useRouter()
-  const { aesthetic } = useThemePrefs()
+  const { aesthetic, mode: themeMode } = useThemePrefs()
   const isCyberpunk = aesthetic === 'cyberpunk'
   const isGlass = aesthetic === 'glass'
-  const cardRadius = isCyberpunk ? 0 : isGlass ? 24 : 14
+  const isGlassLight = isGlass && themeMode === 'light'
   const controlRadius = isCyberpunk ? 0 : isGlass ? 20 : 10
   const chipRadius = isCyberpunk ? 0 : isGlass ? 16 : 10
   const searchText = useClientsStore((state) => state.searchText)
@@ -45,6 +46,7 @@ export default function ClientsScreen() {
   const setStatusFilter = useClientsStore((state) => state.setStatusFilter)
   const setTypeFilter = useClientsStore((state) => state.setTypeFilter)
   const toggleFilters = useClientsStore((state) => state.toggleFilters)
+  const resetFilters = useClientsStore((state) => state.resetFilters)
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const showStatus = useStudioStore(
@@ -112,6 +114,8 @@ export default function ClientsScreen() {
       return haystack.includes(normalizedSearch)
     }).sort((a, b) => a.name.localeCompare(b.name))
   }, [appointmentHistory, clients, searchText, statusFilter, typeFilter])
+  const hasClients = clients.length > 0
+  const hasFilteredClients = filteredClients.length > 0
 
   return (
     <YStack flex={1} bg="$background" position="relative">
@@ -165,7 +169,7 @@ export default function ClientsScreen() {
             </XStack>
           </XStack>
 
-          {showFilters ? (
+          {showFilters && hasClients ? (
             <>
               <XStack gap="$2" flexWrap="wrap">
                 {(['All', 'Active', 'Inactive'] as const).map((status) => (
@@ -201,15 +205,33 @@ export default function ClientsScreen() {
 
           <SectionDivider />
 
-          <YStack gap="$3">
-            {filteredClients.map((client, clientIndex) => (
-              <YStack key={client.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
-                {isGlass ? (
-                  <SurfaceCard
-                    tone="secondary"
-                    rounded={cardRadius}
+          {!hasClients ? (
+            <PreviewCard p="$4" gap="$2" items="center">
+              <Text fontSize={14} fontWeight="600">
+                No clients yet
+              </Text>
+              <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
+                Add your first client to get started.
+              </Text>
+              <PrimaryButton onPress={() => router.push('/clients/new')}>
+                New Client
+              </PrimaryButton>
+            </PreviewCard>
+          ) : !hasFilteredClients ? (
+            <PreviewCard p="$4" gap="$2" items="center">
+              <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
+                No clients match your search or filters.
+              </Text>
+              <PrimaryButton onPress={resetFilters}>Clear filters</PrimaryButton>
+            </PreviewCard>
+          ) : (
+            <YStack gap="$3">
+              {filteredClients.map((client, clientIndex) => (
+                <YStack key={client.id} gap={aesthetic === 'modern' ? '$2' : '$0'}>
+                  <PreviewCard
                     p="$4"
                     pressStyle={{ opacity: 0.88 }}
+                    hoverStyle={{ opacity: 0.92 }}
                     cursor="pointer"
                     onPress={() => router.push(`/client/${client.id}`)}
                   >
@@ -241,89 +263,52 @@ export default function ClientsScreen() {
                         </XStack>
                       </YStack>
                       <YStack items="flex-end" gap="$1">
-                        <OptionChip
-                          active
-                          gap="$1.5"
-                          onPress={(event) => {
-                            event?.stopPropagation?.()
-                            router.push(`/client/${client.id}/new-appointment`)
-                          }}
-                        >
-                          <PlusCircle size={12} color="$accent" />
-                          <OptionChipLabel active>New Log</OptionChipLabel>
-                        </OptionChip>
+                        {isGlass ? (
+                          <OptionChip
+                            active={!isGlassLight}
+                            gap="$1.5"
+                            onPress={(event) => {
+                              event?.stopPropagation?.()
+                              router.push(`/client/${client.id}/new-appointment`)
+                            }}
+                          >
+                            <PlusCircle size={12} color="$accent" />
+                            <OptionChipLabel active={!isGlassLight}>
+                              New Appointment Log
+                            </OptionChipLabel>
+                          </OptionChip>
+                        ) : (
+                          <XStack
+                            {...cardSurfaceProps}
+                            rounded={chipRadius}
+                            px="$2.5"
+                            py="$1.5"
+                            items="center"
+                            gap="$1.5"
+                            cursor="pointer"
+                            onPress={(event) => {
+                              event?.stopPropagation?.()
+                              router.push(`/client/${client.id}/new-appointment`)
+                            }}
+                          >
+                            <PlusCircle size={14} color="$accent" />
+                            <Text fontSize={11} color="$accent">
+                              New Appointment Log
+                            </Text>
+                          </XStack>
+                        )}
                       </YStack>
                     </XStack>
-                  </SurfaceCard>
-                ) : (
-                  <XStack
-                    {...cardSurfaceProps}
-                    rounded={cardRadius}
-                    p="$4"
-                    items="center"
-                    justify="space-between"
-                    gap="$3"
-                    hoverStyle={{ opacity: 0.92 }}
-                    pressStyle={{ opacity: 0.88 }}
-                    cursor="pointer"
-                    onPress={() => router.push(`/client/${client.id}`)}
-                  >
-                    <YStack gap="$1" flex={1}>
-                      <Text fontSize={15} fontWeight="600">
-                        {client.name}
-                      </Text>
-                      <Text fontSize={12} color="$textSecondary">
-                        {client.type} • Last visit{' '}
-                        {formatLastVisitLabel(resolveLastVisit(client.id, client.lastVisit))}
-                      </Text>
-                      <XStack items="center" gap="$2">
-                        {showStatus
-                          ? (() => {
-                              const status = isActive(client.id) ? 'Active' : 'Inactive'
-                              return (
-                                <Text fontSize={11} color={statusColors[status]}>
-                                  {status}
-                                </Text>
-                              )
-                            })()
-                          : null}
-                        {client.tag && client.tag !== client.type ? (
-                          <Text fontSize={11} color="$textMuted">
-                            {client.tag}
-                          </Text>
-                        ) : null}
-                      </XStack>
+                  </PreviewCard>
+                  {aesthetic === 'modern' && clientIndex < filteredClients.length - 1 ? (
+                    <YStack items="center">
+                      <SectionDivider width="88%" />
                     </YStack>
-                    <YStack items="flex-end" gap="$1">
-                      <XStack
-                        {...cardSurfaceProps}
-                        rounded={chipRadius}
-                        px="$2.5"
-                        py="$1.5"
-                        items="center"
-                        gap="$1.5"
-                        cursor="pointer"
-                        onPress={(event) => {
-                          event?.stopPropagation?.()
-                          router.push(`/client/${client.id}/new-appointment`)
-                        }}
-                      >
-                        <PlusCircle size={14} color="$accent" />
-                        <Text fontSize={11} color="$accent">
-                          New Appointment Log
-                        </Text>
-                      </XStack>
-                    </YStack>
-                  </XStack>
-                )}
-                {aesthetic === 'modern' && clientIndex < filteredClients.length - 1 ? (
-                  <YStack items="center">
-                    <SectionDivider width="88%" />
-                  </YStack>
-                ) : null}
-              </YStack>
-            ))}
-          </YStack>
+                  ) : null}
+                </YStack>
+              ))}
+            </YStack>
+          )}
         </YStack>
       </ScrollView>
     </YStack>

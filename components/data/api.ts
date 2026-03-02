@@ -115,6 +115,13 @@ type ApiServiceListResponse = {
   items: ApiService[]
 }
 
+type ApiAccountDeleteResponse = {
+  deleted: boolean
+  images_deleted: number
+  images_failed: number
+  firebase_user_deleted: boolean
+}
+
 export type ServiceOption = {
   id: number
   name: string
@@ -730,6 +737,22 @@ export async function deleteClientViaApi(clientId: string): Promise<void> {
 
   await request<unknown>(`/clients/${normalizedClientId}`, {
     method: 'DELETE',
+  })
+}
+
+export type DeleteAccountInput = {
+  email?: string | null
+}
+
+export async function deleteAccountViaApi(
+  input: DeleteAccountInput
+): Promise<ApiAccountDeleteResponse> {
+  const payload = {
+    email: input.email ?? null,
+  }
+  return request<ApiAccountDeleteResponse>('/account/delete', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 

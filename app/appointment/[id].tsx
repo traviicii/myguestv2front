@@ -246,17 +246,13 @@ export default function AppointmentDetailScreen() {
           </YStack>
 
           <Link href={`/client/${appointment.clientId}`} asChild>
-            <GlassCard
-              rounded={cardRadius}
-              p="$4"
+            <SecondaryButton
+              height={40}
+              px="$4"
+              icon={<UserRound size={16} />}
             >
-              <XStack items="center" gap="$2" justify="center">
-                <UserRound size={16} color="$accent" />
-                <Text fontSize={13} color="$accent">
-                  View Client
-                </Text>
-              </XStack>
-            </GlassCard>
+              View Client
+            </SecondaryButton>
           </Link>
         </YStack>
       </ScrollView>

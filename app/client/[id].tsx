@@ -396,7 +396,15 @@ export default function ClientDetailScreen() {
                     flex={1}
                     icon={<Scissors size={14} />}
                   >
-                    New Appointment Log
+                    <Text
+                      fontSize={12}
+                      fontWeight="700"
+                      color="$buttonPrimaryFg"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      New Appointment Log
+                    </Text>
                   </PrimaryButton>
                 ) : (
                   <GlassCard

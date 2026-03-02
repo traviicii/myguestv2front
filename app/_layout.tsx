@@ -213,6 +213,14 @@ function RootLayoutNav() {
           />
 
           <Stack.Screen
+            name="account-delete"
+            options={{
+              title: 'Delete Account',
+              headerShown: false,
+            }}
+          />
+
+          <Stack.Screen
             name="modal"
             options={{
               title: 'Tamagui + Expo',

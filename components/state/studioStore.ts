@@ -10,6 +10,8 @@ export type QuickActionId =
   | 'newEmailAlert'
   | 'newTextAlert'
 export type AppointmentDateFormat = 'short' | 'long'
+export type AvgTicketRange = '3m' | '6m' | '12m' | '18m' | 'allTime'
+export type PhotoCoverageRange = 'allTime' | '6m' | '12m'
 export type OverviewSectionId =
   | 'quickActions'
   | 'metrics'
@@ -42,6 +44,8 @@ type AppSettings = {
   overviewQuickActionOrder: QuickActionId[]
   overviewSections: Record<OverviewSectionId, boolean>
   activeStatusMonths: number
+  avgTicketRange: AvgTicketRange
+  photoCoverageRange: PhotoCoverageRange
 }
 
 type StudioStore = {
@@ -82,6 +86,24 @@ const normalizeQuickActionOrder = (order?: QuickActionId[]) => {
     }
   })
   return unique
+}
+
+const normalizeAvgTicketRange = (
+  value: AvgTicketRange | 'activeWindow' | string | undefined,
+  activeMonths: number,
+  fallback: AvgTicketRange
+): AvgTicketRange => {
+  if (value === 'allTime') return 'allTime'
+  if (value === '3m' || value === '6m' || value === '12m' || value === '18m') {
+    return value
+  }
+  if (value === 'activeWindow') {
+    const mapped = `${activeMonths}m` as AvgTicketRange
+    if (mapped === '3m' || mapped === '6m' || mapped === '12m' || mapped === '18m') {
+      return mapped
+    }
+  }
+  return fallback
 }
 
 const clampPreviewCount = (value: number | undefined, fallback: number) => {
@@ -127,6 +149,8 @@ export const useStudioStore = create<StudioStore>()(
           pinnedClients: true,
         },
         activeStatusMonths: 12,
+        avgTicketRange: '12m',
+        photoCoverageRange: '12m',
       },
       pinnedClientIds: [],
       setProfile: (profile) =>
@@ -245,6 +269,15 @@ export const useStudioStore = create<StudioStore>()(
             },
             activeStatusMonths:
               persistedApp?.activeStatusMonths ?? current.appSettings.activeStatusMonths,
+            avgTicketRange:
+              normalizeAvgTicketRange(
+                persistedApp?.avgTicketRange as AvgTicketRange,
+                persistedApp?.activeStatusMonths ?? current.appSettings.activeStatusMonths,
+                current.appSettings.avgTicketRange
+              ),
+            photoCoverageRange:
+              (persistedApp?.photoCoverageRange as PhotoCoverageRange) ??
+              current.appSettings.photoCoverageRange,
           },
           pinnedClientIds: persistedState.pinnedClientIds ?? current.pinnedClientIds,
         }

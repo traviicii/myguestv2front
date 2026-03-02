@@ -10,6 +10,7 @@ import {
   type CreateFormulaInput,
   type CreateServiceInput,
   type CreateClientInput,
+  type DeleteAccountInput,
   type UpsertColorChartInput,
   type UpdateClientInput,
   type UpdateFormulaInput,
@@ -18,6 +19,7 @@ import {
   createClientViaApi,
   createServiceViaApi,
   deactivateServiceViaApi,
+  deleteAccountViaApi,
   deleteClientViaApi,
   permanentlyDeleteServiceViaApi,
   updateClientViaApi,
@@ -175,6 +177,19 @@ export function useDeleteClient() {
         queryClient.invalidateQueries({ queryKey: ['color-analysis'] }),
         queryClient.invalidateQueries({ queryKey: ['color-analysis-client'] }),
       ])
+    },
+  })
+}
+
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: async (input: DeleteAccountInput) => {
+      if (USE_MOCK_DATA) {
+        throw new Error(
+          'Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to delete your account.'
+        )
+      }
+      return deleteAccountViaApi(input)
     },
   })
 }
