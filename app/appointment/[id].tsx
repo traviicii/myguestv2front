@@ -43,8 +43,9 @@ export default function AppointmentDetailScreen() {
   const thumbRadius = isCyberpunk ? 0 : isGlass ? 14 : 8
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>()
   const appointmentId = typeof id === 'string' ? id : ''
+  const hideViewClient = from === 'client'
   const { data: appointmentHistory = [], isLoading: historyLoading } =
     useAppointmentHistory()
   const { data: clients = [], isLoading: clientsLoading } = useClients()
@@ -245,15 +246,17 @@ export default function AppointmentDetailScreen() {
             </GlassCard>
           </YStack>
 
-          <Link href={`/client/${appointment.clientId}`} asChild>
-            <SecondaryButton
-              height={40}
-              px="$4"
-              icon={<UserRound size={16} />}
-            >
-              View Client
-            </SecondaryButton>
-          </Link>
+          {!hideViewClient ? (
+            <Link href={`/client/${appointment.clientId}`} asChild>
+              <SecondaryButton
+                height={40}
+                px="$4"
+                icon={<UserRound size={16} />}
+              >
+                View Client
+              </SecondaryButton>
+            </Link>
+          ) : null}
         </YStack>
       </ScrollView>
       <Modal

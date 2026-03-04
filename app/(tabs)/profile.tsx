@@ -65,6 +65,7 @@ const AESTHETIC_OPTIONS: Array<{
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets()
   const tabBarHeight = useBottomTabBarHeight()
+  const topInset = Math.max(insets.top + 8, 24)
   const {
     mode,
     palette,
@@ -133,7 +134,7 @@ export default function ProfileScreen() {
           paddingBottom: Math.max(24, tabBarHeight + insets.bottom + 12),
         }}
       >
-        <YStack px="$5" pt="$6" gap={isModern ? '$5' : '$4'}>
+        <YStack px="$5" pt={topInset} gap={isModern ? '$5' : '$4'}>
           <SurfaceCard p={isModern ? '$6' : '$5'} gap={sectionGap} tone={cardTone}>
             <XStack items="center" justify="space-between">
               <ThemedHeadingText fontWeight="700" fontSize={16}>

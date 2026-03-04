@@ -1,11 +1,11 @@
 import {
   useRouter } from 'expo-router'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlusCircle,
   Search,
-  SlidersHorizontal } from '@tamagui/lucide-icons'
-import { ScrollView,
-  Text,
+  SlidersHorizontal,
+  X } from '@tamagui/lucide-icons'
+import { Text,
   XStack,
   YStack } from 'tamagui'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
@@ -24,6 +24,10 @@ import { useThemePrefs } from 'components/ThemePrefs'
 import { formatDateByStyle } from 'components/utils/date'
 import { useClientsStore } from 'components/state/clientsStore'
 import { useStudioStore } from 'components/state/studioStore'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Animated as RNAnimated, RefreshControl } from 'react-native'
+import { RefreshGlyph } from 'components/ui/RefreshGlyph'
+import { useIsFocused } from '@react-navigation/native'
 
 const statusColors = {
   Active: '$green10',
@@ -32,12 +36,14 @@ const statusColors = {
 
 export default function ClientsScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { aesthetic, mode: themeMode } = useThemePrefs()
   const isCyberpunk = aesthetic === 'cyberpunk'
   const isGlass = aesthetic === 'glass'
   const isGlassLight = isGlass && themeMode === 'light'
   const controlRadius = isCyberpunk ? 0 : isGlass ? 20 : 10
   const chipRadius = isCyberpunk ? 0 : isGlass ? 16 : 10
+  const isFocused = useIsFocused()
   const searchText = useClientsStore((state) => state.searchText)
   const statusFilter = useClientsStore((state) => state.statusFilter)
   const typeFilter = useClientsStore((state) => state.typeFilter)
@@ -47,8 +53,25 @@ export default function ClientsScreen() {
   const setTypeFilter = useClientsStore((state) => state.setTypeFilter)
   const toggleFilters = useClientsStore((state) => state.toggleFilters)
   const resetFilters = useClientsStore((state) => state.resetFilters)
-  const { data: clients = [] } = useClients()
-  const { data: appointmentHistory = [] } = useAppointmentHistory()
+  const searchInputRef = useRef<any>(null)
+  const {
+    data: clients = [],
+    refetch: refetchClients,
+  } = useClients()
+  const {
+    data: appointmentHistory = [],
+    refetch: refetchAppointments,
+  } = useAppointmentHistory()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const pullMax = 90
+  const scrollY = useRef(new RNAnimated.Value(0)).current
+  const pullDistance = RNAnimated.multiply(scrollY, -1)
+  const pullClamped = RNAnimated.diffClamp(pullDistance, 0, pullMax)
+  const pullProgress = RNAnimated.divide(pullClamped, pullMax)
+  const [isThresholdReached, setIsThresholdReached] = useState(false)
+  const thresholdRef = useRef(false)
+  const pullDistanceRef = useRef(0)
+  const minRefreshMs = 650
   const showStatus = useStudioStore(
     (state) =>
       state.appSettings.clientsShowStatus &&
@@ -116,12 +139,84 @@ export default function ClientsScreen() {
   }, [appointmentHistory, clients, searchText, statusFilter, typeFilter])
   const hasClients = clients.length > 0
   const hasFilteredClients = filteredClients.length > 0
+  useEffect(() => {
+    if (isFocused) return
+    pullDistanceRef.current = 0
+    thresholdRef.current = false
+    setIsThresholdReached(false)
+    scrollY.setValue(0)
+  }, [isFocused, scrollY])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    const startedAt = Date.now()
+    try {
+      await Promise.all([refetchClients(), refetchAppointments()])
+    } finally {
+      const elapsed = Date.now() - startedAt
+      if (elapsed < minRefreshMs) {
+        await new Promise((resolve) => setTimeout(resolve, minRefreshMs - elapsed))
+      }
+      pullDistanceRef.current = 0
+      setIsRefreshing(false)
+    }
+  }
+
+  const handleScroll = RNAnimated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const y = event?.nativeEvent?.contentOffset?.y ?? 0
+        const distance = Math.max(0, -y)
+        pullDistanceRef.current = distance
+        const reached = distance >= pullMax * 0.95
+        if (reached !== thresholdRef.current) {
+          thresholdRef.current = reached
+          setIsThresholdReached(reached)
+        }
+      },
+    }
+  )
 
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
-      <ScrollView contentContainerStyle={{ pb: "$10" }}>
-        <YStack px="$5" pt="$6" gap="$4">
+        <YStack
+          position="absolute"
+          top={Math.max(insets.top + 4, 16)}
+        left={0}
+        right={0}
+        items="center"
+        pointerEvents="none"
+        zIndex={20}
+        height={40}
+        overflow="hidden"
+        >
+          <RefreshGlyph
+            progress={pullProgress}
+            refreshing={isRefreshing}
+            thresholdReached={isThresholdReached}
+          />
+        </YStack>
+      <RNAnimated.ScrollView
+        contentContainerStyle={{
+          paddingBottom: Math.max(24, insets.bottom + 24),
+        }}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="transparent"
+            colors={['transparent']}
+            progressViewOffset={40}
+          />
+        }
+      >
+        <YStack px="$5" pt={Math.max(insets.top + 8, 24)} gap="$4">
           <YStack gap="$2">
             <ThemedHeadingText fontWeight="700" fontSize={16}>
               Client Index
@@ -140,6 +235,7 @@ export default function ClientsScreen() {
             >
               <Search size={16} color="$textSecondary" />
               <TextField
+                ref={searchInputRef}
                 flex={1}
                 borderWidth={0}
                 height={36}
@@ -152,7 +248,29 @@ export default function ClientsScreen() {
                 color="$color"
                 placeholderTextColor="$textMuted"
               />
+              <XStack
+                width={28}
+                height={28}
+                rounded={999}
+                items="center"
+                justify="center"
+                onPress={() => {
+                  if (!searchText) return
+                  setSearchText('')
+                  requestAnimationFrame(() => {
+                    searchInputRef.current?.focus?.()
+                  })
+                }}
+                pressStyle={searchText ? { opacity: 0.7 } : undefined}
+                opacity={searchText ? 1 : 0.35}
+                pointerEvents={searchText ? 'auto' : 'none'}
+              >
+                <X size={14} color="$textSecondary" />
+              </XStack>
             </XStack>
+          </XStack>
+
+          <XStack justify="flex-end">
             <XStack
               {...cardSurfaceProps}
               rounded={controlRadius}
@@ -310,7 +428,7 @@ export default function ClientsScreen() {
             </YStack>
           )}
         </YStack>
-      </ScrollView>
+      </RNAnimated.ScrollView>
     </YStack>
   )
 }

@@ -57,6 +57,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: activeTint,
         tabBarInactiveTintColor: inactiveTint,
+        headerShown: false,
         headerStatusBarHeight: 0,
         tabBarBackground: isGlass
           ? () => (

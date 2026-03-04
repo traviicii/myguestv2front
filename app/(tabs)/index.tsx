@@ -4,8 +4,7 @@ import {
   useRef,
   useState } from 'react'
 import { Link, useRouter } from 'expo-router'
-import { ScrollView,
-  Text,
+import { Text,
   XStack,
   YStack,
   useTheme } from 'tamagui'
@@ -21,7 +20,8 @@ import { ArrowRight,
   X,
   } from '@tamagui/lucide-icons'
 import { Animated as RNAnimated,
-  Pressable as RNPressable } from 'react-native'
+  Pressable as RNPressable,
+  RefreshControl } from 'react-native'
 import DraggableFlatList,
   { type RenderItemParams,
   } from 'react-native-draggable-flatlist'
@@ -58,6 +58,7 @@ import {
   type OverviewSectionId,
   type QuickActionId,
 } from 'components/state/studioStore'
+import { RefreshGlyph } from 'components/ui/RefreshGlyph'
 
 const editPanelCardBorder = {
   bg: '$surfaceCard',
@@ -70,6 +71,7 @@ export default function TabOneScreen() {
   const insets = useSafeAreaInsets()
   const tabBarHeight = useBottomTabBarHeight()
   const isFocused = useIsFocused()
+  const topInset = Math.max(insets.top + 8, 24)
   const theme = useTheme()
   const { aesthetic } = useThemePrefs()
   const isCyberpunk = aesthetic === 'cyberpunk'
@@ -98,9 +100,28 @@ export default function TabOneScreen() {
     setQuickActionOrder,
     pinnedClientIds,
   } = useStudioStore()
-  const { data: clients = [] } = useClients()
-  const { data: appointmentHistory = [] } = useAppointmentHistory()
-  const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
+  const {
+    data: clients = [],
+    refetch: refetchClients,
+  } = useClients()
+  const {
+    data: appointmentHistory = [],
+    refetch: refetchAppointments,
+  } = useAppointmentHistory()
+  const {
+    data: colorAnalysisByClient = {},
+    refetch: refetchColor,
+  } = useColorAnalysisByClient()
+  const pullMax = 90
+  const scrollY = useRef(new RNAnimated.Value(0)).current
+  const pullDistance = RNAnimated.multiply(scrollY, -1)
+  const pullClamped = RNAnimated.diffClamp(pullDistance, 0, pullMax)
+  const pullProgress = RNAnimated.divide(pullClamped, pullMax)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isThresholdReached, setIsThresholdReached] = useState(false)
+  const pullDistanceRef = useRef(0)
+  const thresholdRef = useRef(false)
+  const minRefreshMs = 650
   const derivedLastVisitByClient = useMemo(() => {
     return appointmentHistory.reduce<Record<string, string>>((acc, entry) => {
       const current = acc[entry.clientId]
@@ -407,6 +428,50 @@ export default function TabOneScreen() {
     setLayoutDraft(visibleSections)
     toggleLayoutEditor()
   }, [isFocused, showLayoutEditor, toggleLayoutEditor, visibleSections])
+
+  useEffect(() => {
+    if (isFocused) return
+    pullDistanceRef.current = 0
+    thresholdRef.current = false
+    setIsThresholdReached(false)
+    scrollY.setValue(0)
+  }, [isFocused, scrollY])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    const startedAt = Date.now()
+    try {
+      await Promise.all([
+        refetchClients(),
+        refetchAppointments(),
+        refetchColor(),
+      ])
+    } finally {
+      const elapsed = Date.now() - startedAt
+      if (elapsed < minRefreshMs) {
+        await new Promise((resolve) => setTimeout(resolve, minRefreshMs - elapsed))
+      }
+      pullDistanceRef.current = 0
+      setIsRefreshing(false)
+    }
+  }
+
+  const handleScroll = RNAnimated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const y = event?.nativeEvent?.contentOffset?.y ?? 0
+        const distance = Math.max(0, -y)
+        pullDistanceRef.current = distance
+        const reached = distance >= pullMax * 0.95
+        if (reached !== thresholdRef.current) {
+          thresholdRef.current = reached
+          setIsThresholdReached(reached)
+        }
+      },
+    }
+  )
 
   const handleSaveLayout = () => {
     const hiddenSections = sectionOrder.filter(
@@ -942,8 +1007,27 @@ export default function TabOneScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
+      {!showLayoutEditor ? (
+        <YStack
+          position="absolute"
+          top={Math.max(insets.top + 4, 16)}
+          left={0}
+          right={0}
+          items="center"
+          pointerEvents="none"
+          zIndex={20}
+          height={40}
+          overflow="hidden"
+        >
+          <RefreshGlyph
+            progress={pullProgress}
+            refreshing={isRefreshing}
+            thresholdReached={isThresholdReached}
+          />
+        </YStack>
+      ) : null}
       {showLayoutEditor ? (
-        <YStack px="$5" pt="$6" gap="$5">
+        <YStack px="$5" pt={topInset} gap="$5">
           <YStack gap="$3">
             <Text fontSize={12} color="$textSecondary">
               Hold and drag to reorder your Overview sections.
@@ -961,13 +1045,24 @@ export default function TabOneScreen() {
           </YStack>
         </YStack>
       ) : (
-        <ScrollView
+        <RNAnimated.ScrollView
           contentContainerStyle={{
             paddingBottom: Math.max(24, tabBarHeight + insets.bottom + 12),
           }}
           scrollEnabled={!isQuickActionDragging}
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor="transparent"
+              colors={['transparent']}
+              progressViewOffset={40}
+            />
+          }
         >
-          <YStack px="$5" pt="$6" gap="$5">
+          <YStack px="$5" pt={topInset} gap="$5">
             {isEmptyAccount ? (
               <SurfaceCard tone={isGlass ? 'secondary' : 'default'} p="$4" gap="$3">
                 <ThemedHeadingText fontWeight="700" fontSize={16}>
@@ -1013,7 +1108,7 @@ export default function TabOneScreen() {
               </YStack>
             </YStack>
           </YStack>
-        </ScrollView>
+        </RNAnimated.ScrollView>
       )}
 
       {showLayoutEditor ? (

@@ -92,8 +92,9 @@ export default function NewAppointmentScreen() {
   const client = clients.find((item) => item.id === id)
   const scrollRef = useRef<any>(null)
   const requiredY = useRef<{ date?: number }>({})
+  const defaultDate = useMemo(() => formatDateFromPicker(new Date()), [])
   const [form, setForm] = useState({
-    date: '',
+    date: defaultDate,
     price: '',
     notes: '',
   })

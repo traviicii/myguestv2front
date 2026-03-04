@@ -459,7 +459,11 @@ export default function ClientDetailScreen() {
                 </GlassCard>
               ) : (
                 history.map((entry) => (
-                  <Link key={entry.id} href={`/appointment/${entry.id}`} asChild>
+                  <Link
+                    key={entry.id}
+                    href={`/appointment/${entry.id}?from=client`}
+                    asChild
+                  >
                     <GlassCard
                       rounded={cardRadius}
                       p="$4"

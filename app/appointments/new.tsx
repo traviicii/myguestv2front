@@ -1,10 +1,12 @@
 import {
   useMemo,
+  useRef,
   useState } from 'react'
 import { Link, useRouter } from 'expo-router'
 import { ChevronLeft,
   Search,
-  UserPlus } from '@tamagui/lucide-icons'
+  UserPlus,
+  X } from '@tamagui/lucide-icons'
 import { ScrollView,
   Text,
   XStack,
@@ -13,10 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { useAppointmentHistory, useClients } from 'components/data/queries'
 import { useStudioStore } from 'components/state/studioStore'
+import { useThemePrefs } from 'components/ThemePrefs'
 import { SectionDivider,
   SecondaryButton,
   PreviewCard,
   TextField,
+  cardSurfaceProps,
 } from 'components/ui/controls'
 import { formatDateByStyle } from 'components/utils/date'
 
@@ -24,10 +28,15 @@ export default function NewAppointmentClientPicker() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
+  const { aesthetic, mode: themeMode } = useThemePrefs()
+  const isCyberpunk = aesthetic === 'cyberpunk'
+  const isGlass = aesthetic === 'glass'
+  const controlRadius = isCyberpunk ? 0 : isGlass ? 20 : 10
   const { data: clients = [] } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistory()
   const appSettings = useStudioStore((state) => state.appSettings)
   const [searchText, setSearchText] = useState('')
+  const searchInputRef = useRef<any>(null)
   const formatLastVisitLabel = (value: string) => {
     if (!value || value === 'No visits yet' || value === '—') return 'No visits yet'
     return formatDateByStyle(value, appSettings.dateDisplayFormat, {
@@ -74,7 +83,7 @@ export default function NewAppointmentClientPicker() {
         />
         <YStack width={38} />
       </XStack>
-      <ScrollView contentContainerStyle={{ pb: "$10" }}>
+      <ScrollView contentContainerStyle={{ pb: "$10" }} keyboardShouldPersistTaps="handled">
         <YStack px="$5" pt="$3" gap="$4">
           <YStack gap="$2">
             <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
@@ -85,23 +94,50 @@ export default function NewAppointmentClientPicker() {
             </Text>
           </YStack>
 
-          <PreviewCard p="$0" gap="$0" px="$3" py="$2">
-            <XStack items="center" gap="$2">
-              <Search size={16} color="$textSecondary" />
-              <TextField
-                flex={1}
-                borderWidth={0}
-                height={36}
-                px="$0"
-                placeholder="Search clients"
-                value={searchText}
-                onChangeText={setSearchText}
-                fontSize={12}
-                color="$color"
-                placeholderTextColor="$textMuted"
-              />
+          <XStack
+            {...cardSurfaceProps}
+            rounded={controlRadius}
+            width="100%"
+            px="$3"
+            py="$2"
+            items="center"
+            gap="$2"
+          >
+            <Search size={16} color="$textSecondary" />
+            <TextField
+              ref={searchInputRef}
+              flex={1}
+              borderWidth={0}
+              height={36}
+              px="$0"
+              pl="$2"
+              placeholder="Search clients"
+              value={searchText}
+              onChangeText={setSearchText}
+              fontSize={12}
+              color="$color"
+              placeholderTextColor="$textMuted"
+            />
+            <XStack
+              width={28}
+              height={28}
+              rounded={999}
+              items="center"
+              justify="center"
+              onPress={() => {
+                if (!searchText) return
+                setSearchText('')
+                requestAnimationFrame(() => {
+                  searchInputRef.current?.focus?.()
+                })
+              }}
+              pressStyle={searchText ? { opacity: 0.7 } : undefined}
+              opacity={searchText ? 1 : 0.35}
+              pointerEvents={searchText ? 'auto' : 'none'}
+            >
+              <X size={14} color="$textSecondary" />
             </XStack>
-          </PreviewCard>
+          </XStack>
 
           <SectionDivider />
 

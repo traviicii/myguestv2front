@@ -46,29 +46,34 @@ const toAlpha = (value: string, alpha: number) => {
 
 export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
   const theme = useTheme()
-  const { aesthetic, mode } = useThemePrefs()
+  const { aesthetic, mode, palette } = useThemePrefs()
   const drift = useRef(new Animated.Value(0)).current
   const sheen = useRef(new Animated.Value(0)).current
+  const blob = useRef(new Animated.Value(0)).current
   const resolvedMode: AmbientEffectMode = effectMode === 'auto' ? 'faux' : effectMode
 
   useEffect(() => {
     drift.stopAnimation()
     sheen.stopAnimation()
+    blob.stopAnimation()
 
     if (resolvedMode === 'off') {
       drift.setValue(0)
       sheen.setValue(0)
+      blob.setValue(0)
       return
     }
 
     if (aesthetic !== 'glass') {
       drift.setValue(0)
       sheen.setValue(0)
+      blob.setValue(0)
       return
     }
 
     drift.setValue(0)
     sheen.setValue(0)
+    blob.setValue(0)
 
     const driftLoop = Animated.loop(
       Animated.sequence([
@@ -100,14 +105,31 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
       ])
     )
 
+    const blobLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(blob, {
+          toValue: 1,
+          duration: 14000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blob, {
+          toValue: -1,
+          duration: 14000,
+          useNativeDriver: true,
+        }),
+      ])
+    )
+
     driftLoop.start()
     sheenLoop.start()
+    blobLoop.start()
 
     return () => {
       driftLoop.stop()
       sheenLoop.stop()
+      blobLoop.stop()
     }
-  }, [aesthetic, drift, effectMode, resolvedMode, sheen])
+  }, [aesthetic, blob, drift, effectMode, resolvedMode, sheen])
 
   if (resolvedMode === 'off') {
     return null
@@ -118,7 +140,7 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
     aesthetic === 'cyberpunk' ? 0.26 : glassLight ? 0.27 : aesthetic === 'glass' ? 0.24 : 0.1
   const secondaryOpacity =
     aesthetic === 'cyberpunk' ? 0.16 : glassLight ? 0.18 : aesthetic === 'glass' ? 0.16 : 0.08
-  const veilOpacity = glassLight ? 0.18 : aesthetic === 'glass' ? 0.2 : 0.08
+  const veilOpacity = glassLight ? 0.12 : aesthetic === 'glass' ? 0.2 : 0.08
   const backdropStart = toNativeColor(
     theme.backdropStart?.val,
     mode === 'dark' ? '#223047' : '#D9EAFF'
@@ -131,6 +153,13 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
     theme.backdropAccent?.val,
     mode === 'dark' ? '#86A7FF' : '#A8C7FF'
   )
+  const glassLiquidBase = glassLight
+    ? [
+        toAlpha(backdropStart, 0.9),
+        toAlpha(backdropAccent, 0.32),
+        toAlpha(backdropEnd, 0.95),
+      ]
+    : null
 
   const topDrift =
     aesthetic === 'glass'
@@ -140,11 +169,25 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
     aesthetic === 'glass'
       ? drift.interpolate({ inputRange: [-1, 1], outputRange: [8, -9] })
       : 0
+  const blobDriftX = glassLight
+    ? blob.interpolate({ inputRange: [-1, 1], outputRange: [-40, 50] })
+    : 0
+  const blobDriftY = glassLight
+    ? blob.interpolate({ inputRange: [-1, 1], outputRange: [30, -24] })
+    : 0
+  const blobScale = glassLight
+    ? blob.interpolate({ inputRange: [-1, 1], outputRange: [1.02, 1.08] })
+    : 1
+  const blobOpacity = glassLight ? (palette === 'alloy' ? 0.34 : 0.26) : 0
+  const blobAccentAlpha = palette === 'alloy' ? 0.55 : 0.42
+  const blobStartAlpha = palette === 'alloy' ? 0.38 : 0.28
+  const blobEndAlpha = palette === 'alloy' ? 0.3 : 0.22
   const sheenOpacity =
     aesthetic === 'glass'
       ? sheen.interpolate({ inputRange: [0, 1], outputRange: [0.06, 0.14] })
       : 0
   const isGlassNative = aesthetic === 'glass'
+  const showAmbientShapes = !(aesthetic === 'glass' && mode === 'dark')
 
   // Faux ambient treatment built from semantic tokens so future blur/gradient
   // libraries can be dropped in behind this component without screen changes.
@@ -158,55 +201,101 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
       b={0}
       overflow="hidden"
     >
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: -120,
-          right: -90,
-          transform: [{ translateY: topDrift as any }],
-          opacity: accentOpacity,
-        }}
-      >
-        {isGlassNative ? (
+      {glassLiquidBase ? (
+        <LinearGradient
+          colors={glassLiquidBase}
+          locations={[0, 0.55, 1]}
+          start={{ x: 0.08, y: 0 }}
+          end={{ x: 0.92, y: 1 }}
+          style={{
+            position: 'absolute',
+            top: -40,
+            left: -40,
+            right: -40,
+            bottom: -40,
+          }}
+        />
+      ) : null}
+      {glassLight ? (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: -160,
+            left: -120,
+            transform: [
+              { translateX: blobDriftX as any },
+              { translateY: blobDriftY as any },
+              { scale: blobScale as any },
+            ],
+            opacity: blobOpacity,
+          }}
+        >
           <LinearGradient
-            colors={
-              mode === 'dark'
-                ? [toAlpha(backdropAccent, 0.52), toAlpha(backdropStart, 0.1)]
-                : [toAlpha(backdropAccent, 0.68), toAlpha(backdropStart, 0.16)]
-            }
-            start={{ x: 0.1, y: 0 }}
+            colors={[
+              toAlpha(backdropAccent, blobAccentAlpha),
+              toAlpha(backdropStart, blobStartAlpha),
+              toAlpha(backdropEnd, blobEndAlpha),
+            ]}
+            locations={[0, 0.52, 1]}
+            start={{ x: 0.12, y: 0.08 }}
             end={{ x: 0.9, y: 1 }}
-            style={{ width: 320, height: 320, borderRadius: 999 }}
+            style={{ width: 420, height: 420, borderRadius: 999 }}
           />
-        ) : (
-          <YStack width={320} height={320} rounded={999} bg="$backdropAccent" />
-        )}
-      </Animated.View>
+        </Animated.View>
+      ) : null}
+      {aesthetic !== 'cyberpunk' && showAmbientShapes ? (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: -120,
+            right: -90,
+            transform: [{ translateY: topDrift as any }],
+            opacity: accentOpacity,
+          }}
+        >
+          {isGlassNative ? (
+            <LinearGradient
+              colors={
+                mode === 'dark'
+                  ? [toAlpha(backdropAccent, 0.52), toAlpha(backdropStart, 0.1)]
+                  : [toAlpha(backdropAccent, 0.68), toAlpha(backdropStart, 0.16)]
+              }
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={{ width: 320, height: 320, borderRadius: 999 }}
+            />
+          ) : (
+            <YStack width={320} height={320} rounded={999} bg="$backdropAccent" />
+          )}
+        </Animated.View>
+      ) : null}
 
-      <Animated.View
-        style={{
-          position: 'absolute',
-          bottom: -140,
-          left: -100,
-          transform: [{ translateY: lowerDrift as any }],
-          opacity: secondaryOpacity,
-        }}
-      >
-        {isGlassNative ? (
-          <LinearGradient
-            colors={
-              mode === 'dark'
-                ? [toAlpha(backdropStart, 0.4), toAlpha(backdropEnd, 0.08)]
-                : [toAlpha(backdropStart, 0.48), toAlpha(backdropEnd, 0.12)]
-            }
-            start={{ x: 0, y: 0.12 }}
-            end={{ x: 1, y: 0.92 }}
-            style={{ width: 300, height: 300, borderRadius: 999 }}
-          />
-        ) : (
-          <YStack width={300} height={300} rounded={999} bg="$backdropStart" />
-        )}
-      </Animated.View>
+      {aesthetic !== 'cyberpunk' && showAmbientShapes ? (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: -140,
+            left: -100,
+            transform: [{ translateY: lowerDrift as any }],
+            opacity: secondaryOpacity,
+          }}
+        >
+          {isGlassNative ? (
+            <LinearGradient
+              colors={
+                mode === 'dark'
+                  ? [toAlpha(backdropStart, 0.4), toAlpha(backdropEnd, 0.08)]
+                  : [toAlpha(backdropStart, 0.48), toAlpha(backdropEnd, 0.12)]
+              }
+              start={{ x: 0, y: 0.12 }}
+              end={{ x: 1, y: 0.92 }}
+              style={{ width: 300, height: 300, borderRadius: 999 }}
+            />
+          ) : (
+            <YStack width={300} height={300} rounded={999} bg="$backdropStart" />
+          )}
+        </Animated.View>
+      ) : null}
 
       {isGlassNative ? (
         <BlurView
@@ -223,7 +312,7 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
         />
       ) : null}
 
-      {aesthetic === 'glass' ? (
+      {aesthetic === 'glass' && showAmbientShapes ? (
         <Animated.View
           style={{
             position: 'absolute',
