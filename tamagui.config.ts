@@ -1,4 +1,5 @@
 import { defaultConfig } from '@tamagui/config/v5'
+import { animations } from '@tamagui/config/v5-rn'
 import { createTamagui } from 'tamagui'
 
 type ThemeMode = 'light' | 'dark'
@@ -261,7 +262,7 @@ const buildSemanticPalette = (
   if (aesthetic === 'glass' && !isDark) {
     const glassLightPages: Record<ThemePalette, string> = {
       signal: '#F7FFE6',
-      alloy: '#EFF2FF',
+      alloy: '#F4F4F4',
       pearl: '#FFF0F7',
     }
     surfacePage = glassLightPages[palette]
@@ -405,14 +406,14 @@ const buildSemanticPalette = (
         { start: string; end: string; accent: string }
       > = {
         signal: {
-          start: '#C4F25A',
-          end: '#F5FFDE',
-          accent: '#7FD12B',
+          start: '#B7E47A',
+          end: '#F3F7E6',
+          accent: '#63B038',
         },
         alloy: {
-          start: '#95AEF3',
-          end: '#ECF1FF',
-          accent: '#6E87CD',
+          start: '#BFC4CD',
+          end: '#FAFAFA',
+          accent: '#6F757F',
         },
         pearl: {
           start: '#F7AED8',
@@ -638,6 +639,7 @@ const signalModernDark = generatedThemes.signal_modern_dark
 export const config = createTamagui({
   ...defaultConfig,
   tokens: defaultConfig.tokens,
+  animations,
   themes: {
     ...defaultConfig.themes,
     ...generatedThemes,

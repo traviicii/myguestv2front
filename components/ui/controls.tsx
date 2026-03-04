@@ -1,6 +1,5 @@
-import { cloneElement, isValidElement } from 'react'
+import { cloneElement, forwardRef, isValidElement, useEffect, useRef } from 'react'
 import type { ReactElement, ReactNode } from 'react'
-import { useEffect, useRef } from 'react'
 import { Animated, StyleSheet } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -412,7 +411,10 @@ export function GhostButton({
   )
 }
 
-export function TextField(props: React.ComponentProps<typeof Input>) {
+export const TextField = forwardRef<
+  React.ElementRef<typeof Input>,
+  React.ComponentProps<typeof Input>
+>((props, ref) => {
   const profile = useAestheticProfile()
   const focusStyle = {
     borderColor: '$focusRing',
@@ -422,6 +424,7 @@ export function TextField(props: React.ComponentProps<typeof Input>) {
 
   return (
     <Input
+      ref={ref}
       height={44}
       rounded={props.rounded ?? profile.inputRadius}
       bg="$surfaceField"
@@ -435,7 +438,7 @@ export function TextField(props: React.ComponentProps<typeof Input>) {
       {...props}
     />
   )
-}
+})
 
 export function TextAreaField(props: React.ComponentProps<typeof TextArea>) {
   const profile = useAestheticProfile()
@@ -697,9 +700,6 @@ export function PreviewCard({
   const profile = useAestheticProfile()
   const { aesthetic, mode: themeMode } = useThemePrefs()
   const isGlass = aesthetic === 'glass'
-  const resolvedMode = mode ?? (isGlass ? 'alwaysCard' : 'section')
-  const resolvedTone = tone ?? (isGlass ? 'secondary' : 'default')
-  const resolvedRadius = rounded ?? profile.cardRadius
   const {
     p,
     px,
@@ -712,6 +712,9 @@ export function PreviewCard({
     rounded,
     ...rest
   } = props
+  const resolvedMode = mode ?? (isGlass ? 'alwaysCard' : 'section')
+  const resolvedTone = tone ?? (isGlass ? 'secondary' : 'default')
+  const resolvedRadius = rounded ?? profile.cardRadius
   const padding = p ?? '$4'
   const contentGap = gap ?? '$3'
 
