@@ -214,6 +214,12 @@ function normalizeServiceType(rawType: string | null | undefined) {
   return normalized
 }
 
+const normalizeServiceTypeInput = (value: string | null | undefined) => {
+  const normalized = normalizeServiceName(value ?? '').trim()
+  if (!normalized || normalized.toLowerCase() === 'service') return null
+  return normalized
+}
+
 const normalizeColorValue = (value: string | null | undefined) => {
   const trimmed = (value ?? '').trim()
   return trimmed || '—'
@@ -319,6 +325,35 @@ const toPriceCents = (price: number | null | undefined) => {
   return Math.round(price * 100)
 }
 
+const buildFormulaServicePayload = (
+  serviceIds: number[] | undefined,
+  serviceType: string | null | undefined
+) => {
+  const normalizedIds = (serviceIds ?? []).filter((id) => Number.isFinite(id))
+  const normalizedType = normalizeServiceTypeInput(serviceType)
+
+  if (normalizedIds.length > 0) {
+    return {
+      service_ids: normalizedIds,
+      service_type: normalizedType ?? null,
+    }
+  }
+
+  if (normalizedType) {
+    return {
+      service_type: normalizedType,
+    }
+  }
+
+  if (serviceIds !== undefined) {
+    return {
+      service_ids: [],
+    }
+  }
+
+  return {}
+}
+
 type FlexibleColorChart = Partial<ApiColorChart> &
   Partial<{
     clientId: number | string | null
@@ -415,8 +450,6 @@ const mapColorChartItemsByClient = (
 
 const colorChartClientPathBuilders = [
   (clientId: number | string) => `/clients/${clientId}/color-chart`,
-  (clientId: number | string) => `/clients/${clientId}/colorchart`,
-  (clientId: number | string) => `/client/${clientId}/colorchart`,
 ]
 
 const getColorChartForClientFromPayload = (
@@ -790,8 +823,7 @@ export async function createFormulaViaApi(input: CreateFormulaInput): Promise<Ap
   }
 
   const payload = {
-    service_ids: input.serviceIds,
-    service_type: input.serviceType ?? null,
+    ...buildFormulaServicePayload(input.serviceIds, input.serviceType),
     notes: input.notes?.trim() || null,
     price_cents: toPriceCents(input.price),
     service_at: toServiceAtIso(input.date),
@@ -810,8 +842,9 @@ export async function updateFormulaViaApi(input: UpdateFormulaInput): Promise<Ap
   const formulaId = toFormulaId(input.formulaId)
   const payload: Record<string, unknown> = {}
 
-  if (input.serviceIds !== undefined) payload.service_ids = input.serviceIds
-  if (input.serviceType !== undefined) payload.service_type = input.serviceType
+  if (input.serviceIds !== undefined || input.serviceType !== undefined) {
+    Object.assign(payload, buildFormulaServicePayload(input.serviceIds, input.serviceType))
+  }
   if (input.notes !== undefined) payload.notes = input.notes?.trim() || null
   if (input.price !== undefined) payload.price_cents = toPriceCents(input.price)
   if (input.date !== undefined) payload.service_at = toServiceAtIso(input.date)
@@ -960,11 +993,12 @@ export async function fetchColorAnalysisByClientFromApi(): Promise<
   Record<string, ColorAnalysis>
 > {
   let primaryResult: Record<string, ColorAnalysis> = {}
+  let hasPaginatedShape = false
+  let totalFromApi: number | null = null
 
   try {
     const limit = 200
     let offset = 0
-    let total: number | null = null
     const items: FlexibleColorChart[] = []
 
     while (true) {
@@ -977,15 +1011,15 @@ export async function fetchColorAnalysisByClientFromApi(): Promise<
       items.push(...responseItems)
 
       const payload = response as Partial<ApiColorChartListResponse>
-      const hasPaginatedShape = Array.isArray(payload.items)
+      hasPaginatedShape = Array.isArray(payload.items)
       if (!hasPaginatedShape) {
         break
       }
 
-      total = typeof payload.total === 'number' ? payload.total : null
+      totalFromApi = typeof payload.total === 'number' ? payload.total : null
       offset += limit
       if (responseItems.length === 0) break
-      if (total !== null && items.length >= total) break
+      if (totalFromApi !== null && items.length >= totalFromApi) break
     }
 
     primaryResult = mapColorChartItemsByClient(items)
@@ -997,6 +1031,10 @@ export async function fetchColorAnalysisByClientFromApi(): Promise<
 
   if (Object.keys(primaryResult).length > 0) {
     return primaryResult
+  }
+
+  if (hasPaginatedShape && totalFromApi === 0) {
+    return {}
   }
 
   try {

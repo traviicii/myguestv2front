@@ -59,7 +59,6 @@ export default function DeleteAccountScreen() {
         message: 'Your data has been removed. Signing out...',
       })
       await signOutUser()
-      router.replace('/')
     } catch (error) {
       toast.show('Delete failed', {
         message: error instanceof Error ? error.message : 'Please try again.',

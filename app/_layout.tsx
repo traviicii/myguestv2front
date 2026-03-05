@@ -9,6 +9,7 @@ import { Provider } from 'components/Provider'
 import { useTheme } from 'tamagui'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { AuthGate } from 'components/auth/AuthGate'
+import { OnboardingGate } from 'components/onboarding/OnboardingGate'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 
 export {
@@ -88,35 +89,43 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={navigationTheme}>
       <AuthGate>
-        {/* Central navigation map for all top-level routes and modals. */}
-        <Stack
-          screenOptions={{
-            animation: 'none',
-            gestureEnabled: true,
-            gestureDirection: 'horizontal',
-            headerBackTitle: '',
-            headerBackButtonDisplayMode: 'minimal',
-            headerStyle: {
-              backgroundColor: chromeBackground,
-            },
-            headerShadowVisible: false,
-            headerTintColor: chromeTint,
-            headerTitleStyle: {
-              fontFamily: headingFontFamily,
-              fontSize: 16,
-              fontWeight: '600',
-            },
-            contentStyle: {
-              backgroundColor: pageBackground,
-            },
-          }}
-        >
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              headerShown: false,
+        <OnboardingGate>
+          {/* Central navigation map for all top-level routes and modals. */}
+          <Stack
+            screenOptions={{
+              animation: 'none',
+              gestureEnabled: true,
+              gestureDirection: 'horizontal',
+              headerBackTitle: '',
+              headerBackButtonDisplayMode: 'minimal',
+              headerStyle: {
+                backgroundColor: chromeBackground,
+              },
+              headerShadowVisible: false,
+              headerTintColor: chromeTint,
+              headerTitleStyle: {
+                fontFamily: headingFontFamily,
+                fontSize: 16,
+                fontWeight: '600',
+              },
+              contentStyle: {
+                backgroundColor: pageBackground,
+              },
             }}
-          />
+          >
+            <Stack.Screen
+              name="(tabs)"
+              options={{
+                headerShown: false,
+              }}
+            />
+
+            <Stack.Screen
+              name="onboarding/index"
+              options={{
+                headerShown: false,
+              }}
+            />
 
           <Stack.Screen
             name="client/[id]"
@@ -233,7 +242,8 @@ function RootLayoutNav() {
               },
             }}
           />
-        </Stack>
+          </Stack>
+        </OnboardingGate>
       </AuthGate>
     </ThemeProvider>
   )

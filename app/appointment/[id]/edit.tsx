@@ -198,10 +198,30 @@ export default function EditAppointmentScreen() {
     try {
       const parsedPrice = parsePrice(form.price)
       const primaryService = selectedServices[0]?.name
+      const normalizedPrimaryService = primaryService
+        ? normalizeServiceName(primaryService)
+        : null
+      const hasInitialServiceIds = initialServiceIdsRef.current.length > 0
+      const legacyServiceRaw = (appointment.services || '').trim()
+      const normalizedLegacyService = legacyServiceRaw
+        ? normalizeServiceName(legacyServiceRaw)
+        : null
+      const canPreserveLegacy =
+        !normalizedPrimaryService &&
+        selectedServiceIds.length === 0 &&
+        !hasInitialServiceIds
+      const legacyServiceType =
+        normalizedLegacyService &&
+        normalizedLegacyService.toLowerCase() !== 'service'
+          ? normalizedLegacyService
+          : null
+      const resolvedServiceType = canPreserveLegacy
+        ? legacyServiceType
+        : normalizedPrimaryService
       await updateAppointmentLog.mutateAsync({
         formulaId: appointment.id,
         serviceIds: selectedServiceIds,
-        serviceType: primaryService ? normalizeServiceName(primaryService) : null,
+        serviceType: resolvedServiceType,
         notes: form.notes,
         price: parsedPrice,
         date: form.date,
