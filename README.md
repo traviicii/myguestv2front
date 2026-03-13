@@ -2,6 +2,54 @@
 
 Mobile-first client management app for stylists, built with Expo Router + Tamagui.
 
+## iPhone Development
+
+```bash
+npm install
+npm run ios:rebuild
+npm run dev
+```
+
+Use `npm run ios:rebuild` only when setting up the phone, after native dependency or app config changes, or when the dev build expires. For normal day-to-day work, `npm run dev` is the main command.
+
+Notes:
+
+- `npm run dev` uses a tunnel by default because it is more reliable on a physical iPhone.
+- In tunnel mode, the app may still say `No development servers found`. That is normal. Tap `Enter URL manually` and paste the full `Metro waiting on ...` URL from the terminal.
+- `npm run dev:lan` is optional when your Mac and phone are on the same Wi-Fi and you want the fastest local connection.
+- `npm run dev:clean` is the reset button for Metro cache issues.
+- `npm run ios:rebuild:clean` regenerates the native projects before rebuilding and is the nuclear option when config gets out of sync.
+- The dev build stays installed on your phone between sessions.
+- With a free Apple ID, dev builds typically expire after about 7 days.
+
+## Troubleshooting iOS Dev Builds
+
+- **Build fails: “No profiles for bundle id …”**
+  - Open `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/ios/exporouterexample.xcworkspace` in Xcode.
+  - Target: `exporouterexample` → Signing & Capabilities → “Automatically manage signing” ON → select your Team.
+  - Build once in Xcode, then retry `npm run ios:rebuild`.
+- **App won’t launch: “profile not trusted / invalid code signature”**
+  - On the phone: Settings → Privacy & Security → Developer Mode (enable + reboot if needed).
+  - Settings → General → VPN & Device Management → trust your Apple ID.
+  - Delete the app from the phone and re-run `npm run ios:rebuild`.
+- **Bundler error: “Unable to resolve ansi-styles” or other missing modules**
+  - Run `npm run dev:clean` to clear Metro cache.
+  - If it persists: delete `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/node_modules` and run `npm install`.
+- **The app says “No development servers found” or tries `localhost:8081`**
+  - Make sure `npm run dev` is still running on your Mac.
+  - In `MyGuest Dev`, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
+  - If local networking is stable, use `npm run dev:lan` instead.
+- **The dev app still shows old names or old schemes**
+  - Run `npm run ios:rebuild:clean` and reinstall the app on the phone.
+
+## Other Commands
+
+- `npm run android` runs the Android native build.
+- `npm run web` starts the web target locally.
+- `npm run build:web` exports the web build to `dist/`.
+- `npm test` runs the Playwright suite.
+- `npm run audit:ui` runs the UI consistency audit.
+
 ## Stack
 
 - Expo + React Native
@@ -10,21 +58,6 @@ Mobile-first client management app for stylists, built with Expo Router + Tamagu
 - React Query (data access boundary)
 - Zustand (persisted UI/preferences state)
 - Playwright (web export smoke test)
-
-## Getting Started
-
-```bash
-npm install
-npm run start
-```
-
-Useful commands:
-
-- `npm run ios` - run on iOS simulator/device
-- `npm run android` - run on Android emulator/device
-- `npm run web` - run web target locally
-- `npm run build:web` - export static web build to `dist/`
-- `npm test` - Playwright test against exported web build
 
 ## Live v2 API (Dev)
 
