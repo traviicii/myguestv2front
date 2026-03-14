@@ -7,6 +7,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
 
+import { USE_MOCK_DATA } from 'components/data/config'
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY?.trim(),
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim(),
@@ -26,6 +28,7 @@ function isAlreadyInitializedAuthError(error: unknown) {
 }
 
 function getReactNativePersistenceFactory() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const authModule = require('firebase/auth') as {
     getReactNativePersistence?: (storage: typeof AsyncStorage) => unknown
   }
@@ -33,6 +36,9 @@ function getReactNativePersistenceFactory() {
 }
 
 export function isFirebaseConfigured() {
+  if (USE_MOCK_DATA) {
+    return false
+  }
   return Boolean(
     firebaseConfig.apiKey &&
       firebaseConfig.authDomain &&

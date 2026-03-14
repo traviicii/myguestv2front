@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { useToastController } from '@tamagui/toast'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -33,6 +33,7 @@ export default function DeleteAccountScreen() {
   const deleteAccount = useDeleteAccount()
 
   const [email, setEmail] = useState('')
+  const deleteHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const targetEmail = useMemo(
     () => (user?.email ?? profile.email ?? '').trim(),
@@ -66,14 +67,28 @@ export default function DeleteAccountScreen() {
     }
   }
 
+  const handleDeletePressIn = () => {
+    if (!canDelete) return
+    deleteHoldRef.current = setTimeout(() => {
+      handleDelete()
+    }, 2000)
+  }
+
+  const handleDeletePressOut = () => {
+    if (deleteHoldRef.current) {
+      clearTimeout(deleteHoldRef.current)
+      deleteHoldRef.current = null
+    }
+  }
+
   return (
     <YStack flex={1} bg="$surfacePage" position="relative">
       <AmbientBackdrop />
       <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
       <ScrollView
-        contentContainerStyle={{
-          paddingBottom: Math.max(24, insets.bottom + 24),
-        }}
+        contentContainerStyle={
+          { paddingBottom: Math.max(24, insets.bottom + 24) } as any
+        }
       >
         <YStack px="$5" pt="$3" gap="$4">
           <YStack gap="$2">
@@ -126,8 +141,8 @@ export default function DeleteAccountScreen() {
                   message: 'Hold for 2 seconds to confirm account deletion.',
                 })
               }}
-              onLongPress={handleDelete}
-              delayLongPress={2000}
+              onPressIn={handleDeletePressIn}
+              onPressOut={handleDeletePressOut}
               disabled={!canDelete}
               opacity={canDelete ? 1 : 0.5}
             >

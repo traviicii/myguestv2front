@@ -1,5 +1,8 @@
+// Service name normalization is shared by the UI and backend so that
+// "cut & color" and "Cut & Color" collapse to the same canonical label.
 const CONNECTOR_WORDS = new Set(['and', 'or', 'of', 'the', 'a', 'an', 'for', 'to'])
 
+// Default presets used when no service catalog has been created yet.
 export const DEFAULT_APPOINTMENT_SERVICES = [
   'Cut',
   'Color',
@@ -9,11 +12,13 @@ export const DEFAULT_APPOINTMENT_SERVICES = [
   'Glaze',
 ]
 
+// Normalize whitespace so we do not create multiple presets for the same label.
 const normalizeWhitespace = (value: string) =>
   value
     .trim()
     .replace(/\s+/g, ' ')
 
+// Title-case a token while preserving connector words and separators.
 const toTitleToken = (token: string, index: number, total: number) => {
   const trimmed = token.trim()
   if (!trimmed) return ''
@@ -30,6 +35,7 @@ const toTitleToken = (token: string, index: number, total: number) => {
   return lowered.replace(/(^[a-z])|([-/][a-z])/g, (segment) => segment.toUpperCase())
 }
 
+// Convert raw user input into a canonical, display-friendly label.
 export const normalizeServiceName = (value: string) => {
   const normalized = normalizeWhitespace(value)
   if (!normalized) return ''
@@ -38,6 +44,7 @@ export const normalizeServiceName = (value: string) => {
   return parts.map((part, index) => toTitleToken(part, index, parts.length)).join(' ')
 }
 
+// Deduplicate and normalize a list of service strings, with a fallback.
 export const normalizeServiceList = (
   services: string[] | undefined,
   fallback: string[] = DEFAULT_APPOINTMENT_SERVICES
@@ -58,6 +65,7 @@ export const normalizeServiceList = (
   return [...fallback]
 }
 
+// Use a best-effort label from service type or notes, so the UI never shows "Service".
 export const getServiceLabel = (serviceType: string, notes: string) => {
   const normalizedService = normalizeServiceName(serviceType)
   if (normalizedService && normalizedService.toLowerCase() !== 'service') {

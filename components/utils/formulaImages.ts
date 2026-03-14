@@ -1,5 +1,5 @@
-import type { FormulaImageInput } from 'components/data/api'
-import type { AppointmentImageRef } from 'components/mockData'
+import type { FormulaImageInput } from 'components/data/api/appointments'
+import type { AppointmentImageRef } from 'components/data/models'
 
 const fallbackFileName = (index: number) => `image-${index + 1}.jpg`
 

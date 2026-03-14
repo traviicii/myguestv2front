@@ -1,4 +1,4 @@
-import type { ColorAnalysis } from 'components/mockData'
+import type { ColorAnalysis } from 'components/data/models'
 
 export type ColorChartFieldKey =
   | 'porosity'
@@ -70,11 +70,11 @@ export const COLOR_CHART_OPTIONS: Record<ColorChartPicklistFieldKey, readonly st
   eye_color: ['Brown', 'Hazel', 'Blue', 'Green', 'Gray'],
 }
 
-export const COLOR_CHART_GROUPS: ReadonlyArray<{
+export const COLOR_CHART_GROUPS: readonly {
   id: 'hairProfile' | 'levelPlanning' | 'grayCoverage' | 'toneProfile'
   title: string
   fields: readonly ColorChartFieldKey[]
-}> = [
+}[] = [
   {
     id: 'hairProfile',
     title: 'Hair Profile',

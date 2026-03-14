@@ -110,3 +110,5 @@ export const useExpandablePanel = (
     showPanel,
   }
 }
+
+export type ExpandablePanel = ReturnType<typeof useExpandablePanel>

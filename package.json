@@ -12,8 +12,11 @@
     "android": "expo run:android",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
+    "typecheck": "npx tsc --noEmit",
+    "lint": "npx eslint . --ext .js,.ts,.tsx",
     "audit:ui": "node scripts/ui-consistency-audit.mjs",
     "test": "npx playwright test",
+    "test:smoke": "EXPO_PUBLIC_USE_MOCK_DATA=true npx playwright test tests/export.test.ts tests/mock-source.test.ts tests/mock-overview.spec.ts tests/clients-and-appointments.spec.ts tests/appointment-date-picker.test.ts tests/studio-store.test.ts tests/overview-store.test.ts tests/overview-model-utils.test.ts tests/settings-model-utils.test.ts tests/appointment-form-utils.test.ts tests/edit-appointment-model-utils.test.ts tests/appointment-api-payloads.test.ts tests/appointment-api-mappers.test.ts tests/color-chart-api-payloads.test.ts tests/color-chart-api-mappers.test.ts tests/color-chart-edit-model-utils.test.ts tests/sortable-grid-utils.test.ts tests/ambient-backdrop-utils.test.ts tests/onboarding-model-utils.test.ts tests/appointment-client-picker-model-utils.test.ts tests/new-appointment-model-utils.test.ts tests/settings-service-management-utils.test.ts tests/quick-log-model-utils.test.ts tests/new-client-form-utils.test.ts",
     "test:visual-theme-matrix": "npx playwright test tests/visual-theme-matrix.spec.ts",
     "upgrade:tamagui": "npx npm-check-updates -u '*tamagui*' '@tamagui/*' && npm install",
     "postinstall": "node scripts/patch-expo-crypto-ios.js"
@@ -69,6 +72,8 @@
     "@playwright/test": "^1.49.1",
     "@tamagui/babel-plugin": "2.0.0-rc.17",
     "@types/react": "~19.1.10",
+    "eslint": "^8.57.1",
+    "eslint-config-expo": "^9.2.0",
     "react-refresh": "^0.14.2",
     "serve": "^14.2.5",
     "typescript": "~5.9.2"

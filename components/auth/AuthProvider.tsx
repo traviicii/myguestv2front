@@ -1,3 +1,5 @@
+// Auth provider wraps Firebase auth and exposes a thin, app-friendly API.
+// It also wires the API client to the current token so network calls stay authenticated.
 import {
   createContext,
   useCallback,
@@ -24,7 +26,7 @@ import {
   getMissingFirebaseConfigKeys,
   isFirebaseConfigured,
 } from './firebaseClient'
-import { setAuthTokenProvider } from 'components/data/api'
+import { setAuthTokenProvider } from 'components/data/api/shared'
 
 type AuthContextValue = {
   isReady: boolean
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthTokenProvider(async () => auth.currentUser?.getIdToken() ?? null)
 
     if (Platform.OS === 'web') {
+      // Explicit persistence improves token refresh behavior on web builds.
       setPersistence(auth, browserLocalPersistence).catch(() => {
         // Session will still work without explicit persistence, but token refresh
         // behavior is better when local persistence is available.
@@ -81,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     return () => {
+      // Ensure we do not keep a stale token provider around after sign out/unmount.
       unsubscribe()
       setAuthTokenProvider(null)
     }
@@ -91,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Firebase is not configured.')
     }
     if (Platform.OS !== 'web') {
+      // Native Google sign-in is not wired yet; guard to avoid misleading UX.
       throw new Error(
         'Google sign-in is currently implemented for web. Use Expo web for now.'
       )

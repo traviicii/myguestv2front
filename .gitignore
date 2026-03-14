@@ -64,7 +64,6 @@ pnpm-debug.log*
 *.db-journal
 backup/
 backups/
-components/mockData.ts
 
 # IDE / OS metadata
 .DS_Store

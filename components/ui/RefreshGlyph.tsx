@@ -1,19 +1,20 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Animated, Easing } from 'react-native'
-import { Sparkles } from '@tamagui/lucide-icons'
-import { useTheme } from 'tamagui'
 import Svg, { Circle } from 'react-native-svg'
+import { useTheme } from 'tamagui'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { SurfaceCard } from 'components/ui/controls'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+
+export const REFRESH_REVEAL_HEIGHT = 44
 
 type RefreshGlyphProps = {
   progress: Animated.Value | Animated.AnimatedInterpolation<number>
   refreshing: boolean
   thresholdReached?: boolean
 }
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
 export function RefreshGlyph({ progress, refreshing, thresholdReached }: RefreshGlyphProps) {
   const theme = useTheme()
@@ -31,7 +32,7 @@ export function RefreshGlyph({ progress, refreshing, thresholdReached }: Refresh
           toValue: 1,
           duration: 900,
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       )
       loop.start()
@@ -45,7 +46,12 @@ export function RefreshGlyph({ progress, refreshing, thresholdReached }: Refresh
   }, [refreshValue, refreshing, spin])
 
   useEffect(() => {
-    refreshValue.setValue(refreshing ? 1 : 0)
+    Animated.timing(refreshValue, {
+      toValue: refreshing ? 1 : 0,
+      duration: refreshing ? 140 : 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
   }, [refreshing, refreshValue])
 
   const revealCombined = Animated.add(progress as any, refreshValue).interpolate({
@@ -53,12 +59,7 @@ export function RefreshGlyph({ progress, refreshing, thresholdReached }: Refresh
     outputRange: [0, 1],
     extrapolate: 'clamp',
   })
-  const visibility = Animated.add(progress as any, revealCombined).interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  })
-  const opacity = visibility.interpolate({
+  const opacity = revealCombined.interpolate({
     inputRange: [0, 0.2, 1],
     outputRange: [0, 0.7, 1],
     extrapolate: 'clamp',
@@ -70,38 +71,41 @@ export function RefreshGlyph({ progress, refreshing, thresholdReached }: Refresh
   })
   const translateY = revealCombined.interpolate({
     inputRange: [0, 1],
-    outputRange: [-28, 4],
+    outputRange: [-REFRESH_REVEAL_HEIGHT, 0],
     extrapolate: 'clamp',
-  })
-  const pullRotate = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
   })
   const spinRotate = spin.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   })
 
-  const accentColor = useMemo(
-    () => toNativeColor(theme.accent?.val, FALLBACK_COLORS.accent),
-    [theme.accent?.val]
-  )
-  const baseRingColor = toNativeColor(theme.textMuted?.val, '#B9B2C4')
-  const ringColor = accentColor
+  const accentColor = toNativeColor(theme.accent?.val, FALLBACK_COLORS.glassAccentLight)
+  const baseRingColor = toNativeColor(theme.textMuted?.val, FALLBACK_COLORS.textSecondary)
   const ringOpacity = thresholdReached ? 1 : 0.85
   const size = 36
-  const stroke = 3.4
+  const stroke = 3.2
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
-  const ringProgress = Animated.add(progress as any, refreshValue).interpolate({
+  const minArc = 0.1
+  const pullArc = Animated.add(
+    minArc,
+    Animated.multiply(progress as any, 1 - minArc)
+  )
+  const refreshArc = Animated.multiply(refreshValue, 0.28)
+  const pullArcWeighted = Animated.multiply(
+    pullArc,
+    Animated.subtract(1, refreshValue)
+  )
+  const ringProgress = Animated.add(refreshArc, pullArcWeighted).interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   })
-  const dashOffset = Animated.subtract(
-    circumference,
-    Animated.multiply(ringProgress, circumference)
-  )
+  const dashArray = ringProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [`0 ${circumference}`, `${circumference} ${circumference}`],
+  })
+  const dashOffset = circumference * 0.25
   return (
     <Animated.View
       style={{ opacity, transform: [{ translateY }, { scale }] }}
@@ -116,31 +120,30 @@ export function RefreshGlyph({ progress, refreshing, thresholdReached }: Refresh
         justify="center"
         p="$0"
       >
-        <Svg width={size} height={size} style={{ position: 'absolute' }}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={baseRingColor}
-            strokeWidth={stroke}
-            opacity={0.25}
-            fill="transparent"
-          />
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={ringColor}
-            strokeWidth={stroke}
-            opacity={ringOpacity}
-            strokeLinecap="round"
-            strokeDasharray={`${circumference}`}
-            strokeDashoffset={dashOffset}
-            fill="transparent"
-          />
-        </Svg>
-        <Animated.View style={{ transform: [{ rotate: pullRotate }, { rotate: spinRotate }] }}>
-          <Sparkles size={16} color={accentColor} />
+        <Animated.View style={{ transform: [{ rotate: spinRotate }] }}>
+          <Svg width={size} height={size}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={baseRingColor}
+              strokeWidth={stroke}
+              opacity={0.25}
+              fill="transparent"
+            />
+            <AnimatedCircle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={accentColor}
+              strokeWidth={stroke}
+              opacity={ringOpacity}
+              strokeLinecap="round"
+              strokeDasharray={dashArray as any}
+              strokeDashoffset={dashOffset}
+              fill="transparent"
+            />
+          </Svg>
         </Animated.View>
       </SurfaceCard>
     </Animated.View>

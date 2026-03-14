@@ -11,7 +11,7 @@ export default defineConfig({
   },
 
   webServer: {
-    command: `npx expo export --platform web && npx serve dist -l ${port}`,
+    command: `npx expo export --platform web && npx serve -s dist -l tcp://127.0.0.1:${port}`,
     url: `http://localhost:${port}`,
     reuseExistingServer: true,
     timeout: 180_000,

@@ -1,4 +1,4 @@
-import type { Client } from 'components/mockData'
+import type { Client } from 'components/data/models'
 
 const parseTimestamp = (value?: string) => {
   if (!value) return null

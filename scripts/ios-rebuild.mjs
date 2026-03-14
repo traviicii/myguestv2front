@@ -1,4 +1,11 @@
 import { spawn } from 'node:child_process'
+import { readFile, readdir, rm } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const projectRoot = path.resolve(scriptDir, '..')
+const iosDir = path.join(projectRoot, 'ios')
 
 const args = new Set(process.argv.slice(2))
 
@@ -14,6 +21,30 @@ Options:
 }
 
 const clean = args.has('--clean')
+
+const sanitizeNativeProjectName = (value) => value.replace(/[^A-Za-z0-9]/g, '')
+
+const pruneStaleWorkspaces = async () => {
+  const appConfigRaw = await readFile(path.join(projectRoot, 'app.json'), 'utf8')
+  const appConfig = JSON.parse(appConfigRaw)
+  const expectedWorkspaceName = `${sanitizeNativeProjectName(appConfig.expo?.name ?? 'App')}.xcworkspace`
+  const entries = await readdir(iosDir, { withFileTypes: true })
+  const workspaceNames = entries
+    .filter((entry) => entry.isDirectory() && entry.name.endsWith('.xcworkspace'))
+    .map((entry) => entry.name)
+
+  if (!workspaceNames.includes(expectedWorkspaceName)) {
+    return
+  }
+
+  for (const workspaceName of workspaceNames) {
+    if (workspaceName === expectedWorkspaceName) {
+      continue
+    }
+    await rm(path.join(iosDir, workspaceName), { recursive: true, force: true })
+    console.log(`Removed stale workspace: ${workspaceName}`)
+  }
+}
 
 const run = (command, commandArgs) =>
   new Promise((resolve, reject) => {
@@ -42,4 +73,5 @@ if (clean) {
   await run('npx', ['expo', 'prebuild', '--clean'])
 }
 
+await pruneStaleWorkspaces()
 await run('npx', ['expo', 'run:ios', '--device'])

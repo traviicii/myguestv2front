@@ -1,4 +1,4 @@
-import type { ColorAnalysis } from 'components/mockData'
+import type { ColorAnalysis } from 'components/data/models'
 import {
   COLOR_ANALYSIS_FIELD_MAP,
   COLOR_CHART_OPTIONS,
