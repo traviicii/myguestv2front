@@ -14,6 +14,7 @@ import {
   avgTicketOptions,
   overviewSectionOptions,
   photoCoverageOptions,
+  privacyHighlights,
 } from './settingsModelConfig'
 import {
   buildDisplayRows,
@@ -131,6 +132,7 @@ export function useSettingsScreenModel() {
       'MyGuest stores your account identity, client contact details, notes, appointment history, color chart data, and optional appointment photos. Data export is CSV-only; images stay attached to appointments in the app.',
     overviewSectionOptions,
     photoCoverageOptions,
+    privacyHighlights,
     setAppSettings,
     showInfo: showSettingsInfo,
     topInset,

@@ -25,6 +25,9 @@ export function OnboardingContent({ model }: OnboardingSectionProps) {
             Welcome to MyGuest
           </ThemedHeadingText>
           <Text fontSize={12} color="$textSecondary">
+            Set up your studio, add one client, and log the first visit in just a few minutes.
+          </Text>
+          <Text fontSize={12} color="$textSecondary">
             Step {model.step} of 4 · {model.stepTitle}
           </Text>
 

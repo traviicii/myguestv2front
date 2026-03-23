@@ -109,8 +109,26 @@ export default function DeleteAccountScreen() {
               </Text>
             </XStack>
             <Text fontSize={12} color="$textSecondary">
-              This permanently removes your account, clients, appointment logs, and images.
+              This permanently removes your account, clients, appointment logs, color charts,
+              and hosted images.
             </Text>
+          </SurfaceCard>
+
+          <SurfaceCard tone={cardTone} p="$4" gap="$3">
+            <Text fontSize={13} fontWeight="700" color="$textPrimary">
+              Before you continue
+            </Text>
+            <Text fontSize={12} color="$textSecondary">
+              If you want a copy of your records, go back and use Export My Data in Settings
+              first. Exports include CSV files only and do not include appointment images.
+            </Text>
+            <SecondaryButton
+              onPress={() =>
+                router.push({ pathname: '/settings', params: { focus: 'account-privacy' } })
+              }
+            >
+              Back to Data & Privacy
+            </SecondaryButton>
           </SurfaceCard>
 
           <SurfaceCard tone={cardTone} p="$4" gap="$3">

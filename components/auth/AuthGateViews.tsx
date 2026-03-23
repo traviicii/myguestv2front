@@ -53,7 +53,10 @@ export function SignInRequiredView({
           Sign In
         </Text>
         <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
-          Use {authMethodsLabel} to access your MyGuest data.
+          Use {authMethodsLabel} to securely access your MyGuest workspace.
+        </Text>
+        <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
+          Your sign-in keeps client notes, appointment history, and formulas tied to you.
         </Text>
       </YStack>
       {showAppleSignIn ? (
@@ -110,21 +113,25 @@ export function SignInRequiredView({
 
 export function FirebaseConfigRequiredView({
   missingFirebaseConfigKeys,
+  onOpenSupport,
   showConfigDetails,
+  showSupportAction,
 }: {
   missingFirebaseConfigKeys: string[]
+  onOpenSupport?: () => Promise<void>
   showConfigDetails: boolean
+  showSupportAction: boolean
 }) {
   return (
     <YStack flex={1} px="$6" items="center" justify="center" gap="$4">
       <YStack gap="$2" items="center">
         <Text fontSize={18} fontWeight="700">
-          Firebase Config Required
+          {showConfigDetails ? 'Firebase Config Required' : 'Sign-In Unavailable'}
         </Text>
         <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
           {showConfigDetails
             ? 'Add Firebase web config values in `.env` to enable login.'
-            : 'Sign-in is still being configured for this build.'}
+            : 'This build cannot sign in yet. Please update the app or contact support.'}
         </Text>
       </YStack>
       {showConfigDetails ? (
@@ -136,7 +143,17 @@ export function FirebaseConfigRequiredView({
           ))}
         </YStack>
       ) : null}
-      <SecondaryButton disabled>Waiting for Firebase env vars</SecondaryButton>
+      {showSupportAction && onOpenSupport ? (
+        <SecondaryButton
+          onPress={() => {
+            void onOpenSupport()
+          }}
+        >
+          Contact Support
+        </SecondaryButton>
+      ) : (
+        <SecondaryButton disabled>Waiting for sign-in setup</SecondaryButton>
+      )}
     </YStack>
   )
 }

@@ -5,6 +5,7 @@ import {
   OptionChipLabel,
   PrimaryButton,
   SecondaryButton,
+  SurfaceCard,
   TextField,
 } from 'components/ui/controls'
 
@@ -56,9 +57,15 @@ export function OnboardingAppointmentStep({ model }: OnboardingSectionProps) {
         value={model.appointmentDraft.notes}
         onChangeText={(text) => model.setAppointmentDraft((prev) => ({ ...prev, notes: text }))}
       />
-      <Text fontSize={12} color="$textSecondary">
-        You own your data. Export a CSV bundle or delete your account anytime in Settings.
-      </Text>
+      <SurfaceCard tone={model.cardTone} p="$3" gap="$1.5">
+        <Text fontSize={12} fontWeight="700" color="$textPrimary">
+          Your data stays in your control
+        </Text>
+        <Text fontSize={11} color="$textSecondary">
+          Export your records as CSV from Settings anytime, keep photos optional, and delete
+          your account later if you ever need to leave.
+        </Text>
+      </SurfaceCard>
       <PrimaryButton disabled={model.isSaving} onPress={() => void model.handleFinish()}>
         {model.isSaving ? 'Saving...' : 'Save & Finish'}
       </PrimaryButton>

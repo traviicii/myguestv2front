@@ -289,7 +289,7 @@ export function ProfileContent({ model }: ProfileSectionProps) {
         <SummaryRow
           tone={model.cardTone}
           title="Data & Privacy"
-          body="Open privacy policy, support, export, and account removal controls from one place."
+          body="See what MyGuest stores, open privacy or support links, export CSV records, and manage account deletion from one place."
           cta="Open Data & Privacy"
           href={{ pathname: '/settings', params: { focus: 'account-privacy' } }}
           icon={<Lock size={16} color="$accent" />}

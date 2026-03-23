@@ -22,6 +22,11 @@ export type OverviewSectionOption = {
   help: string
 }
 
+export type PrivacyHighlight = {
+  title: string
+  body: string
+}
+
 export type SettingsDisplayRow = {
   id: PreviewCountSettingKey
   label: string
@@ -36,6 +41,7 @@ export type SettingsOptionSet = {
   avgTicketOptions: Option<AvgTicketRange>[]
   overviewSectionOptions: OverviewSectionOption[]
   photoCoverageOptions: Option<PhotoCoverageRange>[]
+  privacyHighlights: PrivacyHighlight[]
 }
 
 export type SettingsDisplayCounts = Pick<

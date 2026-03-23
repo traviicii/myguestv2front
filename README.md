@@ -1,4 +1,4 @@
-# MyGuest v2 Frontend
+# MyGuest Frontend
 
 Mobile-first client management app for stylists, built with Expo Router + Tamagui.
 

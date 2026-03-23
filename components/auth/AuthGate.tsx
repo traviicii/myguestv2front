@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Platform } from 'react-native'
+import { Linking, Platform } from 'react-native'
 import Constants from 'expo-constants'
 
 import { hasStaticDevToken } from 'components/data/api/shared'
+import { SUPPORT_URL } from 'components/data/config'
 
 import { useAuth } from './AuthProvider'
 import {
@@ -130,6 +131,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }
 
+  const handleOpenSupport = async () => {
+    if (!SUPPORT_URL) return
+
+    try {
+      await Linking.openURL(SUPPORT_URL)
+    } catch (error) {
+      setLoginError(
+        error instanceof Error ? error.message : 'Unable to open support right now.'
+      )
+    }
+  }
+
   if (canUseDevTokenFallback) {
     return <>{children}</>
   }
@@ -164,7 +177,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <FirebaseConfigRequiredView
       missingFirebaseConfigKeys={missingFirebaseConfigKeys}
+      onOpenSupport={handleOpenSupport}
       showConfigDetails={__DEV__}
+      showSupportAction={Boolean(SUPPORT_URL)}
     />
   )
 }

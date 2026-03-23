@@ -80,10 +80,35 @@ function AccountActionRow({
           <Text fontSize={11} color="$textSecondary">
             Working...
           </Text>
+        ) : disabled ? (
+          <Text fontSize={11} color="$textSecondary">
+            Unavailable
+          </Text>
         ) : (
           <ArrowUpRight size={14} color="$textSecondary" />
         )}
       </XStack>
+    </SurfaceCard>
+  )
+}
+
+function PrivacyHighlightCard({
+  title,
+  body,
+}: {
+  title: string
+  body: string
+}) {
+  return (
+    <SurfaceCard mode="section" tone="secondary">
+      <YStack gap="$1.5">
+        <Text fontSize={12} fontWeight="700" color="$textPrimary">
+          {title}
+        </Text>
+        <Text fontSize={11} color="$textSecondary">
+          {body}
+        </Text>
+      </YStack>
     </SurfaceCard>
   )
 }
@@ -467,6 +492,19 @@ export function AllControlsContent({
               </Text>
             </YStack>
 
+            <YStack gap="$2">
+              <Text fontSize={12} fontWeight="600" color="$textPrimary">
+                Privacy at a glance
+              </Text>
+              {model.privacyHighlights.map((highlight) => (
+                <PrivacyHighlightCard
+                  key={highlight.title}
+                  title={highlight.title}
+                  body={highlight.body}
+                />
+              ))}
+            </YStack>
+
             <AccountActionRow
               icon={<Shield size={14} color="$accent" />}
               title="Privacy Policy"
@@ -520,6 +558,18 @@ export function AllControlsContent({
                 </XStack>
               </SurfaceCard>
             </Link>
+
+            <SurfaceCard mode="section" tone="secondary">
+              <YStack gap="$1.5">
+                <Text fontSize={12} fontWeight="700" color="$textPrimary">
+                  Before you delete
+                </Text>
+                <Text fontSize={11} color="$textSecondary">
+                  Export your records first if you want a copy. Exports are CSV-only and do not
+                  include appointment images.
+                </Text>
+              </YStack>
+            </SurfaceCard>
           </YStack>
         </SurfaceCard>
       </YStack>
