@@ -33,6 +33,8 @@ EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-web-app-id>
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<google-ios-client-id>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<google-android-client-id>
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google-web-client-id>
+EXPO_PUBLIC_PRIVACY_POLICY_URL=https://example.com/privacy
+EXPO_PUBLIC_SUPPORT_URL=https://example.com/support
 EXPO_PUBLIC_USE_MOCK_DATA=false
 ```
 
@@ -47,6 +49,7 @@ Notes:
 - `EXPO_PUBLIC_API_BASE_URL` is required when `EXPO_PUBLIC_USE_MOCK_DATA=false`; the app no longer falls back to the hosted backend implicitly.
 - `npm run dev` uses a tunnel by default because it is more reliable on a physical iPhone.
 - `npm run dev:lan` is optional when your Mac and phone are on the same Wi-Fi.
+- `EXPO_PUBLIC_PRIVACY_POLICY_URL` and `EXPO_PUBLIC_SUPPORT_URL` power the in-app Data & Privacy section and should point at real public pages for release builds.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` is still supported for one-off local API debugging.
 
 ## Quality Gate
@@ -78,6 +81,15 @@ Use `npm run ios:rebuild` only when setting up the phone, after native dependenc
 or app config changes, or when the dev build expires. For normal day-to-day work,
 `npm run dev` is the main command.
 
+## iOS Release Prep
+
+The tracked release guide lives in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-launch-readiness.md`.
+Use that file for production identity, Sign in with Apple, privacy/support URLs,
+local archive expectations, and App Review prep. Keep any sensitive review
+credentials or submission answers in the local-only
+`APP_STORE_SUBMISSION_CHECKLIST.local.md` file instead of committing them.
+
 ## Troubleshooting iOS Dev Builds
 
 - **Build fails: “No profiles for bundle id …”**
@@ -93,7 +105,7 @@ or app config changes, or when the dev build expires. For normal day-to-day work
   - If it persists: delete `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/node_modules` and run `npm install`.
 - **The app says “No development servers found” or tries `localhost:8081`**
   - Make sure `npm run dev` is still running on your Mac.
-  - In `MyGuest Dev`, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
+  - In `MyGuest`, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
   - If local networking is stable, use `npm run dev:lan` instead.
 - **The dev app still shows old names or old schemes**
   - Run `npm run ios:rebuild:clean` and reinstall the app on the phone.
