@@ -1,5 +1,11 @@
 import { Link } from 'expo-router'
-import { Trash2 } from '@tamagui/lucide-icons'
+import {
+  ArrowUpRight,
+  Download,
+  LifeBuoy,
+  Shield,
+  Trash2,
+} from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
@@ -23,6 +29,64 @@ export type AllControlsSectionId =
   | 'services-logs'
   | 'dates-formatting'
   | 'account-privacy'
+
+function AccountActionRow({
+  body,
+  danger = false,
+  disabled = false,
+  icon,
+  isLoading = false,
+  onPress,
+  title,
+}: {
+  body: string
+  danger?: boolean
+  disabled?: boolean
+  icon: React.ReactNode
+  isLoading?: boolean
+  onPress?: () => void
+  title: string
+}) {
+  return (
+    <SurfaceCard
+      mode="section"
+      tone="default"
+      pressStyle={disabled ? undefined : { opacity: 0.85 }}
+      onPress={disabled || isLoading ? undefined : onPress}
+      opacity={disabled ? 0.6 : 1}
+    >
+      <XStack items="center" gap="$3" flexWrap="wrap">
+        <YStack
+          width={28}
+          height={28}
+          rounded={999}
+          items="center"
+          justify="center"
+          bg={danger ? '$surfaceChip' : '$surfaceChipActive'}
+          borderWidth={1}
+          borderColor={danger ? '$danger' : '$borderAccent'}
+        >
+          {icon}
+        </YStack>
+        <YStack flex={1} minW={0}>
+          <Text fontSize={13} color={danger ? '$danger' : '$textPrimary'} fontWeight="600">
+            {title}
+          </Text>
+          <Text fontSize={11} color="$textSecondary">
+            {body}
+          </Text>
+        </YStack>
+        {isLoading ? (
+          <Text fontSize={11} color="$textSecondary">
+            Working...
+          </Text>
+        ) : (
+          <ArrowUpRight size={14} color="$textSecondary" />
+        )}
+      </XStack>
+    </SurfaceCard>
+  )
+}
 
 export function AllControlsContent({
   captureSection,
@@ -393,21 +457,70 @@ export function AllControlsContent({
           Account & Privacy
         </ThemedHeadingText>
         <SurfaceCard mode="section" tone={model.cardTone}>
-          <Link href="/account-delete" asChild>
-            <SurfaceCard mode="section" tone={model.cardTone} pressStyle={{ opacity: 0.85 }}>
-              <XStack items="center" gap="$3" flexWrap="wrap">
-                <Trash2 size={16} color="$danger" />
-                <YStack flex={1} minW={0}>
-                  <Text fontSize={13} color="$danger" fontWeight="600">
-                    Delete account
-                  </Text>
-                  <Text fontSize={11} color="$textSecondary">
-                    Permanently remove your account and all associated data.
-                  </Text>
-                </YStack>
-              </XStack>
-            </SurfaceCard>
-          </Link>
+          <YStack gap="$3">
+            <YStack gap="$1.5">
+              <Text fontSize={13} fontWeight="600" color="$textPrimary">
+                Data ownership
+              </Text>
+              <Text fontSize={11} color="$textSecondary">
+                {model.privacySummary}
+              </Text>
+            </YStack>
+
+            <AccountActionRow
+              icon={<Shield size={14} color="$accent" />}
+              title="Privacy Policy"
+              body={
+                model.hasPrivacyPolicyUrl
+                  ? 'Review the current privacy policy for this build.'
+                  : 'Add EXPO_PUBLIC_PRIVACY_POLICY_URL before shipping the release build.'
+              }
+              disabled={!model.hasPrivacyPolicyUrl}
+              onPress={() => {
+                void model.handleOpenPrivacyPolicy()
+              }}
+            />
+
+            <AccountActionRow
+              icon={<LifeBuoy size={14} color="$accent" />}
+              title="Support"
+              body={
+                model.hasSupportUrl
+                  ? 'Open support so stylists can reach you from inside the app.'
+                  : 'Add EXPO_PUBLIC_SUPPORT_URL before submitting to App Review.'
+              }
+              disabled={!model.hasSupportUrl}
+              onPress={() => {
+                void model.handleOpenSupport()
+              }}
+            />
+
+            <AccountActionRow
+              icon={<Download size={14} color="$accent" />}
+              title="Export My Data"
+              body="Download a CSV ZIP of clients, services, appointment logs, and color charts."
+              isLoading={model.isExportingData}
+              onPress={() => {
+                void model.handleExportMyData()
+              }}
+            />
+
+            <Link href="/account-delete" asChild>
+              <SurfaceCard mode="section" tone={model.cardTone} pressStyle={{ opacity: 0.85 }}>
+                <XStack items="center" gap="$3" flexWrap="wrap">
+                  <Trash2 size={16} color="$danger" />
+                  <YStack flex={1} minW={0}>
+                    <Text fontSize={13} color="$danger" fontWeight="600">
+                      Delete account
+                    </Text>
+                    <Text fontSize={11} color="$textSecondary">
+                      Permanently remove your account, clients, logs, color charts, and hosted images.
+                    </Text>
+                  </YStack>
+                </XStack>
+              </SurfaceCard>
+            </Link>
+          </YStack>
         </SurfaceCard>
       </YStack>
     </YStack>

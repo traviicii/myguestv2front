@@ -11,8 +11,11 @@ import {
 } from 'react'
 import { Platform } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
+import * as AppleAuthentication from 'expo-apple-authentication'
+import * as Crypto from 'expo-crypto'
 import {
   GoogleAuthProvider,
+  OAuthProvider,
   browserLocalPersistence,
   onAuthStateChanged,
   setPersistence,
@@ -32,8 +35,10 @@ type AuthContextValue = {
   isReady: boolean
   user: User | null
   canUseFirebaseAuth: boolean
+  isAppleAuthAvailable: boolean
   missingFirebaseConfigKeys: string[]
   authError: string | null
+  signInWithApple: () => Promise<void>
   signInWithGoogle: () => Promise<void>
   signInWithGoogleIdToken: (idToken: string) => Promise<void>
   signOutUser: () => Promise<void>
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(!canUseFirebaseAuth)
   const [user, setUser] = useState<User | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false)
 
   useEffect(() => {
     if (!canUseFirebaseAuth) {
@@ -87,6 +93,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ensure we do not keep a stale token provider around after sign out/unmount.
       unsubscribe()
       setAuthTokenProvider(null)
+    }
+  }, [canUseFirebaseAuth])
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!canUseFirebaseAuth || Platform.OS !== 'ios') {
+      setIsAppleAuthAvailable(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    AppleAuthentication.isAvailableAsync()
+      .then((isAvailable) => {
+        if (!isMounted) return
+        setIsAppleAuthAvailable(isAvailable)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setIsAppleAuthAvailable(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [canUseFirebaseAuth])
+
+  const signInWithApple = useCallback(async () => {
+    if (!canUseFirebaseAuth) {
+      throw new Error('Firebase is not configured.')
+    }
+    if (Platform.OS !== 'ios') {
+      throw new Error('Sign in with Apple is available on iPhone only.')
+    }
+
+    try {
+      const rawNonce = Crypto.randomUUID()
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        ],
+        nonce: rawNonce,
+      })
+
+      if (!credential.identityToken) {
+        throw new Error('Apple sign-in did not return an identity token.')
+      }
+
+      const auth = getFirebaseAuth()
+      const provider = new OAuthProvider('apple.com')
+      const firebaseCredential = provider.credential({
+        idToken: credential.identityToken,
+        rawNonce,
+      })
+
+      await signInWithCredential(auth, firebaseCredential)
+      await auth.currentUser?.getIdToken(true)
+    } catch (error) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'ERR_REQUEST_CANCELED'
+      ) {
+        throw new Error('Apple sign-in was canceled.')
+      }
+      throw error
     }
   }, [canUseFirebaseAuth])
 
@@ -136,8 +211,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isReady,
       user,
       canUseFirebaseAuth,
+      isAppleAuthAvailable,
       missingFirebaseConfigKeys,
       authError,
+      signInWithApple,
       signInWithGoogle,
       signInWithGoogleIdToken,
       signOutUser,
@@ -145,8 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       authError,
       canUseFirebaseAuth,
+      isAppleAuthAvailable,
       isReady,
       missingFirebaseConfigKeys,
+      signInWithApple,
       signInWithGoogle,
       signInWithGoogleIdToken,
       signOutUser,

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MyGuest Dev",
-    "slug": "myguest-dev",
+    "name": "MyGuest",
+    "slug": "myguest",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myguestdev",
+    "scheme": "myguest",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -17,9 +17,12 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.travispeck.myguestv2front.dev",
+      "bundleIdentifier": "com.travispeck.myguest",
+      "buildNumber": "1",
+      "usesAppleSignIn": true,
       "infoPlist": {
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -27,7 +30,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.exporouterexample"
+      "package": "com.travispeck.myguest",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -36,6 +40,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       "expo-font",
       [
         "expo-build-properties",

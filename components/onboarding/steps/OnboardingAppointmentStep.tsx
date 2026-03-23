@@ -57,7 +57,7 @@ export function OnboardingAppointmentStep({ model }: OnboardingSectionProps) {
         onChangeText={(text) => model.setAppointmentDraft((prev) => ({ ...prev, notes: text }))}
       />
       <Text fontSize={12} color="$textSecondary">
-        You own your data. Export CSVs or delete your account anytime in Settings.
+        You own your data. Export a CSV bundle or delete your account anytime in Settings.
       </Text>
       <PrimaryButton disabled={model.isSaving} onPress={() => void model.handleFinish()}>
         {model.isSaving ? 'Saving...' : 'Save & Finish'}

@@ -22,7 +22,7 @@ export function OnboardingContent({ model }: OnboardingSectionProps) {
       >
         <YStack px="$5" pt={Math.max(model.insets.top + 16, 32)} gap="$4">
           <ThemedHeadingText fontSize={18} fontWeight="700">
-            Welcome to MyGuest v2
+            Welcome to MyGuest
           </ThemedHeadingText>
           <Text fontSize={12} color="$textSecondary">
             Step {model.step} of 4 · {model.stepTitle}

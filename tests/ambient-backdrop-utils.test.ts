@@ -64,7 +64,7 @@ test('ambient backdrop helpers build glass and non-glass visual states', async (
   })
 
   expect(modern.isGlassNative).toBe(false)
-  expect(modern.accentOpacity).toBe(0.1)
-  expect(modern.secondaryOpacity).toBe(0.08)
-  expect(modern.veilOpacity).toBe(0.08)
+  expect(modern.accentOpacity).toBe(0.12)
+  expect(modern.secondaryOpacity).toBe(0.09)
+  expect(modern.veilOpacity).toBe(0.03)
 })

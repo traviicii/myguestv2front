@@ -1,6 +1,7 @@
 export * from './api/shared'
 export * from './api/clients'
 export * from './api/appointments'
+export * from './api/exports'
 export * from './api/services'
 export * from './api/metrics'
 export * from './api/colorCharts'

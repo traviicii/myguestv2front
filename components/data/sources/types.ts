@@ -5,6 +5,7 @@ import type {
 } from '../api/clients'
 import type { CreateFormulaInput, UpdateFormulaInput } from '../api/appointments'
 import type { UpsertColorChartInput } from '../api/colorCharts'
+import type { DataExportResult } from '../api/exports'
 import type { OverviewMetrics, OverviewMetricsInput } from '../api/metrics'
 import type { CreateServiceInput, ServiceOption, UpdateServiceInput } from '../api/services'
 import type { AppointmentHistory, Client, ColorAnalysis } from '../models'
@@ -22,6 +23,7 @@ export type DataSource = {
   fetchColorAnalysisForClient: (clientId: string) => Promise<ColorAnalysis | null>
   fetchImagesByClient: () => Promise<Record<string, number>>
   fetchServices: (active: 'true' | 'false' | 'all') => Promise<ServiceOption[]>
+  exportMyData: () => Promise<DataExportResult>
   createClient: (input: CreateClientInput) => Promise<Client>
   deleteClient: (clientId: string) => Promise<void>
   deleteAccount: (input: DeleteAccountInput) => Promise<unknown>

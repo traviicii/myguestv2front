@@ -78,7 +78,17 @@ export function getGoogleAuthRequest({
   webClientId?: string
 }): GoogleAuthHookResult {
   const nativeRedirectUri = getIosNativeRedirectUri(iosClientId)
+  const isConfiguredForPlatform =
+    Platform.OS === 'ios'
+      ? Boolean(iosClientId)
+      : Platform.OS === 'android'
+        ? Boolean(androidClientId)
+        : Platform.OS === 'web'
+          ? Boolean(webClientId)
+          : true
+
   return googleProviderModule
+    && isConfiguredForPlatform
     ? googleProviderModule.useIdTokenAuthRequest(
         {
           iosClientId: iosClientId || undefined,

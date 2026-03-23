@@ -6,6 +6,7 @@ import {
   fetchClientsFromApi,
   updateClientViaApi,
 } from '../api/clients'
+import { exportMyDataViaApi } from '../api/exports'
 import {
   createFormulaViaApi,
   fetchAppointmentById,
@@ -39,6 +40,7 @@ export const apiDataSource: DataSource = {
   fetchColorAnalysisForClient: fetchColorAnalysisForClientFromApi,
   fetchImagesByClient: async () => ({}),
   fetchServices: fetchServicesFromApi,
+  exportMyData: exportMyDataViaApi,
   createClient: createClientViaApi,
   deleteClient: deleteClientViaApi,
   deleteAccount: deleteAccountViaApi,

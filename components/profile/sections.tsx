@@ -3,6 +3,7 @@ import { Link, type Href } from 'expo-router'
 import {
   ArrowRight,
   BarChart3,
+  Lock,
   LogOut,
   Paintbrush,
   Scissors,
@@ -283,6 +284,15 @@ export function ProfileContent({ model }: ProfileSectionProps) {
           cta="Open Service Controls"
           href={{ pathname: '/settings', params: { focus: 'services-logs' } }}
           icon={<Scissors size={16} color="$accent" />}
+        />
+
+        <SummaryRow
+          tone={model.cardTone}
+          title="Data & Privacy"
+          body="Open privacy policy, support, export, and account removal controls from one place."
+          cta="Open Data & Privacy"
+          href={{ pathname: '/settings', params: { focus: 'account-privacy' } }}
+          icon={<Lock size={16} color="$accent" />}
         />
 
         <AccountSection model={model} />

@@ -136,6 +136,7 @@ export const mockDataSource: DataSource = {
     if (active === 'false') return MOCK_SERVICES.filter((service) => !service.isActive)
     return MOCK_SERVICES.filter((service) => service.isActive)
   },
+  exportMyData: async () => readOnlyError('export your real client data'),
   createClient: async () => readOnlyError('create clients in the v2 backend'),
   deleteClient: async () => readOnlyError('delete clients in the v2 backend'),
   deleteAccount: async () => readOnlyError('delete your account'),

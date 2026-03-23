@@ -16,7 +16,7 @@ Options:
 
 const host = args.has('--lan') ? 'lan' : 'tunnel'
 const clear = args.has('--clear')
-const expoArgs = ['expo', 'start', '--dev-client', '--host', host, '--scheme', 'myguestdev']
+const expoArgs = ['expo', 'start', '--dev-client', '--host', host, '--scheme', 'myguest']
 
 if (clear) {
   expoArgs.push('-c')
@@ -24,10 +24,10 @@ if (clear) {
 
 console.log(
   host === 'tunnel'
-    ? 'Starting MyGuest Dev with a tunnel for reliability on a physical iPhone.'
-    : 'Starting MyGuest Dev over LAN for a faster same-Wi-Fi connection.'
+    ? 'Starting MyGuest with a tunnel for reliability on a physical iPhone.'
+    : 'Starting MyGuest over LAN for a faster same-Wi-Fi connection.'
 )
-console.log('Keep this terminal open, then open MyGuest Dev on your iPhone.')
+console.log('Keep this terminal open, then open MyGuest on your iPhone.')
 if (host === 'tunnel') {
   console.log('Tunnel mode may not auto-list the server in the app. Use "Enter URL manually" with the Metro URL if needed.')
 }

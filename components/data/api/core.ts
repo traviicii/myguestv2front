@@ -62,13 +62,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T
 }
 
-async function requestRaw<T>(
+async function performAuthorizedFetch(
   path: string,
   init: RequestInit,
-  token: string
-): Promise<T> {
+  token: string,
+  accept = 'application/json'
+): Promise<Response> {
   const headers = new Headers(init.headers)
-  headers.set('Accept', 'application/json')
+  if (accept && !headers.has('Accept')) {
+    headers.set('Accept', accept)
+  }
   headers.set('Authorization', `Bearer ${token}`)
 
   const hasJsonBody =
@@ -77,10 +80,18 @@ async function requestRaw<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+  return fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers,
   })
+}
+
+async function requestRaw<T>(
+  path: string,
+  init: RequestInit,
+  token: string
+): Promise<T> {
+  const response = await performAuthorizedFetch(path, init, token)
   return parseResponse<T>(response)
 }
 
@@ -110,6 +121,27 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     await ensureSessionSynced(token)
   }
   return requestRaw<T>(path, init, token)
+}
+
+export async function requestResponse(
+  path: string,
+  init: RequestInit = {},
+  accept = 'application/json'
+) {
+  const token = await getRequestToken()
+  if (path !== '/auth/sync') {
+    await ensureSessionSynced(token)
+  }
+  return performAuthorizedFetch(path, init, token, accept)
+}
+
+export async function getAuthorizedHeaders(accept = 'application/json') {
+  const token = await getRequestToken()
+  await ensureSessionSynced(token)
+  return {
+    Accept: accept,
+    Authorization: `Bearer ${token}`,
+  }
 }
 
 export function hasStaticDevToken() {

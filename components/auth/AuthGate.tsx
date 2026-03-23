@@ -22,8 +22,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     isReady,
     user,
     canUseFirebaseAuth,
+    isAppleAuthAvailable,
     missingFirebaseConfigKeys,
     authError,
+    signInWithApple,
     signInWithGoogle,
     signInWithGoogleIdToken,
   } = useAuth()
@@ -92,12 +94,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
       }
       if (nativeGoogleUnavailable) {
         throw new Error(
-          'Native Google sign-in is unavailable in this build. Run `npx expo install expo-auth-session` and rebuild iOS.'
+          __DEV__
+            ? 'Native Google sign-in is unavailable in this build. Rebuild the iPhone app to refresh native auth modules.'
+            : 'Google sign-in is unavailable in this build right now.'
         )
       }
       if (isNativeAuthBlockedInExpoGo) {
         throw new Error(
-          'Google sign-in on native requires a dev build, not Expo Go. Run `npx expo run:ios` and open the built app.'
+          __DEV__
+            ? 'Google sign-in on native requires a dev build, not Expo Go. Run `npx expo run:ios` and open the built app.'
+            : 'Google sign-in is unavailable in this environment.'
         )
       }
       await promptAsync()
@@ -108,6 +114,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
     } finally {
       setIsSigningIn(false)
     }
+  }
+
+  const handleContinueWithApple = async () => {
+    setLoginError(null)
+    setIsSigningIn(true)
+    try {
+      await signInWithApple()
+    } catch (error) {
+      setLoginError(
+        error instanceof Error ? error.message : 'Unable to sign in right now.'
+      )
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
+  if (canUseDevTokenFallback) {
+    return <>{children}</>
   }
 
   if (canUseFirebaseAuth) {
@@ -128,15 +152,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
         loginError={loginError}
         missingGoogleClientIds={missingGoogleClientIds}
         nativeGoogleUnavailable={nativeGoogleUnavailable}
+        onContinueWithApple={handleContinueWithApple}
         onContinueWithGoogle={handleContinueWithGoogle}
         requestAvailable={Boolean(request) || Platform.OS === 'web'}
+        showAppleSignIn={isAppleAuthAvailable}
+        showConfigDetails={__DEV__}
       />
     )
   }
 
-  if (canUseDevTokenFallback) {
-    return <>{children}</>
-  }
-
-  return <FirebaseConfigRequiredView missingFirebaseConfigKeys={missingFirebaseConfigKeys} />
+  return (
+    <FirebaseConfigRequiredView
+      missingFirebaseConfigKeys={missingFirebaseConfigKeys}
+      showConfigDetails={__DEV__}
+    />
+  )
 }

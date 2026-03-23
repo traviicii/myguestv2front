@@ -7,6 +7,10 @@ export function normalizeApiBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, '')
 }
 
+export function normalizeExternalUrl(value: string) {
+  return value.trim()
+}
+
 export function resolveApiBaseUrl({
   apiBaseUrl,
   useMockData,
@@ -27,6 +31,14 @@ export function resolveApiBaseUrl({
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL
   ? normalizeApiBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL)
+  : ''
+
+export const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL
+  ? normalizeExternalUrl(process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL)
+  : ''
+
+export const SUPPORT_URL = process.env.EXPO_PUBLIC_SUPPORT_URL
+  ? normalizeExternalUrl(process.env.EXPO_PUBLIC_SUPPORT_URL)
   : ''
 
 export function getApiBaseUrl() {

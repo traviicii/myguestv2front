@@ -64,8 +64,8 @@ const run = (command, commandArgs) =>
 
 console.log(
   clean
-    ? 'Running a clean MyGuest Dev iPhone rebuild.'
-    : 'Rebuilding the MyGuest Dev iPhone app.'
+    ? 'Running a clean MyGuest iPhone rebuild.'
+    : 'Rebuilding the MyGuest iPhone app.'
 )
 console.log('Use this when native packages change, signing breaks, or the dev build expires.')
 
