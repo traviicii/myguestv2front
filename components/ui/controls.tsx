@@ -1,5 +1,11 @@
 export { PrimaryButton, SecondaryButton, GhostButton } from './buttons'
-export { TextField, TextAreaField, ThemedSwitch, ErrorPulseBorder } from './fields'
+export {
+  CurrencyField,
+  TextField,
+  TextAreaField,
+  ThemedSwitch,
+  ErrorPulseBorder,
+} from './fields'
 export {
   FieldLabel,
   OptionChipLabel,

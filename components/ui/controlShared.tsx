@@ -5,7 +5,7 @@ import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Button, useTheme } from 'tamagui'
 
-import { useThemePrefs, type ThemeAesthetic } from '../ThemePrefs'
+import { useResolvedThemeSelection, type ThemeAesthetic } from '../ThemePrefs'
 import { toNativeColor } from 'components/utils/color'
 import {
   getGlassBlurIntensity,
@@ -29,6 +29,7 @@ type AestheticProfile = {
   sectionTransparent: boolean
   headingFontFamily?: string
   labelFontFamily?: string
+  bodyFontFamily?: string
   headingUppercase: boolean
   labelUppercase: boolean
   buttonUppercase: boolean
@@ -42,24 +43,27 @@ type AestheticProfile = {
 
 const AESTHETIC_PROFILE: Record<ThemeAesthetic, AestheticProfile> = {
   modern: {
-    cardRadius: 0,
-    panelRadius: 14,
-    controlRadius: 10,
-    chipRadius: 10,
-    inputRadius: 10,
-    switchRadius: 10,
-    previewRadius: 14,
+    cardRadius: 18,
+    panelRadius: 16,
+    controlRadius: 12,
+    chipRadius: 12,
+    inputRadius: 14,
+    switchRadius: 12,
+    previewRadius: 18,
     chipBorderWidth: 1,
-    sectionTransparent: true,
+    sectionTransparent: false,
+    headingFontFamily: 'Syne',
+    labelFontFamily: 'Manrope',
+    bodyFontFamily: 'Manrope',
     headingUppercase: false,
     labelUppercase: false,
     buttonUppercase: false,
-    eyebrowUppercase: true,
+    eyebrowUppercase: false,
     bracketHeaders: false,
     bracketLabels: false,
-    dividerOpacity: 0.8,
+    dividerOpacity: 0.92,
     dividerWidth: 1,
-    buttonPressOpacity: 0.9,
+    buttonPressOpacity: 0.96,
   },
   cyberpunk: {
     cardRadius: 0,
@@ -118,8 +122,12 @@ export const asStringChildren = (children: ReactNode): string | null => {
 }
 
 export function useAestheticProfile() {
-  const { aesthetic } = useThemePrefs()
+  const { aesthetic } = useResolvedThemeSelection()
   return AESTHETIC_PROFILE[aesthetic]
+}
+
+export function getFontFamilyStyle(fontFamily?: string) {
+  return fontFamily ? ({ fontFamily } as const) : undefined
 }
 
 export function GlassEffectLayer({

@@ -84,12 +84,46 @@ export function buildAmbientBackdropVisuals({
   backdropEnd,
   backdropAccent,
 }: AmbientBackdropVisualInput): AmbientBackdropVisuals {
+  const isModern = aesthetic === 'modern'
   const glassLight = aesthetic === 'glass' && mode === 'light'
+  const isSignalGlassLight = glassLight && palette === 'signal'
   const accentOpacity =
-    aesthetic === 'cyberpunk' ? 0.26 : glassLight ? 0.27 : aesthetic === 'glass' ? 0.24 : 0.1
+    aesthetic === 'cyberpunk'
+      ? 0.26
+      : glassLight
+        ? isSignalGlassLight
+          ? 0.2
+          : 0.27
+        : aesthetic === 'glass'
+          ? 0.24
+          : isModern
+            ? mode === 'dark'
+              ? 0.16
+              : 0.12
+            : 0.1
   const secondaryOpacity =
-    aesthetic === 'cyberpunk' ? 0.16 : glassLight ? 0.18 : aesthetic === 'glass' ? 0.16 : 0.08
-  const veilOpacity = glassLight ? 0.12 : aesthetic === 'glass' ? 0.2 : 0.08
+    aesthetic === 'cyberpunk'
+      ? 0.16
+      : glassLight
+        ? isSignalGlassLight
+          ? 0.13
+          : 0.18
+        : aesthetic === 'glass'
+          ? 0.16
+          : isModern
+            ? mode === 'dark'
+              ? 0.11
+              : 0.09
+            : 0.08
+  const veilOpacity = glassLight
+    ? 0.12
+    : aesthetic === 'glass'
+      ? 0.2
+      : isModern
+        ? mode === 'dark'
+          ? 0.04
+          : 0.03
+        : 0.08
 
   return {
     accentOpacity,
@@ -99,24 +133,30 @@ export function buildAmbientBackdropVisuals({
     glassLiquidBase: glassLight
       ? [
           toAlpha(backdropStart, 0.9),
-          toAlpha(backdropAccent, 0.32),
+          toAlpha(backdropAccent, isSignalGlassLight ? 0.22 : 0.32),
           toAlpha(backdropEnd, 0.95),
         ]
       : null,
-    blobOpacity: glassLight ? (palette === 'alloy' ? 0.34 : 0.26) : 0,
-    blobAccentAlpha: palette === 'alloy' ? 0.55 : 0.42,
-    blobStartAlpha: palette === 'alloy' ? 0.38 : 0.28,
-    blobEndAlpha: palette === 'alloy' ? 0.3 : 0.22,
-    topShapeColors:
-      mode === 'dark'
+    blobOpacity: glassLight ? (palette === 'alloy' ? 0.34 : isSignalGlassLight ? 0.16 : 0.26) : 0,
+    blobAccentAlpha: palette === 'alloy' ? 0.55 : isSignalGlassLight ? 0.3 : 0.42,
+    blobStartAlpha: palette === 'alloy' ? 0.38 : isSignalGlassLight ? 0.2 : 0.28,
+    blobEndAlpha: palette === 'alloy' ? 0.3 : isSignalGlassLight ? 0.16 : 0.22,
+    topShapeColors: isModern
+      ? mode === 'dark'
+        ? [toAlpha(backdropAccent, 0.28), toAlpha(backdropStart, 0.04)]
+        : [toAlpha(backdropAccent, 0.24), toAlpha(backdropStart, 0.06)]
+      : mode === 'dark'
         ? [toAlpha(backdropAccent, 0.52), toAlpha(backdropStart, 0.1)]
         : [toAlpha(backdropAccent, 0.68), toAlpha(backdropStart, 0.16)],
-    lowerShapeColors:
-      mode === 'dark'
+    lowerShapeColors: isModern
+      ? mode === 'dark'
+        ? [toAlpha(backdropStart, 0.18), toAlpha(backdropEnd, 0.02)]
+        : [toAlpha(backdropStart, 0.18), toAlpha(backdropEnd, 0.04)]
+      : mode === 'dark'
         ? [toAlpha(backdropStart, 0.4), toAlpha(backdropEnd, 0.08)]
         : [toAlpha(backdropStart, 0.48), toAlpha(backdropEnd, 0.12)],
     sheenColor: toAlpha(backdropAccent, mode === 'dark' ? 0.4 : 0.2),
-    blurIntensity: mode === 'dark' ? 24 : 28,
+    blurIntensity: isModern ? 0 : mode === 'dark' ? 24 : 28,
     isGlassNative: aesthetic === 'glass',
     showAmbientShapes: !(aesthetic === 'glass' && mode === 'dark'),
   }

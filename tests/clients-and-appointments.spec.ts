@@ -57,21 +57,32 @@ test('quick log route lets you pick a client and prepares follow-up fields in mo
   await expect(page.getByPlaceholder('Add your follow-up message')).toBeVisible()
 })
 
-test('profile route renders account, preferences, and appearance controls in mock mode', async ({
+test('control route renders style, summary, and account controls in mock mode', async ({
   page,
 }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
-  await page.getByRole('tab', { name: 'Profile' }).click()
+  await page.getByRole('tab', { name: 'Control' }).click()
   await expect(page).toHaveURL(/\/profile$/)
 
-  await expect(page.getByText('Profile').last()).toBeVisible()
-  await expect(page.getByText('Preferences')).toBeVisible()
-  await expect(page.getByText('Appearance')).toBeVisible()
-  await expect(page.getByText('App settings')).toBeVisible()
+  await expect(page.getByText(/^control center$/i)).toBeVisible()
+  await expect(page.getByText(/^theme preferences$/i)).toBeVisible()
+  await expect(page.getByText(/open theme picker/i)).toBeVisible()
+  await expect(page.getByText(/^all controls$/i)).toBeVisible()
+  await expect(page.getByText(/^clients & status$/i)).toBeVisible()
+  await expect(page.getByText(/^overview & insights$/i)).toBeVisible()
+  await expect(page.getByText(/^services & appointment logs$/i)).toBeVisible()
+  await expect(page.getByText(/^account$/i)).toBeVisible()
+
+  await page.getByRole('link', { name: 'Open Theme Picker' }).click()
+  await expect(page).toHaveURL(/\/theme-preferences$/)
+  await expect(page.getByText(/^saved:/i)).toBeVisible()
+  await expect(page.getByText(/^customize$/i)).toBeVisible()
+  await page.goBack()
+  await expect(page).toHaveURL(/\/profile$/)
 
   await page.getByText('Edit').last().click()
-  await expect(page.getByPlaceholder('Name')).toBeVisible()
-  await expect(page.getByPlaceholder('Phone')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: /^name$/i })).toBeVisible()
+  await expect(page.getByPlaceholder('Add phone number')).toBeVisible()
 })
 
 test('color chart edit route renders grouped fields in mock mode', async ({ page }) => {

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useTheme } from 'tamagui'
-import { LayoutDashboard, Users, User } from '@tamagui/lucide-icons'
+import { LayoutDashboard, SlidersHorizontal, Users } from '@tamagui/lucide-icons'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { getGlassBlurIntensity, getGlassLayerColors } from 'components/ui/glassStyle'
@@ -131,9 +131,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Control',
           tabBarIcon: ({ color }) => (
-            <User color={toNativeColor(color, activeTint) as any} />
+            <SlidersHorizontal color={toNativeColor(color, activeTint) as any} />
           ),
         }}
       />

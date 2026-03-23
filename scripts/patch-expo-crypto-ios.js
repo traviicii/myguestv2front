@@ -35,6 +35,49 @@ const patches = [
         /ExpoAppDelegate\.getSubscriberOfType/g,
         'ExpoAppDelegateSubscriberRepository.getSubscriberOfType'
       )
+  },
+  {
+    name: 'expo-cli-ios-signing',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@expo',
+      'cli',
+      'build',
+      'src',
+      'run',
+      'ios',
+      'codeSigning',
+      'configureCodeSigning.js'
+    ),
+    apply: (source) =>
+      source
+        .replace(
+          `async function ensureDeviceIsCodeSignedForDeploymentAsync(projectRoot) {
+    if (isCodeSigningConfigured(projectRoot)) {
+        return null;
+    }
+    return configureCodeSigningAsync(projectRoot);
+}`,
+          `async function ensureDeviceIsCodeSignedForDeploymentAsync(projectRoot) {
+    const configuredSigning = isCodeSigningConfigured(projectRoot);
+    if (configuredSigning && configuredSigning !== true) {
+        return configuredSigning;
+    }
+    if (configuredSigning) {
+        return null;
+    }
+    return configureCodeSigningAsync(projectRoot);
+}`
+        )
+        .replace(
+          `        return true;
+    }
+    const allTargetsHaveProfiles`,
+          `        return teamList[0] || true;
+    }
+    const allTargetsHaveProfiles`
+        )
   }
 ];
 

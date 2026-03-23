@@ -44,6 +44,7 @@ npm run dev
 
 Notes:
 
+- `EXPO_PUBLIC_API_BASE_URL` is required when `EXPO_PUBLIC_USE_MOCK_DATA=false`; the app no longer falls back to the hosted backend implicitly.
 - `npm run dev` uses a tunnel by default because it is more reliable on a physical iPhone.
 - `npm run dev:lan` is optional when your Mac and phone are on the same Wi-Fi.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` is still supported for one-off local API debugging.

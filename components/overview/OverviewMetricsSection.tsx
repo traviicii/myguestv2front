@@ -52,7 +52,11 @@ export function OverviewMetricsSection({ model }: OverviewSectionProps) {
           </>
         )}
       </ExpandableEditPanel>
-      <XStack mt="$1" gap="$3" flexWrap="wrap">
+      <XStack
+        mt={model.showMetricEditor ? '$3' : '$1'}
+        gap="$3"
+        flexWrap="wrap"
+      >
         {model.metrics
           .filter((metric) => model.selectedMetrics.includes(metric.id))
           .map((metric) =>

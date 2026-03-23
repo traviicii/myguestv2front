@@ -5,7 +5,6 @@ import { Text, XStack, YStack } from 'tamagui'
 import {
   PreviewCard,
   SecondaryButton,
-  SectionDivider,
   SurfaceCard,
   ThemedHeadingText,
 } from 'components/ui/controls'
@@ -38,10 +37,10 @@ export function OverviewRecentAppointmentsSection({
       </XStack>
       {hasAppointments ? (
         <YStack gap="$3">
-          {model.recentHistory.map((entry, entryIndex) => {
+          {model.recentHistory.map((entry) => {
             const clientName = model.clientMap.get(entry.clientId)?.name ?? 'Client'
             return (
-              <YStack key={entry.id} gap={model.aesthetic === 'modern' ? '$2' : '$0'}>
+              <YStack key={entry.id}>
                 <Link href={`/appointment/${entry.id}`} asChild>
                   <PreviewCard p="$4">
                     <XStack items="center" justify="space-between" gap="$3">
@@ -83,12 +82,6 @@ export function OverviewRecentAppointmentsSection({
                     </XStack>
                   </PreviewCard>
                 </Link>
-                {model.aesthetic === 'modern' &&
-                entryIndex < model.recentHistory.length - 1 ? (
-                  <YStack items="center">
-                    <SectionDivider width="88%" />
-                  </YStack>
-                ) : null}
               </YStack>
             )
           })}
@@ -132,8 +125,8 @@ export function OverviewRecentClientsSection({
       </XStack>
       {model.recentClients.length ? (
         <YStack gap="$3">
-          {model.recentClients.map((client, clientIndex) => (
-            <YStack key={client.id} gap={model.aesthetic === 'modern' ? '$2' : '$0'}>
+          {model.recentClients.map((client) => (
+            <YStack key={client.id}>
               <Link href={`/client/${client.id}`} asChild>
                 <PreviewCard p="$4">
                   <XStack items="center" justify="space-between" gap="$3">
@@ -151,12 +144,6 @@ export function OverviewRecentClientsSection({
                   </XStack>
                 </PreviewCard>
               </Link>
-              {model.aesthetic === 'modern' &&
-              clientIndex < model.recentClients.length - 1 ? (
-                <YStack items="center">
-                  <SectionDivider width="88%" />
-                </YStack>
-              ) : null}
             </YStack>
           ))}
         </YStack>

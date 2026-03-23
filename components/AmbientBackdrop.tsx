@@ -23,6 +23,7 @@ type AmbientBackdropProps = {
 export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
   const theme = useTheme()
   const { aesthetic, mode, palette } = useThemePrefs()
+  const isModern = aesthetic === 'modern'
   const resolvedMode = resolveAmbientEffectMode(effectMode)
   const motion = useAmbientBackdropMotion(
     shouldAnimateAmbientBackdrop(resolvedMode, aesthetic)
@@ -133,8 +134,8 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
         <Animated.View
           style={{
             position: 'absolute',
-            top: -120,
-            right: -90,
+            top: isModern ? -78 : -120,
+            right: isModern ? -118 : -90,
             transform: [{ translateY: topDrift as any }],
             opacity: visuals.accentOpacity,
           }}
@@ -146,6 +147,18 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
               end={{ x: 0.9, y: 1 }}
               style={{ width: 320, height: 320, borderRadius: 999 }}
             />
+          ) : isModern ? (
+            <LinearGradient
+              colors={visuals.topShapeColors}
+              start={{ x: 0.06, y: 0 }}
+              end={{ x: 0.94, y: 1 }}
+              style={{
+                width: 430,
+                height: 220,
+                borderRadius: 56,
+                transform: [{ rotate: '-18deg' }],
+              }}
+            />
           ) : (
             <YStack width={320} height={320} rounded={999} bg="$backdropAccent" />
           )}
@@ -156,8 +169,8 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
         <Animated.View
           style={{
             position: 'absolute',
-            bottom: -140,
-            left: -100,
+            bottom: isModern ? -92 : -140,
+            left: isModern ? -128 : -100,
             transform: [{ translateY: lowerDrift as any }],
             opacity: visuals.secondaryOpacity,
           }}
@@ -168,6 +181,18 @@ export function AmbientBackdrop({ effectMode = 'auto' }: AmbientBackdropProps) {
               start={{ x: 0, y: 0.12 }}
               end={{ x: 1, y: 0.92 }}
               style={{ width: 300, height: 300, borderRadius: 999 }}
+            />
+          ) : isModern ? (
+            <LinearGradient
+              colors={visuals.lowerShapeColors}
+              start={{ x: 0.08, y: 0 }}
+              end={{ x: 0.92, y: 1 }}
+              style={{
+                width: 360,
+                height: 210,
+                borderRadius: 48,
+                transform: [{ rotate: '12deg' }],
+              }}
             />
           ) : (
             <YStack width={300} height={300} rounded={999} bg="$backdropStart" />

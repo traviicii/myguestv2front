@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, Trash2 } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
+  CurrencyField,
   FieldLabel,
   SecondaryButton,
   TextField,
@@ -64,9 +65,9 @@ export function ActiveServicesSection({ model }: SettingsSectionProps) {
                 void model.handleRenameService(service.id, service.name)
               }}
             />
-            <TextField
-              width={120}
-              placeholder="Price (opt.)"
+            <CurrencyField
+              containerProps={{ width: 120 }}
+              placeholder="0.00"
               keyboardType="decimal-pad"
               value={
                 model.priceDrafts[service.id] ??

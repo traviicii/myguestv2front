@@ -47,7 +47,12 @@ export function getRootStackScreens({ pageBackground }: { pageBackground: string
       name="appointment/[id]/edit"
       options={{ title: 'Edit Appointment Log', headerShown: false }}
     />,
-    <Stack.Screen key="settings" name="settings" options={{ title: 'App Settings', headerShown: false }} />,
+    <Stack.Screen
+      key="theme-preferences"
+      name="theme-preferences"
+      options={{ title: 'Theme Preferences', headerShown: false }}
+    />,
+    <Stack.Screen key="settings" name="settings" options={{ title: 'All Controls', headerShown: false }} />,
     <Stack.Screen
       key="account-delete"
       name="account-delete"

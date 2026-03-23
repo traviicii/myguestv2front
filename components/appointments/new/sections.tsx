@@ -7,11 +7,11 @@ import { AppointmentImagePreviewModal as SharedAppointmentImagePreviewModal } fr
 import { AppointmentPhotoSection } from 'components/appointments/shared/AppointmentPhotoSection'
 import { AppointmentServicePickerPanel } from 'components/appointments/shared/AppointmentServicePickerPanel'
 import {
+  CurrencyField,
   FieldLabel,
   PrimaryButton,
   SurfaceCard,
   TextAreaField,
-  TextField,
   ThemedEyebrowText,
   ThemedHeadingText,
 } from 'components/ui/controls'
@@ -96,8 +96,8 @@ export function NewAppointmentDetailsSection({ model }: NewAppointmentSectionPro
 
       <YStack gap="$2">
         <FieldLabel>Price</FieldLabel>
-        <TextField
-          placeholder="$0.00"
+        <CurrencyField
+          placeholder="0.00"
           value={model.form.price}
           inputAccessoryViewID={model.keyboardAccessoryId}
           onFocus={model.closePickers}

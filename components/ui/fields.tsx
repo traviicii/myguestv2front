@@ -1,9 +1,9 @@
 import { forwardRef, useEffect, useRef } from 'react'
 import { Animated } from 'react-native'
-import { Input, Switch, TextArea, useTheme } from 'tamagui'
+import { Input, Switch, Text, TextArea, XStack, YStack, useTheme } from 'tamagui'
 
 import { toNativeColor } from 'components/utils/color'
-import { useAestheticProfile } from './controlShared'
+import { getFontFamilyStyle, useAestheticProfile } from './controlShared'
 
 export const TextField = forwardRef<
   React.ElementRef<typeof Input>,
@@ -28,6 +28,7 @@ export const TextField = forwardRef<
       fontSize={14}
       color="$textPrimary"
       placeholderTextColor="$textMuted"
+      style={getFontFamilyStyle(profile.bodyFontFamily) as never}
       focusStyle={focusStyle}
       {...props}
     />
@@ -35,6 +36,33 @@ export const TextField = forwardRef<
 })
 
 TextField.displayName = 'TextField'
+
+type CurrencyFieldProps = React.ComponentProps<typeof Input> & {
+  containerProps?: React.ComponentProps<typeof YStack>
+}
+
+export const CurrencyField = forwardRef<
+  React.ElementRef<typeof Input>,
+  CurrencyFieldProps
+>(({ containerProps, placeholder = '0.00', pl, ...props }, ref) => (
+  <YStack position="relative" {...containerProps}>
+    <TextField ref={ref} placeholder={placeholder} pl={pl ?? '$6'} {...props} />
+    <XStack
+      pointerEvents="none"
+      position="absolute"
+      l="$3"
+      t={0}
+      b={0}
+      items="center"
+    >
+      <Text fontSize={14} color="$textMuted">
+        $
+      </Text>
+    </XStack>
+  </YStack>
+))
+
+CurrencyField.displayName = 'CurrencyField'
 
 export function TextAreaField(props: React.ComponentProps<typeof TextArea>) {
   const profile = useAestheticProfile()
@@ -56,6 +84,7 @@ export function TextAreaField(props: React.ComponentProps<typeof TextArea>) {
       fontSize={14}
       color="$textPrimary"
       placeholderTextColor="$textMuted"
+      style={getFontFamilyStyle(profile.bodyFontFamily) as never}
       focusStyle={focusStyle}
       {...props}
     />

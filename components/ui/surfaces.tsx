@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Separator, Text, XStack, YStack } from 'tamagui'
 
-import { useThemePrefs } from '../ThemePrefs'
+import { useResolvedThemeSelection } from '../ThemePrefs'
 import { getGlassBlurIntensity, type GlassDensity } from './glassStyle'
 import {
   cardSurfaceProps,
@@ -40,7 +40,7 @@ export function SurfaceCard({
   ...props
 }: React.ComponentProps<typeof YStack> & { mode?: CardMode; tone?: SurfaceTone }) {
   const profile = useAestheticProfile()
-  const { aesthetic, mode: themeMode } = useThemePrefs()
+  const { aesthetic, mode: themeMode } = useResolvedThemeSelection()
   const isGlass = aesthetic === 'glass'
   const isDarkGlass = isGlass && themeMode === 'dark'
 
@@ -107,7 +107,7 @@ export function PreviewCard({
   ...props
 }: React.ComponentProps<typeof YStack> & { mode?: CardMode; tone?: SurfaceTone }) {
   const profile = useAestheticProfile()
-  const { aesthetic } = useThemePrefs()
+  const { aesthetic } = useResolvedThemeSelection()
   const isGlass = aesthetic === 'glass'
   const { p, px, py, pt, pb, pl, pr, gap, rounded, ...rest } = props
   const {
@@ -174,7 +174,7 @@ export function GlassOrbAction({
   disabled?: boolean
   onPress?: () => void
 }) {
-  const { aesthetic, mode } = useThemePrefs()
+  const { aesthetic, mode } = useResolvedThemeSelection()
   const isGlass = aesthetic === 'glass'
   const isDarkGlass = isGlass && mode === 'dark'
   const blurIntensity = getGlassBlurIntensity(mode, 'orb')
@@ -258,7 +258,7 @@ export function PreviewContainer({
   ...props
 }: React.ComponentProps<typeof YStack>) {
   const profile = useAestheticProfile()
-  const { aesthetic, mode } = useThemePrefs()
+  const { aesthetic, mode } = useResolvedThemeSelection()
   const isGlass = aesthetic === 'glass'
   const isDarkGlass = isGlass && mode === 'dark'
   const containerTokens = resolvePreviewContainerTokens({

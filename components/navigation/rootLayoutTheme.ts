@@ -14,7 +14,12 @@ export function useRootLayoutTheme() {
     FALLBACK_COLORS.surfacePage
   )
   const chromeTint = toNativeColor(theme.textPrimary?.val, FALLBACK_COLORS.textPrimary)
-  const headingFontFamily = aesthetic === 'cyberpunk' ? 'SpaceMono' : 'Inter'
+  const headingFontFamily =
+    aesthetic === 'cyberpunk'
+      ? 'SpaceMono'
+      : aesthetic === 'modern'
+        ? 'Syne'
+        : 'Inter'
 
   const navigationTheme = useMemo(() => {
     const base = mode === 'dark' ? DarkTheme : DefaultTheme

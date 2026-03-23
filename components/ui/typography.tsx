@@ -4,6 +4,7 @@ import { Text, YStack } from 'tamagui'
 import {
   asStringChildren,
   formatBracket,
+  getFontFamilyStyle,
   type HeaderMotif,
   useAestheticProfile,
 } from './controlShared'
@@ -14,6 +15,7 @@ export function FieldLabel({
   ...props
 }: React.ComponentProps<typeof Text> & { motif?: HeaderMotif }) {
   const profile = useAestheticProfile()
+  const isModernType = profile.headingFontFamily === 'Syne'
   const childString = asStringChildren(children)
   const shouldBracket = motif === 'bracket' || (motif === 'auto' && profile.bracketLabels)
   const label =
@@ -29,8 +31,8 @@ export function FieldLabel({
     <Text
       fontSize={12}
       color="$textSecondary"
-      letterSpacing={profile.labelUppercase ? 0.7 : 0}
-      style={profile.labelFontFamily ? ({ fontFamily: profile.labelFontFamily } as never) : undefined}
+      letterSpacing={profile.labelUppercase ? 0.7 : isModernType ? 0.12 : 0}
+      style={getFontFamilyStyle(profile.labelFontFamily) as never}
       {...props}
     >
       {label}
@@ -44,6 +46,7 @@ export function ThemedHeadingText({
   ...props
 }: React.ComponentProps<typeof Text> & { motif?: HeaderMotif }) {
   const profile = useAestheticProfile()
+  const isModernType = profile.headingFontFamily === 'Syne'
   const childString = asStringChildren(children)
   const shouldBracket = motif === 'bracket' || (motif === 'auto' && profile.bracketHeaders)
   const heading =
@@ -59,8 +62,8 @@ export function ThemedHeadingText({
     <Text
       fontFamily="$heading"
       color="$textPrimary"
-      letterSpacing={profile.headingUppercase ? 0.9 : 0}
-      style={profile.headingFontFamily ? ({ fontFamily: profile.headingFontFamily } as never) : undefined}
+      letterSpacing={profile.headingUppercase ? 0.9 : isModernType ? -0.28 : -0.1}
+      style={getFontFamilyStyle(profile.headingFontFamily) as never}
       {...props}
     >
       {heading}
@@ -74,6 +77,7 @@ export function ThemedEyebrowText({
   ...props
 }: React.ComponentProps<typeof Text> & { motif?: HeaderMotif }) {
   const profile = useAestheticProfile()
+  const isModernType = profile.headingFontFamily === 'Syne'
   const childString = asStringChildren(children)
   const shouldBracket = motif === 'bracket' || (motif === 'auto' && profile.bracketLabels)
   const eyebrow =
@@ -88,9 +92,9 @@ export function ThemedEyebrowText({
   return (
     <Text
       fontSize={11}
-      letterSpacing={profile.eyebrowUppercase ? 1.1 : 0.8}
+      letterSpacing={profile.eyebrowUppercase ? 1.1 : isModernType ? 0.28 : 0.8}
       color="$textMuted"
-      style={profile.labelFontFamily ? ({ fontFamily: profile.labelFontFamily } as never) : undefined}
+      style={getFontFamilyStyle(profile.labelFontFamily ?? profile.bodyFontFamily) as never}
       {...props}
     >
       {eyebrow}
@@ -109,6 +113,8 @@ export function SectionHeader({
   subtitle?: string
   motif?: HeaderMotif
 }) {
+  const profile = useAestheticProfile()
+
   return (
     <YStack gap="$1.5">
       {eyebrow ? <ThemedEyebrowText motif={motif}>{eyebrow}</ThemedEyebrowText> : null}
@@ -116,7 +122,11 @@ export function SectionHeader({
         {title}
       </ThemedHeadingText>
       {subtitle ? (
-        <Text fontSize={12} color="$textSecondary">
+        <Text
+          fontSize={12}
+          color="$textSecondary"
+          style={getFontFamilyStyle(profile.bodyFontFamily) as never}
+        >
           {subtitle}
         </Text>
       ) : null}
@@ -135,6 +145,7 @@ export function OptionChipLabel({
   children: ReactNode
 }) {
   const profile = useAestheticProfile()
+  const isModernType = profile.headingFontFamily === 'Syne'
   const childString = asStringChildren(children)
   const shouldBracket = motif === 'bracket' || (motif === 'auto' && profile.bracketLabels)
   const label =
@@ -150,8 +161,8 @@ export function OptionChipLabel({
     <Text
       fontSize={11}
       color={active ? '$chromeTintActive' : '$textSecondary'}
-      letterSpacing={profile.labelUppercase ? 0.8 : 0}
-      style={profile.labelFontFamily ? ({ fontFamily: profile.labelFontFamily } as never) : undefined}
+      letterSpacing={profile.labelUppercase ? 0.8 : isModernType ? 0.08 : 0}
+      style={getFontFamilyStyle(profile.labelFontFamily) as never}
       {...props}
     >
       {label}

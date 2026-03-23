@@ -18,6 +18,82 @@ import {
   type ThemePalette,
 } from './tamaguiThemeTypes'
 
+type ModernPaletteSpec = {
+  accent: string
+  accentSoft: string
+  border: string
+  page: string
+  panel: string
+  secondary: string
+  text: string
+}
+
+const MODERN_PALETTE_SPECS: Record<
+  ThemePalette,
+  Record<ThemeMode, ModernPaletteSpec>
+> = {
+  signal: {
+    light: {
+      page: '#FFFDF2',
+      panel: '#FFFFFF',
+      text: '#17180F',
+      secondary: '#62664A',
+      border: '#E8E7C8',
+      accent: '#CADB22',
+      accentSoft: '#F7FAD8',
+    },
+    dark: {
+      page: '#12130F',
+      panel: '#181915',
+      text: '#F7F8F0',
+      secondary: '#BCC39E',
+      border: '#3A3B30',
+      accent: '#D9F047',
+      accentSoft: '#282A18',
+    },
+  },
+  alloy: {
+    light: {
+      page: '#F5F5F4',
+      panel: '#FFFFFF',
+      text: '#111214',
+      secondary: '#5D6064',
+      border: '#DADBDD',
+      accent: '#202226',
+      accentSoft: '#F1F2F4',
+    },
+    dark: {
+      page: '#0F1012',
+      panel: '#17181B',
+      text: '#F5F5F6',
+      secondary: '#B5B7BB',
+      border: '#303236',
+      accent: '#ECEDEF',
+      accentSoft: '#24262A',
+    },
+  },
+  pearl: {
+    light: {
+      page: '#FFF7FA',
+      panel: '#FFFFFF',
+      text: '#261A20',
+      secondary: '#735A67',
+      border: '#EED9E3',
+      accent: '#EA92B7',
+      accentSoft: '#FCE6EF',
+    },
+    dark: {
+      page: '#181116',
+      panel: '#22181E',
+      text: '#FBF1F5',
+      secondary: '#C6AAB7',
+      border: '#47303A',
+      accent: '#F2A9C7',
+      accentSoft: '#2D1E26',
+    },
+  },
+}
+
 export const buildSemanticPalette = (
   seed: PaletteSeed,
   palette: ThemePalette,
@@ -26,7 +102,8 @@ export const buildSemanticPalette = (
 ) => {
   const variantLabel = `${palette}_${aesthetic}_${mode}`
   const isDark = mode === 'dark'
-  let accent = seed.accent
+  const modernSpec = aesthetic === 'modern' ? MODERN_PALETTE_SPECS[palette][mode] : null
+  let accent = modernSpec?.accent ?? seed.accent
 
   if (aesthetic === 'cyberpunk') {
     const neonMap: Record<ThemePalette, string> = {
@@ -44,7 +121,7 @@ export const buildSemanticPalette = (
 
   if (aesthetic === 'glass') {
     const glassMap: Record<ThemePalette, string> = {
-      signal: '#BCFF2A',
+      signal: '#D7E85A',
       alloy: '#C7D4EA',
       pearl: '#FFAFE6',
     }
@@ -54,30 +131,10 @@ export const buildSemanticPalette = (
     }
   }
 
-  if (aesthetic === 'modern') {
-    const modernAccentMap: Record<ThemePalette, string> = {
-      signal: '#3467D6',
-      alloy: '#566277',
-      pearl: '#CA82B9',
-    }
-    const modernMixByPalette: Record<ThemePalette, number> = {
-      signal: isDark ? 0.64 : 0.52,
-      alloy: isDark ? 0.28 : 0.2,
-      pearl: isDark ? 0.66 : 0.56,
-    }
-    accent = mixHex(seed.accent, modernAccentMap[palette], modernMixByPalette[palette])
-  }
-
-  let surfacePage = seed.background
-  if (aesthetic === 'modern' && palette === 'signal') {
-    surfacePage = isDark ? '#0D1322' : '#F5F8FF'
-  }
-  if (aesthetic === 'modern' && palette === 'pearl') {
-    surfacePage = isDark ? '#1A1320' : '#FFF8FD'
-  }
+  let surfacePage = modernSpec?.page ?? seed.background
   if (aesthetic === 'glass' && !isDark) {
     const glassLightPages: Record<ThemePalette, string> = {
-      signal: '#F7FFE6',
+      signal: '#FFFDF1',
       alloy: '#F4F4F4',
       pearl: '#FFF0F7',
     }
@@ -88,13 +145,7 @@ export const buildSemanticPalette = (
   accent = initialAccentPair.background
 
   const neutralTint = isDark ? '#F2F2F2' : '#111111'
-  let textPrimary = seed.foreground
-  if (aesthetic === 'modern' && palette === 'signal') {
-    textPrimary = isDark ? '#EAF0FF' : '#15203A'
-  }
-  if (aesthetic === 'modern' && palette === 'pearl') {
-    textPrimary = isDark ? '#F8EAF5' : '#2B1F31'
-  }
+  let textPrimary = modernSpec?.text ?? seed.foreground
 
   let textSecondary = makeReadableTone(
     textPrimary,
@@ -181,17 +232,38 @@ export const buildSemanticPalette = (
     }
   }
 
-  if (aesthetic === 'modern') {
-    surfaceCard = 'transparent'
-    surfaceCardRaised = 'transparent'
-    surfaceCardBorder = 'transparent'
-    surfaceCardShadow = 'transparent'
-    surfacePreview = mixHex(surfacePage, neutralTint, isDark ? 0.12 : 0.05)
-    surfacePanel = mixHex(surfacePage, neutralTint, isDark ? 0.14 : 0.07)
-    surfacePanelBorder = mixHex(borderStrong, surfacePage, 0.24)
-    surfacePanelShadow = 'transparent'
-    backdropStart = mixHex(surfacePage, accent, isDark ? 0.1 : 0.04)
-    backdropAccent = mixHex(accent, surfacePage, isDark ? 0.75 : 0.82)
+  if (aesthetic === 'modern' && modernSpec) {
+    textSecondary = modernSpec.secondary
+    textMuted = makeReadableTone(
+      modernSpec.secondary,
+      surfacePage,
+      4.5,
+      isDark ? 0.12 : 0.16
+    )
+
+    borderSubtle = modernSpec.border
+    borderStrong = mixHex(modernSpec.border, textPrimary, isDark ? 0.16 : 0.12)
+
+    surfaceCard = modernSpec.panel
+    surfaceCardRaised = mixHex(
+      modernSpec.panel,
+      isDark ? '#FFFFFF' : '#000000',
+      isDark ? 0.03 : 0.015
+    )
+    surfacePreview = mixHex(
+      modernSpec.panel,
+      modernSpec.accentSoft,
+      isDark ? 0.32 : 0.18
+    )
+    surfaceField = mixHex(modernSpec.panel, textPrimary, isDark ? 0.1 : 0.035)
+    surfacePanel = modernSpec.panel
+    surfaceCardBorder = borderSubtle
+    surfacePanelBorder = mixHex(borderStrong, modernSpec.panel, isDark ? 0.04 : 0.08)
+    surfaceCardShadow = withAlpha(mixHex(textPrimary, accent, 0.14), isDark ? 0.2 : 0.08)
+    surfacePanelShadow = withAlpha(mixHex(textPrimary, accent, 0.18), isDark ? 0.24 : 0.1)
+    backdropStart = mixHex(surfacePage, modernSpec.accentSoft, isDark ? 0.44 : 0.58)
+    backdropEnd = mixHex(surfacePage, modernSpec.panel, isDark ? 0.18 : 0.08)
+    backdropAccent = mixHex(accent, modernSpec.accentSoft, isDark ? 0.4 : 0.32)
   }
 
   if (aesthetic === 'glass') {
@@ -220,9 +292,9 @@ export const buildSemanticPalette = (
         { start: string; end: string; accent: string }
       > = {
         signal: {
-          start: '#B6E200',
-          end: '#F4FFD6',
-          accent: '#6CFF00',
+          start: '#D3E56A',
+          end: '#FBFDEA',
+          accent: '#C9DB4A',
         },
         alloy: {
           start: '#BFC4CD',
@@ -246,6 +318,11 @@ export const buildSemanticPalette = (
   accent = accentPair.background
   let chromeTintActive = accent
   let chromeTintInactive = textMuted
+
+  if (aesthetic === 'modern' && modernSpec) {
+    chromeTintActive = accent
+    chromeTintInactive = textSecondary
+  }
 
   let buttonPrimaryBg = accent
   let buttonPrimaryFg = accentPair.foreground
@@ -274,6 +351,19 @@ export const buildSemanticPalette = (
   }
   let buttonSecondaryBgPress = mixHex(buttonSecondaryBg, accent, isDark ? 0.24 : 0.12)
 
+  if (aesthetic === 'modern' && modernSpec) {
+    buttonPrimaryBg = accent
+    buttonPrimaryFg = pickReadableForeground(buttonPrimaryBg, textPrimary)
+    buttonPrimaryBorder = mixHex(accent, surfacePage, isDark ? 0.18 : 0.08)
+    buttonPrimaryBgPress = mixHex(buttonPrimaryBg, isDark ? '#FFFFFF' : '#000000', isDark ? 0.16 : 0.12)
+    buttonPrimaryBorderPress = mixHex(buttonPrimaryBorder, buttonPrimaryBgPress, 0.36)
+
+    buttonSecondaryBg = surfacePanel
+    buttonSecondaryFg = textPrimary
+    buttonSecondaryBorder = surfacePanelBorder
+    buttonSecondaryBgPress = mixHex(surfacePanel, accent, isDark ? 0.18 : 0.08)
+  }
+
   if (aesthetic === 'glass' && palette === 'signal' && !isDark) {
     chromeTintActive = mixHex(accent, '#000000', 0.62)
     chromeTintInactive = mixHex(accent, '#000000', 0.45)
@@ -301,6 +391,10 @@ export const buildSemanticPalette = (
     surfaceChip = '#0F1114'
     surfaceChipActive = '#1B1E23'
   }
+  if (aesthetic === 'modern' && modernSpec) {
+    surfaceChip = mixHex(surfacePanel, textPrimary, isDark ? 0.06 : 0.025)
+    surfaceChipActive = modernSpec.accentSoft
+  }
   const surfaceFieldActive = mixHex(surfaceField, accent, isDark ? 0.24 : 0.12)
 
   let surfaceSecondary = buttonSecondaryBg
@@ -324,12 +418,21 @@ export const buildSemanticPalette = (
   }
 
   const switchTrackOn = buttonPrimaryBg
-  const switchTrackOff = mixHex(surfacePage, textPrimary, isDark ? 0.24 : 0.1)
+  const switchTrackOff =
+    aesthetic === 'modern' && modernSpec
+      ? mixHex(surfacePanel, textPrimary, isDark ? 0.18 : 0.08)
+      : mixHex(surfacePage, textPrimary, isDark ? 0.24 : 0.1)
   const switchTrackBorder = borderStrong
   const switchThumb = isDark ? '#F8FBFF' : '#FFFFFF'
 
-  const focusRing = mixHex(accent, '#FFFFFF', isDark ? 0.2 : 0.3)
-  const divider = mixHex(borderSubtle, surfacePage, 0.34)
+  const focusRing =
+    aesthetic === 'modern' && modernSpec
+      ? mixHex(accent, isDark ? '#FFFFFF' : '#EAF0FF', isDark ? 0.18 : 0.42)
+      : mixHex(accent, '#FFFFFF', isDark ? 0.2 : 0.3)
+  const divider =
+    aesthetic === 'modern' && modernSpec
+      ? mixHex(borderSubtle, surfacePage, isDark ? 0.12 : 0.18)
+      : mixHex(borderSubtle, surfacePage, 0.34)
 
   assertContrast(`${variantLabel}:textPrimary/background`, textPrimary, surfacePage)
   assertContrast(`${variantLabel}:textSecondary/background`, textSecondary, surfacePage)
@@ -392,7 +495,9 @@ export const buildSemanticPalette = (
     dangerSoft: isDark ? '#3D1313' : '#FEE2E2',
     shadowColor: surfaceCardShadow,
     chromeBackground:
-      aesthetic === 'modern' ? mixHex(surfacePage, neutralTint, isDark ? 0.06 : 0.02) : surfacePanel,
+      aesthetic === 'modern'
+        ? mixHex(surfacePage, surfacePanel, isDark ? 0.8 : 0.54)
+        : surfacePanel,
     chromeTintActive,
     chromeTintInactive,
     overlayStrong: 'rgba(0, 0, 0, 0.85)',
@@ -403,7 +508,10 @@ export const buildSemanticPalette = (
     backdropAccent,
     accent,
     accentMuted: surfaceChipActive,
-    accentSoft: mixHex(surfaceChipActive, surfacePage, isDark ? 0.24 : 0.38),
+    accentSoft:
+      aesthetic === 'modern' && modernSpec
+        ? modernSpec.accentSoft
+        : mixHex(surfaceChipActive, surfacePage, isDark ? 0.24 : 0.38),
     accentPress: buttonPrimaryBgPress,
     accentContrast: buttonPrimaryFg,
   }

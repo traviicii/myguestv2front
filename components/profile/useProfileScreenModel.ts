@@ -1,61 +1,63 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   useThemePrefs,
-  type ThemeAesthetic,
-  type ThemePalette,
 } from 'components/ThemePrefs'
 import { useAuth } from 'components/auth/AuthProvider'
+import { useServices } from 'components/data/queries'
+import { useOverviewStore } from 'components/state/overviewStore'
 import { useStudioStore } from 'components/state/studioStore'
+import {
+  buildThemeLabel,
+} from './themeOptions'
 
-export const PALETTE_OPTIONS: { id: ThemePalette; label: string }[] = [
-  { id: 'signal', label: 'Signal' },
-  { id: 'alloy', label: 'Alloy' },
-  { id: 'pearl', label: 'Pearl' },
-]
+const METRIC_LABELS: Record<string, string> = {
+  revenueYtd: 'Revenue YTD',
+  totalClients: 'Total Clients',
+  activeClients: 'Active Clients',
+  inactiveClients: 'Inactive Clients',
+  avgTicket: 'Average Ticket',
+  newClients90: 'New Clients',
+  colorCoverage: 'Color Chart Coverage',
+  photoCoverage: 'Photo Coverage',
+}
 
-export const AESTHETIC_OPTIONS: {
-  description: string
-  id: ThemeAesthetic
-  label: string
-}[] = [
-  {
-    id: 'modern',
-    label: 'Modern',
-    description: 'Balanced neutral depth for day-to-day use.',
-  },
-  {
-    id: 'cyberpunk',
-    label: 'Cyberpunk',
-    description: 'Higher contrast with bolder accent energy.',
-  },
-  {
-    id: 'glass',
-    label: 'Glass',
-    description: 'Lighter layered surfaces with a polished feel.',
-  },
-]
+const OVERVIEW_SECTION_LABELS: Record<string, string> = {
+  quickActions: 'Quick Actions',
+  metrics: 'Metrics',
+  recentAppointments: 'Recent Appointments',
+  recentClients: 'Recent Clients',
+  pinnedClients: 'Pinned Clients',
+}
+
+const formatDateSummary = (
+  dateDisplayFormat: 'short' | 'long',
+  includeWeekday: boolean
+) => {
+  if (dateDisplayFormat === 'short') return 'MM/DD/YYYY'
+  return includeWeekday ? 'Long format with weekday' : 'Long format'
+}
 
 export function useProfileScreenModel() {
   const insets = useSafeAreaInsets()
   const tabBarHeight = useBottomTabBarHeight()
-  const topInset = Math.max(insets.top + 8, 24)
+  const topInset = Math.max(insets.top + 8, 16)
   const {
     mode,
+    modePreference,
     palette,
     aesthetic,
-    setMode,
-    setPalette,
-    setAesthetic,
   } = useThemePrefs()
   const isGlass = aesthetic === 'glass'
   const isModern = aesthetic === 'modern'
-  const sectionGap: '$4' | '$3' = isModern ? '$4' : '$3'
+  const sectionGap: '$5' | '$4' = isModern ? '$5' : '$4'
   const cardTone: 'secondary' | 'default' = isGlass ? 'secondary' : 'default'
-  const { profile, preferences, setProfile, setPreferences } = useStudioStore()
+  const { profile, setProfile, appSettings } = useStudioStore()
+  const selectedMetrics = useOverviewStore((state) => state.selectedMetrics)
   const { user, signOutUser, canUseFirebaseAuth } = useAuth()
+  const { data: activeServices = [] } = useServices('true')
   const [isEditing, setIsEditing] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [draftProfile, setDraftProfile] = useState(profile)
@@ -65,25 +67,56 @@ export function useProfileScreenModel() {
   }, [profile])
 
   useEffect(() => {
-    if (user?.email && user.email !== profile.email) {
-      setProfile({ email: user.email })
-    }
-  }, [profile.email, setProfile, user?.email])
+    const nextProfile: Partial<typeof profile> = {}
+    const firebaseEmail = user?.email?.trim()
+    const firebaseName = user?.displayName?.trim()
 
-  const isProfileDirty = useMemo(
-    () =>
-      draftProfile.name !== profile.name ||
-      draftProfile.email !== profile.email ||
-      draftProfile.phone !== profile.phone,
-    [draftProfile, profile]
+    if (firebaseEmail && firebaseEmail !== profile.email) {
+      nextProfile.email = firebaseEmail
+    }
+    if (firebaseName && !profile.name.trim()) {
+      nextProfile.name = firebaseName
+    }
+
+    if (Object.keys(nextProfile).length > 0) {
+      setProfile(nextProfile)
+    }
+  }, [profile.email, profile.name, setProfile, user?.displayName, user?.email])
+
+  const isProfileDirty = useMemo(() => {
+    return (
+      draftProfile.name.trim() !== profile.name.trim() ||
+      draftProfile.email.trim() !== profile.email.trim() ||
+      draftProfile.phone.trim() !== profile.phone.trim()
+    )
+  }, [draftProfile.email, draftProfile.name, draftProfile.phone, profile.email, profile.name, profile.phone])
+  const currentThemeLabel = buildThemeLabel(
+    {
+      aesthetic,
+      modePreference,
+      palette,
+    },
+    mode
   )
 
-  const displayEmail = user?.email ?? profile.email
-  const showPhone = Boolean(profile.phone?.trim())
-  const preferenceOptions = {
-    autoRebook: ['Off', 'Weekly', 'Monthly'] as const,
-    dataExports: ['Off', 'Monthly', 'Quarterly'] as const,
-  }
+  const displayEmail = (user?.email ?? profile.email ?? '').trim()
+  const displayName = profile.name.trim() || user?.displayName?.trim() || 'Add your name'
+  const displayPhone = profile.phone.trim()
+  const showPhone = Boolean(displayPhone)
+
+  const clientStatusSummary = !appSettings.clientsShowStatus
+    ? 'Status labels are hidden on client cards and detail screens.'
+    : `Clients are marked active when they visited within ${appSettings.activeStatusMonths} months. ${appSettings.clientsShowStatusList ? 'Client list labels are on.' : 'Client list labels are off.'} ${appSettings.clientsShowStatusDetails ? 'Client detail labels are on.' : 'Client detail labels are off.'}`
+
+  const visibleSectionLabels = Object.entries(appSettings.overviewSections)
+    .filter(([, enabled]) => enabled)
+    .map(([id]) => OVERVIEW_SECTION_LABELS[id] ?? id)
+
+  const metricLabels = selectedMetrics.map((id) => METRIC_LABELS[id] ?? id)
+
+  const overviewSummary = `${visibleSectionLabels.length} sections visible · ${metricLabels.length} metrics active · ${appSettings.overviewRecentAppointmentsCount}/${appSettings.overviewRecentClientsCount}/${appSettings.clientDetailsAppointmentLogsCount} preview counts`
+
+  const servicesSummary = `${activeServices.length} active services · Dates show ${formatDateSummary(appSettings.dateDisplayFormat, appSettings.dateLongIncludeWeekday)}`
 
   const handleSaveProfile = () => {
     if (!isProfileDirty) return
@@ -110,12 +143,18 @@ export function useProfileScreenModel() {
   }
 
   return {
+    activeServices,
     aesthetic,
+    appSettings,
     canSaveProfile: isProfileDirty,
     canUseFirebaseAuth,
     cardTone,
-    contentPaddingBottom: Math.max(24, tabBarHeight + insets.bottom + 12),
+    clientStatusSummary,
+    contentPaddingBottom: Math.max(32, tabBarHeight + insets.bottom + 18),
+    currentThemeLabel,
     displayEmail,
+    displayName,
+    displayPhone,
     draftProfile,
     handleCancelProfile,
     handleSaveProfile,
@@ -124,18 +163,15 @@ export function useProfileScreenModel() {
     isGlass,
     isModern,
     isSigningOut,
+    metricLabels,
     mode,
+    modePreference,
+    overviewSummary,
     palette,
-    preferences,
-    preferenceOptions,
-    profile,
     sectionGap,
-    setAesthetic,
+    servicesSummary,
     setDraftProfile,
     setIsEditing,
-    setMode,
-    setPalette,
-    setPreferences,
     showPhone,
     topInset,
     user,

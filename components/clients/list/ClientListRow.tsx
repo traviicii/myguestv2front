@@ -5,7 +5,6 @@ import {
   OptionChip,
   OptionChipLabel,
   PreviewCard,
-  SectionDivider,
   cardSurfaceProps,
 } from 'components/ui/controls'
 
@@ -78,13 +77,11 @@ function ClientQuickAction({ model, onNewAppointment }: Pick<ClientListRowProps,
 export function ClientListRow({
   model,
   client,
-  index,
-  totalCount,
   onOpenClient,
   onNewAppointment,
 }: ClientListRowProps) {
   return (
-    <YStack px="$5" mb="$3" gap={model.aesthetic === 'modern' ? '$2' : '$0'}>
+    <YStack px="$5" mb="$3">
       <PreviewCard
         p="$4"
         pressStyle={{ opacity: 0.88 }}
@@ -117,11 +114,6 @@ export function ClientListRow({
           </YStack>
         </XStack>
       </PreviewCard>
-      {model.aesthetic === 'modern' && index < totalCount - 1 ? (
-        <YStack items="center">
-          <SectionDivider width="88%" />
-        </YStack>
-      ) : null}
     </YStack>
   )
 }

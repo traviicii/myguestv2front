@@ -17,10 +17,16 @@ export const quickActionDefaults: QuickActionId[] = [
 ]
 
 export const defaultStudioProfile: StudioProfile = {
+  name: '',
+  email: '',
+  phone: '',
+}
+
+const LEGACY_PLACEHOLDER_PROFILE = {
   name: 'Travis Peck',
   email: 'travis@example.com',
   phone: '(555) 010-1240',
-}
+} as const
 
 export const defaultStudioPreferences: StudioPreferences = {
   notificationsEnabled: true,
@@ -110,6 +116,11 @@ type PersistedStudioState = Partial<StudioStore> & {
 
 export const mergeStudioStoreState = (persisted: unknown, current: StudioStore): StudioStore => {
   const persistedState = (persisted as PersistedStudioState | undefined) ?? {}
+  const persistedProfile: Partial<StudioProfile> = persistedState.profile ?? {}
+  const looksLikeLegacySeededProfile =
+    persistedProfile.email === LEGACY_PLACEHOLDER_PROFILE.email &&
+    persistedProfile.phone === LEGACY_PLACEHOLDER_PROFILE.phone
+
   const merged = { ...current, ...persistedState }
   const persistedApp = persistedState.appSettings
 
@@ -117,7 +128,17 @@ export const mergeStudioStoreState = (persisted: unknown, current: StudioStore):
     ...merged,
     profile: {
       ...current.profile,
-      ...(persistedState.profile ?? {}),
+      ...(looksLikeLegacySeededProfile
+        ? {
+            ...persistedProfile,
+            email: '',
+            phone: '',
+            name:
+              persistedProfile.name === LEGACY_PLACEHOLDER_PROFILE.name
+                ? ''
+                : persistedProfile.name,
+          }
+        : persistedProfile),
     },
     preferences: {
       ...current.preferences,

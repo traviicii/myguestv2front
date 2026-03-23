@@ -37,14 +37,14 @@ test.describe('Theme Matrix Visual Regression', () => {
 
           const authHeading = page.getByText('Sign In')
           const tabHeading = page.getByText('Overview')
-          const profileHeading = page.getByText('Profile')
+          const controlHeading = page.getByText('Control Center')
 
           if (await authHeading.isVisible().catch(() => false)) {
             await expect(authHeading).toBeVisible()
           } else if (await tabHeading.isVisible().catch(() => false)) {
             await expect(tabHeading).toBeVisible()
           } else {
-            await expect(profileHeading).toBeVisible()
+            await expect(controlHeading).toBeVisible()
           }
 
           await expect(page).toHaveScreenshot(snapshotName, {

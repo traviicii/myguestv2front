@@ -2,6 +2,7 @@ import { Plus } from '@tamagui/lucide-icons'
 import { XStack, YStack } from 'tamagui'
 
 import {
+  CurrencyField,
   FieldLabel,
   PrimaryButton,
   TextField,
@@ -28,9 +29,9 @@ export function AddServiceSection({ model }: SettingsSectionProps) {
           }}
           returnKeyType="done"
         />
-        <TextField
-          width={120}
-          placeholder="Price (opt.)"
+        <CurrencyField
+          containerProps={{ width: 120 }}
+          placeholder="0.00"
           keyboardType="decimal-pad"
           value={model.servicePriceDraft}
           onChangeText={model.setServicePriceDraft}

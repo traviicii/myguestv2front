@@ -20,7 +20,7 @@ test('static export hydrates without Missing theme error', async ({ page }) => {
   const hydrationMarkers = [
     page.getByText('Sign In'),
     page.getByText('Overview'),
-    page.getByText('Profile'),
+    page.getByText('Control Center'),
   ]
   const markerVisibility = await Promise.all(
     hydrationMarkers.map((marker) => marker.isVisible().catch(() => false))

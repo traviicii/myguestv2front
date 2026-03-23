@@ -2,10 +2,10 @@ import { StyleSheet } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Text, useTheme } from 'tamagui'
 
-import { useThemePrefs } from '../ThemePrefs'
+import { useResolvedThemeSelection } from '../ThemePrefs'
 import { toNativeColor } from 'components/utils/color'
 import { getGlassLayerColors } from './glassStyle'
-import { asStringChildren, useAestheticProfile } from './controlShared'
+import { asStringChildren, getFontFamilyStyle, useAestheticProfile } from './controlShared'
 
 type ButtonLabelProps = {
   children: string
@@ -21,7 +21,7 @@ export function ButtonLabel({ children, color, uppercase, fontFamily }: ButtonLa
       fontWeight="700"
       letterSpacing={uppercase ? 0.8 : 0}
       textTransform={uppercase ? 'uppercase' : undefined}
-      style={fontFamily ? ({ fontFamily } as never) : undefined}
+      style={getFontFamilyStyle(fontFamily) as never}
     >
       {children}
     </Text>
@@ -55,7 +55,7 @@ export function useResolvedButtonChildren({
 
 export function useGlassButtonLayerColors(layer: 'primary' | 'secondary') {
   const theme = useTheme()
-  const { aesthetic, mode } = useThemePrefs()
+  const { aesthetic, mode } = useResolvedThemeSelection()
   const isGlassLight = aesthetic === 'glass' && mode === 'light'
   const layerColors = isGlassLight
     ? getGlassLayerColors('light', {

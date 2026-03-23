@@ -1,4 +1,4 @@
-import { API_BASE_URL, USE_MOCK_DATA } from '../config'
+import { USE_MOCK_DATA, getApiBaseUrl } from '../config'
 
 const DEV_ID_TOKEN = process.env.EXPO_PUBLIC_DEV_ID_TOKEN?.trim()
 
@@ -77,7 +77,7 @@ async function requestRaw<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers,
   })

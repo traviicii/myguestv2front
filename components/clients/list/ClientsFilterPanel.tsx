@@ -117,5 +117,9 @@ export function ClientsFilterPanel({ model }: ClientsSectionProps) {
 }
 
 export function ClientsSectionFooter() {
-  return <SectionDivider />
+  return (
+    <YStack pt="$1" pb="$2.5">
+      <SectionDivider />
+    </YStack>
+  )
 }
