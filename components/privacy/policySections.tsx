@@ -107,6 +107,15 @@ export function PrivacyPolicyContent({ model }: { model: DataPrivacyScreenModel 
         ) : null}
       </SurfaceCard>
 
+      <SurfaceCard tone="secondary" p="$4" gap="$1">
+        <Text fontSize={12} fontWeight="700" color="$textPrimary">
+          Release details
+        </Text>
+        <Text fontSize={11} color="$textSecondary">
+          {model.releaseLabel}
+        </Text>
+      </SurfaceCard>
+
       <Link href="/support" asChild>
         <SecondaryButton icon={<LifeBuoy size={16} />}>Open Support Center</SecondaryButton>
       </Link>
