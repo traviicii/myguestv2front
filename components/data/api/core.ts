@@ -35,7 +35,9 @@ function hasDevToken() {
 function getDevToken() {
   if (!DEV_ID_TOKEN) {
     throw new Error(
-      'Not authenticated. Sign in with Google or set EXPO_PUBLIC_DEV_ID_TOKEN in .env.'
+      __DEV__
+        ? 'Not authenticated. Sign in with Google or set EXPO_PUBLIC_DEV_ID_TOKEN in .env.'
+        : 'Not authenticated. Please sign in again and retry.'
     )
   }
   return DEV_ID_TOKEN

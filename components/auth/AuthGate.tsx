@@ -92,7 +92,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
         return
       }
       if (missingGoogleClientIds.length > 0) {
-        throw new Error(`Missing ${missingGoogleClientIds.join(', ')} in .env.`)
+        throw new Error(
+          __DEV__
+            ? `Missing ${missingGoogleClientIds.join(', ')} in .env.`
+            : 'Google sign-in is unavailable in this build right now.'
+        )
       }
       if (nativeGoogleUnavailable) {
         throw new Error(

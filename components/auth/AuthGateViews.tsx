@@ -90,7 +90,7 @@ export function SignInRequiredView({
           Missing {missingGoogleClientIds.join(', ')}.
         </Text>
       ) : null}
-      {isNativeAuthBlockedInExpoGo ? (
+      {showConfigDetails && isNativeAuthBlockedInExpoGo ? (
         <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
           Native Google sign-in is blocked in Expo Go. Use a development build.
         </Text>
