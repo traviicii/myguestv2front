@@ -7,6 +7,11 @@ production settings and App Store preparation work that belong in source control
 Keep secrets, reviewer credentials, and submission-only answers in the local
 `APP_STORE_SUBMISSION_CHECKLIST.local.md` file instead.
 
+Related tracked docs:
+
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/app-store-privacy-matrix.md`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-release-qa-checklist.md`
+
 ## Current Production Identity
 
 The Expo app is currently configured for first-release production identity in
