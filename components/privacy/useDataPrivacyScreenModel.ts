@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useRouter } from 'expo-router'
 import { Linking, Platform } from 'react-native'
 import Constants from 'expo-constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,6 +13,7 @@ import type { SurfaceTone } from 'components/ui/controlShared'
 import { privacyHighlights, privacySummary } from './content'
 
 export function useDataPrivacyScreenModel() {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const toast = useToastController()
   const { aesthetic } = useThemePrefs()
@@ -22,20 +24,16 @@ export function useDataPrivacyScreenModel() {
   const cardTone: SurfaceTone = aesthetic === 'glass' ? 'secondary' : 'default'
 
   const openConfiguredUrl = async ({
+    fallbackHref,
     url,
     label,
-    envKey,
   }: {
+    fallbackHref: '/privacy-policy' | '/support'
     url: string
     label: string
-    envKey: string
   }) => {
     if (!url) {
-      toast.show(`${label} unavailable`, {
-        message: __DEV__
-          ? `Set ${envKey} in .env before the release build.`
-          : `${label} is not configured in this build yet.`,
-      })
+      router.push(fallbackHref)
       return
     }
 
@@ -50,17 +48,17 @@ export function useDataPrivacyScreenModel() {
 
   const handleOpenPrivacyPolicy = async () => {
     await openConfiguredUrl({
+      fallbackHref: '/privacy-policy',
       url: PRIVACY_POLICY_URL,
       label: 'Privacy Policy',
-      envKey: 'EXPO_PUBLIC_PRIVACY_POLICY_URL',
     })
   }
 
   const handleOpenSupport = async () => {
     await openConfiguredUrl({
+      fallbackHref: '/support',
       url: SUPPORT_URL,
       label: 'Support',
-      envKey: 'EXPO_PUBLIC_SUPPORT_URL',
     })
   }
 

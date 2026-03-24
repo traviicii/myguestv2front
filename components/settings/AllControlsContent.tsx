@@ -515,9 +515,8 @@ export function AllControlsContent({
               body={
                 model.hasPrivacyPolicyUrl
                   ? 'Review the current privacy policy for this build.'
-                  : 'Add EXPO_PUBLIC_PRIVACY_POLICY_URL before shipping the release build.'
+                  : 'Open the in-app privacy summary while the public policy URL is being finalized.'
               }
-              disabled={!model.hasPrivacyPolicyUrl}
               onPress={() => {
                 void model.handleOpenPrivacyPolicy()
               }}
@@ -529,9 +528,8 @@ export function AllControlsContent({
               body={
                 model.hasSupportUrl
                   ? 'Open support so stylists can reach you from inside the app.'
-                  : 'Add EXPO_PUBLIC_SUPPORT_URL before submitting to App Review.'
+                  : 'Open the in-app support center while the public support URL is being finalized.'
               }
-              disabled={!model.hasSupportUrl}
               onPress={() => {
                 void model.handleOpenSupport()
               }}

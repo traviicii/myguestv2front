@@ -133,36 +133,28 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
           body={
             model.hasPrivacyPolicyUrl
               ? 'Read the current privacy policy that applies to this build.'
-              : 'This build does not have a public privacy policy URL configured yet.'
+              : 'Open the in-app privacy policy while the public URL is still being finalized.'
           }
-          actionLabel="Open Privacy Policy"
-          disabled={!model.hasPrivacyPolicyUrl}
+          actionLabel={model.hasPrivacyPolicyUrl ? 'Open Hosted Privacy Policy' : 'Read In-App Privacy Policy'}
           icon={<Shield size={16} color="$accent" />}
           onPress={() => {
             void model.handleOpenPrivacyPolicy()
           }}
         />
-        <Link href="/privacy-policy" asChild>
-          <SecondaryButton>Read In-App Privacy Policy</SecondaryButton>
-        </Link>
 
         <UtilityCard
           title="Support"
           body={
             model.hasSupportUrl
               ? 'Open support if you need help with sign-in, exports, or your account.'
-              : 'This build does not have a public support URL configured yet.'
+              : 'Open the in-app support center while the public URL is still being finalized.'
           }
-          actionLabel="Contact Support"
-          disabled={!model.hasSupportUrl}
+          actionLabel={model.hasSupportUrl ? 'Open Hosted Support' : 'Open In-App Support Center'}
           icon={<LifeBuoy size={16} color="$accent" />}
           onPress={() => {
             void model.handleOpenSupport()
           }}
         />
-        <Link href="/support" asChild>
-          <SecondaryButton>Open In-App Support Center</SecondaryButton>
-        </Link>
 
         <UtilityCard
           title="Export My Data"

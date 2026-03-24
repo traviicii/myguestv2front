@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useRouter } from 'expo-router'
 import { Linking, Platform } from 'react-native'
 import Constants from 'expo-constants'
 
-import { hasStaticDevToken } from 'components/data/api/shared'
 import { SUPPORT_URL } from 'components/data/config'
 
 import { useAuth } from './AuthProvider'
@@ -19,10 +19,13 @@ import {
 } from './AuthGateViews'
 
 export function AuthGate({ children }: { children: ReactNode }) {
+  const router = useRouter()
   const {
     isReady,
     user,
     canUseFirebaseAuth,
+    canUseDevTokenFallback,
+    isDevTokenFallbackReady,
     isAppleAuthAvailable,
     missingFirebaseConfigKeys,
     authError,
@@ -41,8 +44,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     iosClientId,
     webClientId,
   })
-
-  const canUseDevTokenFallback = hasStaticDevToken()
   const missingGoogleClientIds = useMemo(
     () => getMissingGoogleClientIds({ androidClientId, iosClientId, webClientId }),
     [androidClientId, iosClientId, webClientId]
@@ -132,7 +133,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   const handleOpenSupport = async () => {
-    if (!SUPPORT_URL) return
+    if (!SUPPORT_URL) {
+      router.push('/support')
+      return
+    }
 
     try {
       await Linking.openURL(SUPPORT_URL)
@@ -141,6 +145,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
         error instanceof Error ? error.message : 'Unable to open support right now.'
       )
     }
+  }
+
+  if (!isDevTokenFallbackReady) {
+    return <AuthLoadingState />
   }
 
   if (canUseDevTokenFallback) {
@@ -179,7 +187,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       missingFirebaseConfigKeys={missingFirebaseConfigKeys}
       onOpenSupport={handleOpenSupport}
       showConfigDetails={__DEV__}
-      showSupportAction={Boolean(SUPPORT_URL)}
+      showSupportAction
     />
   )
 }

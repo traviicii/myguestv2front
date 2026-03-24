@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useRouter } from 'expo-router'
 import { Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useToastController } from '@tamagui/toast'
@@ -25,6 +26,7 @@ import type { PreviewCountSettingKey } from './settingsModelTypes'
 import { useSettingsServiceManagement } from './useSettingsServiceManagement'
 
 export function useSettingsScreenModel() {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const toast = useToastController()
   const topInset = Math.max(insets.top + 8, 16)
@@ -57,20 +59,16 @@ export function useSettingsScreenModel() {
   }
 
   const openConfiguredUrl = async ({
+    fallbackHref,
     url,
     label,
-    envKey,
   }: {
+    fallbackHref: '/privacy-policy' | '/support'
     url: string
     label: string
-    envKey: string
   }) => {
     if (!url) {
-      toast.show(`${label} unavailable`, {
-        message: __DEV__
-          ? `Set ${envKey} in .env before the release build.`
-          : `${label} is not configured in this build yet.`,
-      })
+      router.push(fallbackHref)
       return
     }
 
@@ -85,17 +83,17 @@ export function useSettingsScreenModel() {
 
   const handleOpenPrivacyPolicy = async () => {
     await openConfiguredUrl({
+      fallbackHref: '/privacy-policy',
       url: PRIVACY_POLICY_URL,
       label: 'Privacy Policy',
-      envKey: 'EXPO_PUBLIC_PRIVACY_POLICY_URL',
     })
   }
 
   const handleOpenSupport = async () => {
     await openConfiguredUrl({
+      fallbackHref: '/support',
       url: SUPPORT_URL,
       label: 'Support',
-      envKey: 'EXPO_PUBLIC_SUPPORT_URL',
     })
   }
 
