@@ -64,6 +64,16 @@ export function getRootStackScreens({ pageBackground }: { pageBackground: string
       options={{ title: 'Data & Privacy', headerShown: false }}
     />,
     <Stack.Screen
+      key="privacy-policy"
+      name="privacy-policy"
+      options={{ title: 'Privacy Policy', headerShown: false }}
+    />,
+    <Stack.Screen
+      key="support"
+      name="support"
+      options={{ title: 'Support', headerShown: false }}
+    />,
+    <Stack.Screen
       key="modal"
       name="modal"
       options={{

@@ -52,6 +52,9 @@ Notes:
 - The in-app Data & Privacy section reads `EXPO_PUBLIC_PRIVACY_POLICY_URL` and
   `EXPO_PUBLIC_SUPPORT_URL`. Leaving them blank removes those actions from the
   user-facing settings surface, which is not acceptable for submission builds.
+- The app now also includes in-app `/privacy-policy` and `/support` screens so
+  the product has a first-party trust surface while hosted support pages are
+  being finalized. The App Store submission still needs real public URLs.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` remains a local debugging escape hatch only and
   should not be part of release configuration.
 

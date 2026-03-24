@@ -142,6 +142,9 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
             void model.handleOpenPrivacyPolicy()
           }}
         />
+        <Link href="/privacy-policy" asChild>
+          <SecondaryButton>Read In-App Privacy Policy</SecondaryButton>
+        </Link>
 
         <UtilityCard
           title="Support"
@@ -157,6 +160,9 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
             void model.handleOpenSupport()
           }}
         />
+        <Link href="/support" asChild>
+          <SecondaryButton>Open In-App Support Center</SecondaryButton>
+        </Link>
 
         <UtilityCard
           title="Export My Data"
