@@ -59,6 +59,11 @@ export function getRootStackScreens({ pageBackground }: { pageBackground: string
       options={{ title: 'Delete Account', headerShown: false }}
     />,
     <Stack.Screen
+      key="data-privacy"
+      name="data-privacy"
+      options={{ title: 'Data & Privacy', headerShown: false }}
+    />,
+    <Stack.Screen
       key="modal"
       name="modal"
       options={{

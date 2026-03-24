@@ -123,9 +123,7 @@ export default function DeleteAccountScreen() {
               first. Exports include CSV files only and do not include appointment images.
             </Text>
             <SecondaryButton
-              onPress={() =>
-                router.push({ pathname: '/settings', params: { focus: 'account-privacy' } })
-              }
+              onPress={() => router.push('/data-privacy')}
             >
               Back to Data & Privacy
             </SecondaryButton>

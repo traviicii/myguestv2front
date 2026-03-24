@@ -492,6 +492,10 @@ export function AllControlsContent({
               </Text>
             </YStack>
 
+            <Link href="/data-privacy" asChild>
+              <SecondaryButton>Open Data & Privacy Center</SecondaryButton>
+            </Link>
+
             <YStack gap="$2">
               <Text fontSize={12} fontWeight="600" color="$textPrimary">
                 Privacy at a glance

@@ -291,7 +291,7 @@ export function ProfileContent({ model }: ProfileSectionProps) {
           title="Data & Privacy"
           body="See what MyGuest stores, open privacy or support links, export CSV records, and manage account deletion from one place."
           cta="Open Data & Privacy"
-          href={{ pathname: '/settings', params: { focus: 'account-privacy' } }}
+          href="/data-privacy"
           icon={<Lock size={16} color="$accent" />}
         />
 

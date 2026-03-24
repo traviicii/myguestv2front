@@ -1,60 +1,25 @@
 import { useMemo } from 'react'
-import { Linking } from 'react-native'
+import { Linking, Platform } from 'react-native'
+import Constants from 'expo-constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useToastController } from '@tamagui/toast'
 
 import { useThemePrefs } from 'components/ThemePrefs'
 import { PRIVACY_POLICY_URL, SUPPORT_URL } from 'components/data/config'
 import { useExportMyData } from 'components/data/queries'
-import { privacyHighlights, privacySummary } from 'components/privacy/content'
-import { useStudioStore } from 'components/state/studioStore'
+import type { SurfaceTone } from 'components/ui/controlShared'
 
-import { showSettingsInfo } from './settingsInfo'
-import {
-  appointmentDateOptions,
-  avgTicketOptions,
-  overviewSectionOptions,
-  photoCoverageOptions,
-} from './settingsModelConfig'
-import {
-  buildDisplayRows,
-  clampPreviewCount,
-  getSettingsCardTone,
-} from './settingsModelUtils'
-import type { PreviewCountSettingKey } from './settingsModelTypes'
-import { useSettingsServiceManagement } from './useSettingsServiceManagement'
+import { privacyHighlights, privacySummary } from './content'
 
-export function useSettingsScreenModel() {
+export function useDataPrivacyScreenModel() {
   const insets = useSafeAreaInsets()
   const toast = useToastController()
-  const topInset = Math.max(insets.top + 8, 16)
   const { aesthetic } = useThemePrefs()
-  const cardTone = getSettingsCardTone(aesthetic)
-  const { appSettings, setAppSettings } = useStudioStore()
-
-  const serviceManagement = useSettingsServiceManagement()
   const exportMyData = useExportMyData()
 
-  const displayRows = useMemo(
-    () =>
-      buildDisplayRows({
-        clientDetailsAppointmentLogsCount:
-          appSettings.clientDetailsAppointmentLogsCount,
-        overviewRecentAppointmentsCount: appSettings.overviewRecentAppointmentsCount,
-        overviewRecentClientsCount: appSettings.overviewRecentClientsCount,
-      }),
-    [
-      appSettings.clientDetailsAppointmentLogsCount,
-      appSettings.overviewRecentAppointmentsCount,
-      appSettings.overviewRecentClientsCount,
-    ]
-  )
-
-  const updatePreviewCount = (key: PreviewCountSettingKey, delta: number) => {
-    setAppSettings({
-      [key]: clampPreviewCount(appSettings[key], delta),
-    })
-  }
+  const topInset = Math.max(insets.top + 8, 16)
+  const bottomInset = Math.max(insets.bottom + 24, 24)
+  const cardTone: SurfaceTone = aesthetic === 'glass' ? 'secondary' : 'default'
 
   const openConfiguredUrl = async ({
     url,
@@ -115,28 +80,33 @@ export function useSettingsScreenModel() {
     }
   }
 
+  const releaseLabel = useMemo(() => {
+    const version = Constants.expoConfig?.version ?? 'Unknown'
+    const iosBuild = Constants.expoConfig?.ios?.buildNumber ?? '—'
+    const androidBuild =
+      typeof Constants.expoConfig?.android?.versionCode === 'number'
+        ? String(Constants.expoConfig.android.versionCode)
+        : '—'
+
+    return Platform.OS === 'ios'
+      ? `Version ${version} · iOS build ${iosBuild}`
+      : `Version ${version} · Android build ${androidBuild}`
+  }, [])
+
   return {
-    ...serviceManagement,
-    appSettings,
-    appointmentDateOptions,
-    avgTicketOptions,
+    bottomInset,
     cardTone,
-    displayRows,
     handleExportMyData,
     handleOpenPrivacyPolicy,
     handleOpenSupport,
     hasPrivacyPolicyUrl: Boolean(PRIVACY_POLICY_URL),
     hasSupportUrl: Boolean(SUPPORT_URL),
     isExportingData: exportMyData.isPending,
-    privacySummary: `${privacySummary} Data export is CSV-only; images stay attached to appointments in the app.`,
-    overviewSectionOptions,
-    photoCoverageOptions,
     privacyHighlights,
-    setAppSettings,
-    showInfo: showSettingsInfo,
+    privacySummary,
+    releaseLabel,
     topInset,
-    updatePreviewCount,
   }
 }
 
-export type SettingsScreenModel = ReturnType<typeof useSettingsScreenModel>
+export type DataPrivacyScreenModel = ReturnType<typeof useDataPrivacyScreenModel>
