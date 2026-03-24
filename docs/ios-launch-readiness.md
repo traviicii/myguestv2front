@@ -11,6 +11,9 @@ Related tracked docs:
 
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/app-store-privacy-matrix.md`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-release-qa-checklist.md`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/public-privacy-policy-draft.md`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/public-support-page-draft.md`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/app-review-notes-template.md`
 
 ## Current Production Identity
 
