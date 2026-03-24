@@ -18,6 +18,7 @@ Review access:
 Important review notes:
 
 - The app supports both Sign in with Apple and Google sign-in in the shipping build.
+- Privacy Policy and Support are available before login from the sign-in screen.
 - Data & Privacy is accessible inside the app from Profile.
 - The app includes in-app Privacy Policy and Support screens even before hosted
   public pages are finalized.

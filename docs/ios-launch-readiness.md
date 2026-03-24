@@ -63,6 +63,8 @@ Notes:
 - The app now also includes in-app `/privacy-policy` and `/support` screens so
   the product has a first-party trust surface while hosted support pages are
   being finalized. The App Store submission still needs real public URLs.
+- Privacy Policy and Support are also reachable from the pre-login auth surface,
+  so App Review can access trust information before authenticating.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` remains a local debugging escape hatch only and
   should not be part of release configuration.
 

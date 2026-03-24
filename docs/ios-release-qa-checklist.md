@@ -8,6 +8,8 @@ intended for a physical iPhone build, not Expo Go.
 ## Auth And Access
 
 - [ ] Launch the release build from a clean install
+- [ ] Before signing in, open Privacy Policy from the auth screen
+- [ ] Before signing in, open Support from the auth screen
 - [ ] Verify Sign in with Apple works from the first screen
 - [ ] Verify Google sign-in works from the first screen
 - [ ] Verify no Expo Go or developer-only messaging appears in the auth flow
@@ -35,6 +37,7 @@ intended for a physical iPhone build, not Expo Go.
 - [ ] If hosted URLs are configured, verify hosted Privacy Policy and Support open correctly
 - [ ] Export My Data succeeds and shares/downloads the ZIP bundle
 - [ ] Delete Account route is reachable and explains the consequences clearly
+- [ ] Logged-out Support screen does not expose broken account-only actions
 
 ## Photos And Permissions
 
