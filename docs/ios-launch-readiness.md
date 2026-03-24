@@ -48,6 +48,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-web-app-id>
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<google-ios-client-id>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<google-android-client-id>
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google-web-client-id>
+EXPO_PUBLIC_SITE_URL=<public-site-base-url>
 EXPO_PUBLIC_PRIVACY_POLICY_URL=<public-privacy-policy-url>
 EXPO_PUBLIC_SUPPORT_URL=<public-support-url>
 EXPO_PUBLIC_USE_MOCK_DATA=false
@@ -57,12 +58,17 @@ Notes:
 
 - The app supports both Google and Apple sign-in on iPhone. Google still needs
   its Firebase and platform client IDs configured correctly.
-- The in-app Data & Privacy section reads `EXPO_PUBLIC_PRIVACY_POLICY_URL` and
-  `EXPO_PUBLIC_SUPPORT_URL`. Leaving them blank removes those actions from the
-  user-facing settings surface, which is not acceptable for submission builds.
+- `EXPO_PUBLIC_SITE_URL` can be used as the base for the hosted web app. When
+  that is set, MyGuest can derive public `/privacy-policy` and `/support` URLs
+  automatically if the explicit privacy/support env vars are left blank.
+- `EXPO_PUBLIC_PRIVACY_POLICY_URL` and `EXPO_PUBLIC_SUPPORT_URL` override the
+  derived hosted routes when they are set explicitly. If those values are left
+  blank, the app falls back to `EXPO_PUBLIC_SITE_URL + /privacy-policy` and
+  `EXPO_PUBLIC_SITE_URL + /support`.
 - The app now also includes in-app `/privacy-policy` and `/support` screens so
   the product has a first-party trust surface while hosted support pages are
-  being finalized. The App Store submission still needs real public URLs.
+  being finalized. The App Store submission still needs real public URLs in App
+  Store Connect even though the in-app fallback screens remain available.
 - Privacy Policy and Support are also reachable from the pre-login auth surface,
   so App Review can access trust information before authenticating.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` remains a local debugging escape hatch only and

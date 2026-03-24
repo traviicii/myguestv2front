@@ -8,7 +8,13 @@ export function normalizeApiBaseUrl(value: string) {
 }
 
 export function normalizeExternalUrl(value: string) {
-  return value.trim()
+  return value.trim().replace(/\/+$/, '')
+}
+
+function resolveHostedPublicUrl(explicitUrl: string | undefined, path: string) {
+  if (explicitUrl) return normalizeExternalUrl(explicitUrl)
+  if (!process.env.EXPO_PUBLIC_SITE_URL) return ''
+  return `${normalizeExternalUrl(process.env.EXPO_PUBLIC_SITE_URL)}${path}`
 }
 
 export function resolveApiBaseUrl({
@@ -33,13 +39,19 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL
   ? normalizeApiBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL)
   : ''
 
-export const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL
-  ? normalizeExternalUrl(process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL)
+export const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL
+  ? normalizeExternalUrl(process.env.EXPO_PUBLIC_SITE_URL)
   : ''
 
-export const SUPPORT_URL = process.env.EXPO_PUBLIC_SUPPORT_URL
-  ? normalizeExternalUrl(process.env.EXPO_PUBLIC_SUPPORT_URL)
-  : ''
+export const PRIVACY_POLICY_URL = resolveHostedPublicUrl(
+  process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL,
+  '/privacy-policy'
+)
+
+export const SUPPORT_URL = resolveHostedPublicUrl(
+  process.env.EXPO_PUBLIC_SUPPORT_URL,
+  '/support'
+)
 
 export function getApiBaseUrl() {
   return resolveApiBaseUrl({
