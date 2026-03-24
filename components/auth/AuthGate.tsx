@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useRouter } from 'expo-router'
+import { usePathname, useRouter } from 'expo-router'
 import { Linking, Platform } from 'react-native'
 import Constants from 'expo-constants'
 
@@ -19,6 +19,7 @@ import {
 } from './AuthGateViews'
 
 export function AuthGate({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
   const router = useRouter()
   const {
     isReady,
@@ -50,6 +51,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   )
   const nativeGoogleUnavailable = Platform.OS !== 'web' && !googleProviderModule
   const isNativeAuthBlockedInExpoGo = Platform.OS !== 'web' && isExpoGo
+  const isPublicRoute = pathname === '/privacy-policy' || pathname === '/support'
 
   useEffect(() => {
     if (response?.type !== 'success') {
@@ -164,6 +166,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
         error instanceof Error ? error.message : 'Unable to open privacy policy right now.'
       )
     }
+  }
+
+  if (isPublicRoute) {
+    return <>{children}</>
   }
 
   if (!isDevTokenFallbackReady) {
