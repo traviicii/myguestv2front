@@ -1,5 +1,5 @@
 import { Link } from 'expo-router'
-import { ArrowUpRight, Download, HelpCircle, LifeBuoy, Trash2 } from '@tamagui/lucide-icons'
+import { ArrowUpRight, Download, HelpCircle, LifeBuoy, Shield, Trash2 } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
@@ -87,23 +87,35 @@ export function SupportContent({ model }: { model: DataPrivacyScreenModel }) {
         <Text fontSize={13} fontWeight="700" color="$textPrimary">
           Quick actions
         </Text>
-        <YStack gap="$2">
-          <Link href="/data-privacy" asChild>
-            <SecondaryButton icon={<LifeBuoy size={16} />}>Back to Data & Privacy</SecondaryButton>
-          </Link>
-          <Link href="/account-delete" asChild>
-            <SecondaryButton icon={<Trash2 size={16} />}>Review Delete Account</SecondaryButton>
-          </Link>
-          <SecondaryButton
-            icon={<Download size={16} />}
-            disabled={model.isExportingData}
-            onPress={() => {
-              void model.handleExportMyData()
-            }}
-          >
-            {model.isExportingData ? 'Working...' : 'Export My Data'}
-          </SecondaryButton>
-        </YStack>
+        {model.canManageAccount ? (
+          <YStack gap="$2">
+            <Link href="/data-privacy" asChild>
+              <SecondaryButton icon={<LifeBuoy size={16} />}>Back to Data & Privacy</SecondaryButton>
+            </Link>
+            <Link href="/account-delete" asChild>
+              <SecondaryButton icon={<Trash2 size={16} />}>Review Delete Account</SecondaryButton>
+            </Link>
+            <SecondaryButton
+              icon={<Download size={16} />}
+              disabled={model.isExportingData}
+              onPress={() => {
+                void model.handleExportMyData()
+              }}
+            >
+              {model.isExportingData ? 'Working...' : 'Export My Data'}
+            </SecondaryButton>
+          </YStack>
+        ) : (
+          <YStack gap="$2">
+            <Text fontSize={11} color="$textSecondary">
+              Sign in to export records or manage account deletion. Privacy Policy and Support
+              remain available before login.
+            </Text>
+            <Link href="/privacy-policy" asChild>
+              <SecondaryButton icon={<Shield size={16} />}>Open Privacy Policy</SecondaryButton>
+            </Link>
+          </YStack>
+        )}
       </SurfaceCard>
 
       <SurfaceCard tone="secondary" p="$4" gap="$3">

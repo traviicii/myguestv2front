@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useToastController } from '@tamagui/toast'
 
 import { useThemePrefs } from 'components/ThemePrefs'
+import { useAuth } from 'components/auth/AuthProvider'
 import { PRIVACY_POLICY_URL, SUPPORT_URL } from 'components/data/config'
 import { useExportMyData } from 'components/data/queries'
 import type { SurfaceTone } from 'components/ui/controlShared'
@@ -17,6 +18,7 @@ export function useDataPrivacyScreenModel() {
   const insets = useSafeAreaInsets()
   const toast = useToastController()
   const { aesthetic } = useThemePrefs()
+  const { user, canUseDevTokenFallback } = useAuth()
   const exportMyData = useExportMyData()
 
   const topInset = Math.max(insets.top + 8, 16)
@@ -93,6 +95,7 @@ export function useDataPrivacyScreenModel() {
 
   return {
     bottomInset,
+    canManageAccount: Boolean(user) || canUseDevTokenFallback,
     cardTone,
     handleExportMyData,
     handleOpenPrivacyPolicy,
