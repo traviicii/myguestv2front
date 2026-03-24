@@ -1,6 +1,6 @@
 import { ActivityIndicator } from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
-import { Text, YStack } from 'tamagui'
+import { Text, XStack, YStack } from 'tamagui'
 
 import { PrimaryButton, SecondaryButton } from 'components/ui/controls'
 
@@ -14,6 +14,8 @@ type SignInRequiredViewProps = {
   nativeGoogleUnavailable: boolean
   onContinueWithApple: () => Promise<void>
   onContinueWithGoogle: () => Promise<void>
+  onOpenPrivacyPolicy: () => Promise<void>
+  onOpenSupport: () => Promise<void>
   requestAvailable: boolean
   showAppleSignIn: boolean
   showConfigDetails: boolean
@@ -40,6 +42,8 @@ export function SignInRequiredView({
   nativeGoogleUnavailable,
   onContinueWithApple,
   onContinueWithGoogle,
+  onOpenPrivacyPolicy,
+  onOpenSupport,
   requestAvailable,
   showAppleSignIn,
   showConfigDetails,
@@ -85,6 +89,24 @@ export function SignInRequiredView({
           {isSigningIn ? 'Signing In...' : 'Continue With Google'}
         </Text>
       </PrimaryButton>
+      <XStack gap="$2" flexWrap="wrap" justify="center">
+        <SecondaryButton
+          size="$2"
+          onPress={() => {
+            void onOpenPrivacyPolicy()
+          }}
+        >
+          Privacy Policy
+        </SecondaryButton>
+        <SecondaryButton
+          size="$2"
+          onPress={() => {
+            void onOpenSupport()
+          }}
+        >
+          Support
+        </SecondaryButton>
+      </XStack>
       {showConfigDetails && missingGoogleClientIds.length > 0 ? (
         <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
           Missing {missingGoogleClientIds.join(', ')}.
@@ -113,12 +135,16 @@ export function SignInRequiredView({
 
 export function FirebaseConfigRequiredView({
   missingFirebaseConfigKeys,
+  onOpenPrivacyPolicy,
   onOpenSupport,
+  showPrivacyAction,
   showConfigDetails,
   showSupportAction,
 }: {
   missingFirebaseConfigKeys: string[]
+  onOpenPrivacyPolicy?: () => Promise<void>
   onOpenSupport?: () => Promise<void>
+  showPrivacyAction: boolean
   showConfigDetails: boolean
   showSupportAction: boolean
 }) {
@@ -143,14 +169,27 @@ export function FirebaseConfigRequiredView({
           ))}
         </YStack>
       ) : null}
-      {showSupportAction && onOpenSupport ? (
-        <SecondaryButton
-          onPress={() => {
-            void onOpenSupport()
-          }}
-        >
-          Contact Support
-        </SecondaryButton>
+      {showPrivacyAction || showSupportAction ? (
+        <XStack gap="$2" flexWrap="wrap" justify="center">
+          {showPrivacyAction && onOpenPrivacyPolicy ? (
+            <SecondaryButton
+              onPress={() => {
+                void onOpenPrivacyPolicy()
+              }}
+            >
+              Privacy Policy
+            </SecondaryButton>
+          ) : null}
+          {showSupportAction && onOpenSupport ? (
+            <SecondaryButton
+              onPress={() => {
+                void onOpenSupport()
+              }}
+            >
+              Contact Support
+            </SecondaryButton>
+          ) : null}
+        </XStack>
       ) : (
         <SecondaryButton disabled>Waiting for sign-in setup</SecondaryButton>
       )}

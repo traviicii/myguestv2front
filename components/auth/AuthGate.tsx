@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router'
 import { Linking, Platform } from 'react-native'
 import Constants from 'expo-constants'
 
-import { SUPPORT_URL } from 'components/data/config'
+import { PRIVACY_POLICY_URL, SUPPORT_URL } from 'components/data/config'
 
 import { useAuth } from './AuthProvider'
 import {
@@ -151,6 +151,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }
 
+  const handleOpenPrivacyPolicy = async () => {
+    if (!PRIVACY_POLICY_URL) {
+      router.push('/privacy-policy')
+      return
+    }
+
+    try {
+      await Linking.openURL(PRIVACY_POLICY_URL)
+    } catch (error) {
+      setLoginError(
+        error instanceof Error ? error.message : 'Unable to open privacy policy right now.'
+      )
+    }
+  }
+
   if (!isDevTokenFallbackReady) {
     return <AuthLoadingState />
   }
@@ -179,6 +194,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         nativeGoogleUnavailable={nativeGoogleUnavailable}
         onContinueWithApple={handleContinueWithApple}
         onContinueWithGoogle={handleContinueWithGoogle}
+        onOpenPrivacyPolicy={handleOpenPrivacyPolicy}
+        onOpenSupport={handleOpenSupport}
         requestAvailable={Boolean(request) || Platform.OS === 'web'}
         showAppleSignIn={isAppleAuthAvailable}
         showConfigDetails={__DEV__}
@@ -189,7 +206,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <FirebaseConfigRequiredView
       missingFirebaseConfigKeys={missingFirebaseConfigKeys}
+      onOpenPrivacyPolicy={handleOpenPrivacyPolicy}
       onOpenSupport={handleOpenSupport}
+      showPrivacyAction
       showConfigDetails={__DEV__}
       showSupportAction
     />
