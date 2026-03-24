@@ -46,6 +46,10 @@ export function AppointmentPhotoSection({
           Upload
         </SecondaryButton>
       </XStack>
+      <Text fontSize={11} color="$textSecondary">
+        Photos are optional. If camera or photo access is off, you can still save the
+        appointment and add images later from Settings-enabled access.
+      </Text>
       {images.length ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <XStack gap="$2" pt="$2">
