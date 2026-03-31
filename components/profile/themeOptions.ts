@@ -1,9 +1,4 @@
-import type {
-  ThemeAesthetic,
-  ThemeMode,
-  ThemeModePreference,
-  ThemePalette,
-} from 'components/ThemePrefs'
+import type { ThemeAesthetic, ThemeMode, ThemeModePreference, ThemePalette } from 'components/ThemePrefs'
 import { getThemeName } from 'components/ThemePrefs'
 
 export type ThemeDraft = {
@@ -12,17 +7,12 @@ export type ThemeDraft = {
   palette: ThemePalette
 }
 
-export type ThemePresetId =
-  | 'studio-signal'
-  | 'soft-pearl'
-  | 'neon-alloy'
-  | 'night-signal'
-  | 'crystal-pearl'
-  | 'prism-signal'
+export type ThemePresetId = string
 
 export type ThemePresetOption = {
   id: string
   aesthetic: ThemeAesthetic
+  mode: ThemeMode
   palette: ThemePalette
   label: string
   themeName: string
@@ -92,39 +82,73 @@ export const MODE_OPTIONS: {
 
 const THEME_PRESET_DEFINITIONS: Omit<ThemePresetOption, 'themeName'>[] = [
   {
-    id: 'studio-signal',
+    id: 'citrus-signal-light',
     label: 'Citrus Signal',
     aesthetic: 'modern',
+    mode: 'light',
     palette: 'signal',
   },
   {
-    id: 'soft-pearl',
-    label: 'Sakura Pearl',
+    id: 'mono-alloy-light',
+    label: 'Mono Alloy',
     aesthetic: 'modern',
-    palette: 'pearl',
-  },
-  {
-    id: 'neon-alloy',
-    label: 'Neon Alloy',
-    aesthetic: 'cyberpunk',
+    mode: 'light',
     palette: 'alloy',
   },
   {
-    id: 'night-signal',
-    label: 'Night Signal',
-    aesthetic: 'cyberpunk',
-    palette: 'signal',
-  },
-  {
-    id: 'crystal-pearl',
-    label: 'Crystal Pearl',
-    aesthetic: 'glass',
+    id: 'sakura-pearl-light',
+    label: 'Sakura Pearl',
+    aesthetic: 'modern',
+    mode: 'light',
     palette: 'pearl',
   },
   {
-    id: 'prism-signal',
+    id: 'prism-signal-light',
     label: 'Prism Signal',
     aesthetic: 'glass',
+    mode: 'light',
+    palette: 'signal',
+  },
+  {
+    id: 'crystal-pearl-light',
+    label: 'Crystal Pearl',
+    aesthetic: 'glass',
+    mode: 'light',
+    palette: 'pearl',
+  },
+  {
+    id: 'afterglow-signal-dark',
+    label: 'Afterglow Signal',
+    aesthetic: 'modern',
+    mode: 'dark',
+    palette: 'signal',
+  },
+  {
+    id: 'after-hours-alloy-dark',
+    label: 'After Hours Alloy',
+    aesthetic: 'modern',
+    mode: 'dark',
+    palette: 'alloy',
+  },
+  {
+    id: 'velvet-pearl-dark',
+    label: 'Velvet Pearl',
+    aesthetic: 'modern',
+    mode: 'dark',
+    palette: 'pearl',
+  },
+  {
+    id: 'neon-alloy-dark',
+    label: 'Neon Alloy',
+    aesthetic: 'cyberpunk',
+    mode: 'dark',
+    palette: 'alloy',
+  },
+  {
+    id: 'night-signal-dark',
+    label: 'Night Signal',
+    aesthetic: 'cyberpunk',
+    mode: 'dark',
     palette: 'signal',
   },
 ]
@@ -134,23 +158,25 @@ const formatSimpleModeLabel = (resolvedMode: ThemeMode) =>
 
 export const findThemePreset = (
   aesthetic: ThemeAesthetic,
-  palette: ThemePalette
+  palette: ThemePalette,
+  mode: ThemeMode
 ) =>
   THEME_PRESET_DEFINITIONS.find(
-    (preset) => preset.aesthetic === aesthetic && preset.palette === palette
+    (preset) =>
+      preset.aesthetic === aesthetic && preset.palette === palette && preset.mode === mode
   ) ?? null
 
-export const buildThemePresetOptions = (mode: ThemeMode): ThemePresetOption[] =>
+export const buildThemePresetOptions = (): ThemePresetOption[] =>
   THEME_PRESET_DEFINITIONS.map((preset) => ({
     ...preset,
-    themeName: getThemeName(preset.palette, preset.aesthetic, mode),
+    themeName: getThemeName(preset.palette, preset.aesthetic, preset.mode),
   }))
 
 export const buildThemePickerLabel = (
   selection: Pick<ThemeDraft, 'aesthetic' | 'palette'>,
   resolvedMode: ThemeMode
 ) => {
-  const preset = findThemePreset(selection.aesthetic, selection.palette)
+  const preset = findThemePreset(selection.aesthetic, selection.palette, resolvedMode)
 
   if (preset) {
     return `${preset.label} · ${formatSimpleModeLabel(resolvedMode)}`
@@ -194,7 +220,7 @@ export const buildThemeLabel = (
   selection: ThemeDraft,
   resolvedMode: ThemeMode
 ) => {
-  const preset = findThemePreset(selection.aesthetic, selection.palette)
+  const preset = findThemePreset(selection.aesthetic, selection.palette, resolvedMode)
   const aestheticLabel =
     AESTHETIC_OPTIONS.find((option) => option.id === selection.aesthetic)?.label ??
     selection.aesthetic

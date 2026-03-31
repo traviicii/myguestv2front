@@ -100,12 +100,10 @@ export function useThemePickerScreenModel() {
     },
     draftTheme.mode
   )
-  const presetOptions = useMemo(
-    () => buildThemePresetOptions(draftTheme.mode),
-    [draftTheme.mode]
-  )
+  const presetOptions = useMemo(() => buildThemePresetOptions(), [])
   const selectedPresetId =
-    findThemePreset(draftTheme.aesthetic, draftTheme.palette)?.id ?? null
+    findThemePreset(draftTheme.aesthetic, draftTheme.palette, draftTheme.mode)?.id ?? null
+  const savedPresetId = findThemePreset(aesthetic, palette, mode)?.id ?? null
   const isCustomDraft = selectedPresetId === null
 
   const handleApplyTheme = () => {
@@ -161,11 +159,12 @@ export function useThemePickerScreenModel() {
     const preset = presetOptions.find((option) => option.id === presetId)
     if (!preset) return
 
-    setDraftTheme((prev) => ({
-      ...prev,
+    setDraftTheme({
       aesthetic: preset.aesthetic,
+      mode: preset.mode,
       palette: preset.palette,
-    }))
+    })
+    setModeTouched(modePreference === 'system' ? true : preset.mode !== mode)
   }
 
   const handleToggleMode = (nextMode: ThemeMode) => {
@@ -206,6 +205,7 @@ export function useThemePickerScreenModel() {
     previewThemeName,
     previewThemeSelection,
     savedThemeLabel,
+    savedPresetId,
     selectedPresetId,
     topInset,
   }

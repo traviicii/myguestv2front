@@ -186,16 +186,17 @@ export default function ThemePreferencesScreen() {
                 <YStack gap="$2.5">
                   <XStack items="flex-start" justify="space-between" gap="$3">
                     <YStack gap="$1" flex={1} pr="$3">
-                      <FieldLabel>Preset gallery</FieldLabel>
+                      <FieldLabel>Curated presets</FieldLabel>
                       <Text fontSize={11} color="$textSecondary">
-                        Start with a curated look, then fine-tune details if you want to.
+                        Tap a complete look first. Customize if you want to override
+                        mode or details.
                       </Text>
                     </YStack>
                     <GhostButton
                       testID="theme-customize-button"
                       onPress={model.handleOpenCustomize}
                     >
-                      Fine-tune
+                      Customize
                     </GhostButton>
                   </XStack>
 
@@ -204,6 +205,7 @@ export default function ThemePreferencesScreen() {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{
+                      paddingLeft: 4,
                       paddingRight: 20,
                     } as never}
                   >
@@ -213,6 +215,7 @@ export default function ThemePreferencesScreen() {
                           key={preset.id}
                           active={model.selectedPresetId === preset.id}
                           aesthetic={preset.aesthetic}
+                          isLive={model.savedPresetId === preset.id}
                           label={preset.label}
                           mode={model.draftTheme.mode}
                           onPress={() => model.handleSelectPreset(preset.id)}
@@ -312,7 +315,7 @@ export default function ThemePreferencesScreen() {
                       <XStack items="center" justify="space-between" gap="$3">
                         <YStack flex={1} gap="$0.5">
                           <ThemedHeadingText fontWeight="700" fontSize={16}>
-                            Fine-tune preview
+                            Customize preview
                           </ThemedHeadingText>
                           <Text fontSize={11} color="$textSecondary">
                             These controls only change the preview until you apply the

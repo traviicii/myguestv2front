@@ -64,10 +64,10 @@ test.describe('Style Studio Preview', () => {
     await page.getByTestId('theme-mode-toggle-inline').click()
     await expect(page.getByText(linePattern('Live', 'Citrus Signal · Light')).first()).toBeVisible()
     await expect(
-      page.getByText(linePattern('Preview', 'Citrus Signal · Dark')).first()
+      page.getByText(linePattern('Preview', 'Afterglow Signal · Dark')).first()
     ).toBeVisible()
 
-    await page.getByTestId('theme-preset-neon-alloy').click()
+    await page.getByTestId('theme-preset-neon-alloy-dark').click()
     await expect(
       page.getByText(linePattern('Preview', 'Neon Alloy · Dark')).first()
     ).toBeVisible()
@@ -88,7 +88,7 @@ test.describe('Style Studio Preview', () => {
     await expect(page.getByTestId('theme-customize-sheet')).toHaveCount(0)
 
     await page.getByTestId('theme-mode-toggle-inline').click()
-    await page.getByTestId('theme-preset-neon-alloy').click()
+    await page.getByTestId('theme-preset-neon-alloy-dark').click()
     await page.getByRole('button', { name: 'Apply Theme' }).click()
 
     await expect(page.getByText(linePattern('Theme applied', 'Neon Alloy · Dark')).first()).toBeVisible()
