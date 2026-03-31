@@ -1,6 +1,8 @@
 import { Link } from 'expo-router'
+import { Platform } from 'react-native'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
+import { AppointmentDatePickerField } from 'components/appointments/shared/AppointmentDatePickerField'
 import {
   ErrorPulseBorder,
   FieldLabel,
@@ -13,6 +15,7 @@ import {
 } from 'components/ui/controls'
 import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
 import { ClientTypeOptions } from 'components/clients/shared/ClientTypeOptions'
+import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { NewClientFormModel } from './useNewClientFormModel'
 
@@ -22,7 +25,13 @@ type NewClientFormSectionProps = {
 
 function ClientIdentitySection({ model }: NewClientFormSectionProps) {
   return (
-    <SurfaceCard p="$4" gap="$3">
+    <SurfaceCard
+      p="$4"
+      gap="$3"
+      onLayout={(event) => {
+        model.handleIdentityLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <YStack
         gap="$2"
         onLayout={(event) => {
@@ -32,9 +41,14 @@ function ClientIdentitySection({ model }: NewClientFormSectionProps) {
         <FieldLabel>First name</FieldLabel>
         <YStack position="relative" pointerEvents="box-none">
           <TextField
+            ref={model.setInputRef('firstName')}
             placeholder="First name"
             value={model.form.firstName}
             inputAccessoryViewID={model.keyboardAccessoryId}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onFocus={() => model.handleKeyboardFieldFocus('firstName')}
+            onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
             onChangeText={(text) =>
               model.setForm((prev) => ({ ...prev, firstName: text }))
             }
@@ -57,9 +71,14 @@ function ClientIdentitySection({ model }: NewClientFormSectionProps) {
         <FieldLabel>Last name</FieldLabel>
         <YStack position="relative" pointerEvents="box-none">
           <TextField
+            ref={model.setInputRef('lastName')}
             placeholder="Last name"
             value={model.form.lastName}
             inputAccessoryViewID={model.keyboardAccessoryId}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onFocus={() => model.handleKeyboardFieldFocus('lastName')}
+            onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
             onChangeText={(text) =>
               model.setForm((prev) => ({ ...prev, lastName: text }))
             }
@@ -76,32 +95,53 @@ function ClientIdentitySection({ model }: NewClientFormSectionProps) {
       <YStack gap="$2">
         <FieldLabel>Email</FieldLabel>
         <TextField
+          ref={model.setInputRef('email')}
           placeholder="email@example.com"
           keyboardType="email-address"
           value={model.form.email}
           inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onFocus={() => model.handleKeyboardFieldFocus('email')}
+          onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
           onChangeText={(text) => model.setForm((prev) => ({ ...prev, email: text }))}
         />
       </YStack>
       <YStack gap="$2">
         <FieldLabel>Phone</FieldLabel>
         <TextField
-          placeholder="(555) 555-5555"
+          ref={model.setInputRef('phone')}
+          placeholder={PHONE_INPUT_PLACEHOLDER}
           keyboardType="phone-pad"
           value={model.form.phone}
           inputAccessoryViewID={model.keyboardAccessoryId}
-          onChangeText={(text) => model.setForm((prev) => ({ ...prev, phone: text }))}
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onFocus={() => model.handleKeyboardFieldFocus('phone')}
+          onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
+          onChangeText={(text) =>
+            model.setForm((prev) => ({ ...prev, phone: formatPhoneForInput(text) }))
+          }
         />
       </YStack>
-      <YStack gap="$2">
+      <YStack
+        gap="$2"
+        onLayout={(event) => {
+          model.handleBirthdayLayout(event.nativeEvent.layout.y)
+        }}
+      >
         <FieldLabel>Birthday</FieldLabel>
-        <TextField
-          placeholder="YYYY-MM-DD"
-          value={model.form.birthday}
-          inputAccessoryViewID={model.keyboardAccessoryId}
-          onChangeText={(text) =>
-            model.setForm((prev) => ({ ...prev, birthday: text }))
-          }
+        <AppointmentDatePickerField
+          datePanel={model.birthdayPanel}
+          displayValue={model.birthdayDisplayValue}
+          fieldBackground="$surfaceField"
+          onDateChange={model.handleBirthdayChange}
+          onFieldPress={model.handleBirthdayFieldPress}
+          pickerDate={model.birthdayPickerDate}
+          placeholder="Select birthday"
+          pulseKey={0}
+          showDateError={false}
+          showDatePicker={model.showBirthdayPicker}
         />
       </YStack>
     </SurfaceCard>
@@ -121,14 +161,22 @@ function ClientTypeSection({ model }: NewClientFormSectionProps) {
 
 function ClientNotesSection({ model }: NewClientFormSectionProps) {
   return (
-    <SurfaceCard p="$4" gap="$3">
+    <SurfaceCard
+      p="$4"
+      gap="$3"
+      onLayout={(event) => {
+        model.handleNotesLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <ThemedHeadingText fontWeight="700" fontSize={14}>
         Notes
       </ThemedHeadingText>
       <TextAreaField
+        inputRef={model.setInputRef('notes')}
         placeholder="Client preferences, formulas, reminders..."
         value={model.form.notes}
         inputAccessoryViewID={model.keyboardAccessoryId}
+        onFocus={() => model.handleKeyboardFieldFocus('notes')}
         onChangeText={(text) => model.setForm((prev) => ({ ...prev, notes: text }))}
       />
     </SurfaceCard>
@@ -158,18 +206,27 @@ function ClientFormActions({ model }: NewClientFormSectionProps) {
 export function NewClientFormContent({ model }: NewClientFormSectionProps) {
   return (
     <>
-      <KeyboardDismissAccessory nativeID={model.keyboardAccessoryId} />
+      <KeyboardDismissAccessory
+        nativeID={model.keyboardAccessoryId}
+        canGoPrevious={model.canGoToPreviousKeyboardField}
+        canGoNext={model.canGoToNextKeyboardField}
+        onPrevious={() => model.focusAdjacentKeyboardField('previous')}
+        onNext={() => model.focusAdjacentKeyboardField('next')}
+      />
       <ScrollView
         ref={model.scrollRef}
         flex={1}
         contentContainerStyle={{
           pb: 40 + model.insets.bottom,
         }}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={model.keyboardDismissMode}
+        onScroll={model.handleScroll as never}
+        scrollEventThrottle={16}
         onScrollBeginDrag={model.onScrollBeginDrag}
       >
-        <YStack gap="$4">
+        <YStack pt="$2" gap="$4">
           <ClientIdentitySection model={model} />
           <ClientTypeSection model={model} />
           <ClientNotesSection model={model} />

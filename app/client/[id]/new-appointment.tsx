@@ -55,7 +55,7 @@ export default function NewAppointmentScreen() {
         contentContainerStyle={{ pb: '$10' }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={model.keyboardDismissMode}
-        onScrollBeginDrag={model.dismissInteractiveUI}
+        onScrollBeginDrag={model.handleScrollBeginDrag}
       >
         <Pressable onPress={model.dismissInteractiveUI}>
           <YStack px="$5" pt="$3" gap="$3">

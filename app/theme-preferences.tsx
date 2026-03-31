@@ -7,7 +7,11 @@ import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import { ThemeSelectionOverrideProvider } from 'components/ThemePrefs'
 import { StyleStudioPreview } from 'components/profile/StyleStudioPreview'
 import { ThemePresetTile } from 'components/profile/ThemePresetTile'
-import { AESTHETIC_OPTIONS, PALETTE_OPTIONS } from 'components/profile/themeOptions'
+import {
+  AESTHETIC_OPTIONS,
+  MODE_OPTIONS,
+  PALETTE_OPTIONS,
+} from 'components/profile/themeOptions'
 import { useThemePickerScreenModel } from 'components/profile/useThemePickerScreenModel'
 import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import {
@@ -62,6 +66,23 @@ export default function ThemePreferencesScreen() {
   const model = useThemePickerScreenModel()
   const stageOpacity = useRef(new Animated.Value(1)).current
   const stageScale = useRef(new Animated.Value(1)).current
+  const statusTitle = model.hasPendingThemeChanges
+    ? 'Previewing changes'
+    : model.applyState === 'applied'
+      ? 'Theme applied'
+      : 'Current theme'
+  const statusBody = model.hasPendingThemeChanges
+    ? `${model.draftThemeLabel} is in preview. ${model.savedThemeLabel} is still live across the app.`
+    : model.applyState === 'applied'
+      ? `${model.savedThemeLabel} is now live across the app.`
+      : `${model.savedThemeLabel} is currently live across the app.`
+  const selectedAesthetic = AESTHETIC_OPTIONS.find(
+    (option) => option.id === model.draftTheme.aesthetic
+  )
+  const selectedPalette = PALETTE_OPTIONS.find(
+    (option) => option.id === model.draftTheme.palette
+  )
+  const selectedMode = MODE_OPTIONS.find((option) => option.id === model.draftTheme.mode)
 
   useEffect(() => {
     stageOpacity.setValue(0.92)
@@ -104,9 +125,24 @@ export default function ThemePreferencesScreen() {
                     <ThemedHeadingText fontWeight="700" fontSize={20}>
                       Theme Preferences
                     </ThemedHeadingText>
-                    <Text fontSize={11} color="$textSecondary">
-                      Saved: {model.savedThemeLabel}
+                    <Text fontSize={12} color="$textSecondary">
+                      Preview curated looks, then apply the one you want live across the
+                      app.
                     </Text>
+                    <XStack gap="$2" flexWrap="wrap">
+                      <OptionChip pointerEvents="none" active={!model.hasPendingThemeChanges}>
+                        <OptionChipLabel active={!model.hasPendingThemeChanges}>
+                          Live · {model.savedThemeLabel}
+                        </OptionChipLabel>
+                      </OptionChip>
+                      {model.hasPendingThemeChanges ? (
+                        <OptionChip pointerEvents="none" active>
+                          <OptionChipLabel active>
+                            Preview · {model.draftThemeLabel}
+                          </OptionChipLabel>
+                        </OptionChip>
+                      ) : null}
+                    </XStack>
                   </YStack>
 
                   <YStack items="flex-end" pt="$1">
@@ -120,32 +156,46 @@ export default function ThemePreferencesScreen() {
 
                 <ThemeSelectionOverrideProvider value={model.previewThemeSelection}>
                   <Theme name={model.previewThemeName as never}>
-                    <Animated.View
-                      style={{
-                        opacity: stageOpacity,
-                        transform: [{ scale: stageScale }],
-                      }}
-                    >
-                      <PreviewContainer
-                        testID="theme-preview-stage"
-                        accessibilityLabel={model.draftThemeLabel}
-                        minH={428}
-                        p="$4"
+                    <YStack gap="$2">
+                      <YStack gap="$1">
+                        <FieldLabel>Preview</FieldLabel>
+                        <Text fontSize={11} color="$textSecondary">
+                          This stage updates while you experiment. Apply Theme makes it
+                          live across the rest of the app.
+                        </Text>
+                      </YStack>
+                      <Animated.View
+                        style={{
+                          opacity: stageOpacity,
+                          transform: [{ scale: stageScale }],
+                        }}
                       >
-                        <StyleStudioPreview />
-                      </PreviewContainer>
-                    </Animated.View>
+                        <PreviewContainer
+                          testID="theme-preview-stage"
+                          accessibilityLabel={model.draftThemeLabel}
+                          minH={428}
+                          p="$4"
+                        >
+                          <StyleStudioPreview />
+                        </PreviewContainer>
+                      </Animated.View>
+                    </YStack>
                   </Theme>
                 </ThemeSelectionOverrideProvider>
 
                 <YStack gap="$2.5">
-                  <XStack items="center" justify="space-between" gap="$3">
-                    <FieldLabel>Pick A Vibe</FieldLabel>
+                  <XStack items="flex-start" justify="space-between" gap="$3">
+                    <YStack gap="$1" flex={1} pr="$3">
+                      <FieldLabel>Preset gallery</FieldLabel>
+                      <Text fontSize={11} color="$textSecondary">
+                        Start with a curated look, then fine-tune details if you want to.
+                      </Text>
+                    </YStack>
                     <GhostButton
                       testID="theme-customize-button"
                       onPress={model.handleOpenCustomize}
                     >
-                      Customize
+                      Fine-tune
                     </GhostButton>
                   </XStack>
 
@@ -201,11 +251,18 @@ export default function ThemePreferencesScreen() {
               p="$3"
               gap="$2"
             >
-              {model.hasPendingThemeChanges ? (
-                <Text fontSize={11} color="$textSecondary">
-                  Previewing changes · {model.draftThemeLabel}
+              <YStack gap="$0.5">
+                <Text
+                  fontSize={12}
+                  fontWeight="700"
+                  color={model.applyState === 'applied' ? '$accent' : '$textPrimary'}
+                >
+                  {statusTitle}
                 </Text>
-              ) : null}
+                <Text fontSize={11} color="$textSecondary">
+                  {statusBody}
+                </Text>
+              </YStack>
 
               <XStack gap="$2">
                 <SecondaryButton
@@ -214,7 +271,7 @@ export default function ThemePreferencesScreen() {
                   opacity={model.hasPendingThemeChanges ? 1 : 0.5}
                   onPress={model.handleResetThemeDraft}
                 >
-                  Reset
+                  Reset Draft
                 </SecondaryButton>
                 <PrimaryButton
                   flex={1}
@@ -222,7 +279,9 @@ export default function ThemePreferencesScreen() {
                   opacity={model.hasPendingThemeChanges ? 1 : 0.5}
                   onPress={model.handleApplyTheme}
                 >
-                  Apply Theme
+                  {model.applyState === 'applied' && !model.hasPendingThemeChanges
+                    ? 'Applied'
+                    : 'Apply Theme'}
                 </PrimaryButton>
               </XStack>
             </SurfaceCard>
@@ -251,24 +310,33 @@ export default function ThemePreferencesScreen() {
                       rounded="$6"
                     >
                       <XStack items="center" justify="space-between" gap="$3">
-                        <ThemedHeadingText fontWeight="700" fontSize={16}>
-                          Customize
-                        </ThemedHeadingText>
-                        <GhostButton onPress={model.handleCloseCustomize}>
-                          Done
-                        </GhostButton>
+                        <YStack flex={1} gap="$0.5">
+                          <ThemedHeadingText fontWeight="700" fontSize={16}>
+                            Fine-tune preview
+                          </ThemedHeadingText>
+                          <Text fontSize={11} color="$textSecondary">
+                            These controls only change the preview until you apply the
+                            theme.
+                          </Text>
+                        </YStack>
+                        <GhostButton onPress={model.handleCloseCustomize}>Done</GhostButton>
                       </XStack>
 
-                      <YStack gap="$2">
+                      <YStack gap="$1.5">
                         <FieldLabel>Mode</FieldLabel>
                         <ModeToggleRow
                           mode={model.draftTheme.mode}
                           onChange={model.handleToggleMode}
                           switchTestID="theme-mode-toggle"
                         />
+                        {selectedMode ? (
+                          <Text fontSize={11} color="$textSecondary">
+                            {selectedMode.description}
+                          </Text>
+                        ) : null}
                       </YStack>
 
-                      <YStack gap="$2">
+                      <YStack gap="$1.5">
                         <FieldLabel>Aesthetic</FieldLabel>
                         <XStack gap="$2" flexWrap="wrap">
                           {AESTHETIC_OPTIONS.map((option) => (
@@ -286,9 +354,14 @@ export default function ThemePreferencesScreen() {
                             </OptionChip>
                           ))}
                         </XStack>
+                        {selectedAesthetic ? (
+                          <Text fontSize={11} color="$textSecondary">
+                            {selectedAesthetic.description}
+                          </Text>
+                        ) : null}
                       </YStack>
 
-                      <YStack gap="$2">
+                      <YStack gap="$1.5">
                         <FieldLabel>Palette</FieldLabel>
                         <XStack gap="$2" flexWrap="wrap">
                           {PALETTE_OPTIONS.map((option) => (
@@ -306,6 +379,11 @@ export default function ThemePreferencesScreen() {
                             </OptionChip>
                           ))}
                         </XStack>
+                        {selectedPalette ? (
+                          <Text fontSize={11} color="$textSecondary">
+                            {selectedPalette.description}
+                          </Text>
+                        ) : null}
                       </YStack>
                     </SurfaceCard>
                   </YStack>

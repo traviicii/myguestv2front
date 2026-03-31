@@ -74,8 +74,10 @@ export function AppointmentDetailsSection({ model }: EditAppointmentSectionProps
           isGlass={model.isGlass}
           servicePanel={model.servicePanel}
           services={model.pickerServices}
+          allServices={model.serviceCatalog}
           selectedServiceIds={model.selectedServiceIds}
           onClear={model.clearSelectedServices}
+          onSelectService={model.selectService}
           onToggleService={model.toggleServiceSelection}
         />
       </YStack>

@@ -1,6 +1,7 @@
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
+  FieldLabel,
   OptionChip,
   OptionChipLabel,
   PrimaryButton,
@@ -12,12 +13,13 @@ import {
   type OnboardingClientType,
 } from '../onboardingModelUtils'
 import type { OnboardingSectionProps } from './sectionTypes'
+import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 export function OnboardingClientStep({ model }: OnboardingSectionProps) {
   return (
-    <YStack gap="$3">
+    <YStack gap="$3.5">
       <Text fontSize={13} color="$textSecondary">
-        Add your first client so you can log an appointment.
+        We only need the basics here. You can always add more details later.
       </Text>
       <TextField
         placeholder="First name"
@@ -36,11 +38,16 @@ export function OnboardingClientStep({ model }: OnboardingSectionProps) {
         onChangeText={(text) => model.setClientDraft((prev) => ({ ...prev, email: text }))}
       />
       <TextField
-        placeholder="Phone (optional)"
+        placeholder={PHONE_INPUT_PLACEHOLDER}
         keyboardType="phone-pad"
         value={model.clientDraft.phone}
-        onChangeText={(text) => model.setClientDraft((prev) => ({ ...prev, phone: text }))}
+        onChangeText={(text) =>
+          model.setClientDraft((prev) => ({ ...prev, phone: formatPhoneForInput(text) }))
+        }
       />
+      <YStack gap="$2">
+        <FieldLabel>Client Type</FieldLabel>
+      </YStack>
       <XStack gap="$2" flexWrap="wrap">
         {ONBOARDING_CLIENT_TYPES.map((type) => (
           <OptionChip
@@ -63,7 +70,7 @@ export function OnboardingClientStep({ model }: OnboardingSectionProps) {
         disabled={!model.canAdvanceClient || model.isSaving}
         onPress={() => void model.handleClientNext()}
       >
-        {model.isSaving ? 'Saving...' : 'Next'}
+        {model.isSaving ? 'Creating...' : 'Create First Client'}
       </PrimaryButton>
     </YStack>
   )

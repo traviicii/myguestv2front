@@ -78,6 +78,92 @@ const patches = [
     }
     const allTargetsHaveProfiles`
         )
+  },
+  {
+    name: 'expo-ngrok-client',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@expo',
+      'ngrok',
+      'src',
+      'client.js'
+    ),
+    apply: (source) =>
+      source
+        .replace(
+          `    } catch (error) {
+      let clientError;
+      try {
+        const response = JSON.parse(error.response.body);
+        clientError = new NgrokClientError(
+          response.msg,
+          error.response,
+          response
+        );
+      } catch (e) {
+        clientError = new NgrokClientError(
+          error.response.body,
+          error.response,
+          error.response.body
+        );
+      }
+      throw clientError;
+    }`,
+          `    } catch (error) {
+      const responseBody = error?.response?.body;
+      const fallbackMessage = error?.message || "Ngrok request failed";
+      let clientError;
+      try {
+        const response = responseBody ? JSON.parse(responseBody) : { msg: fallbackMessage };
+        clientError = new NgrokClientError(
+          response.msg || fallbackMessage,
+          error?.response,
+          response
+        );
+      } catch (e) {
+        clientError = new NgrokClientError(
+          typeof responseBody === "string" ? responseBody : fallbackMessage,
+          error?.response,
+          responseBody ?? { msg: fallbackMessage }
+        );
+      }
+      throw clientError;
+    }`
+        )
+        .replace(
+          `    } catch (error) {
+      const response = JSON.parse(error.response.body);
+      throw new NgrokClientError(response.msg, error.response, response);
+    }`,
+          `    } catch (error) {
+      const responseBody = error?.response?.body;
+      const fallbackMessage = error?.message || "Ngrok request failed";
+      let response;
+      try {
+        response = responseBody ? JSON.parse(responseBody) : { msg: fallbackMessage };
+      } catch (e) {
+        response = responseBody ?? { msg: fallbackMessage };
+      }
+      throw new NgrokClientError(response.msg || fallbackMessage, error?.response, response);
+    }`
+        )
+  },
+  {
+    name: 'expo-ngrok-utils',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@expo',
+      'ngrok',
+      'src',
+      'utils.js'
+    ),
+    apply: (source) =>
+      source.replace(
+        `  const body = err.body;`,
+        `  const body = err?.body || {};`
+      )
   }
 ];
 

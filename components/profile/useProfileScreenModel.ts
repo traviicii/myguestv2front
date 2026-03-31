@@ -10,6 +10,11 @@ import { useServices } from 'components/data/queries'
 import { useOverviewStore } from 'components/state/overviewStore'
 import { useStudioStore } from 'components/state/studioStore'
 import {
+  formatPhoneForDisplay,
+  formatPhoneForInput,
+  normalizePhoneForStorage,
+} from 'components/utils/phone'
+import {
   buildThemeLabel,
 } from './themeOptions'
 
@@ -52,7 +57,7 @@ export function useProfileScreenModel() {
   } = useThemePrefs()
   const isGlass = aesthetic === 'glass'
   const isModern = aesthetic === 'modern'
-  const sectionGap: '$5' | '$4' = isModern ? '$5' : '$4'
+  const sectionGap = 18
   const cardTone: 'secondary' | 'default' = isGlass ? 'secondary' : 'default'
   const { profile, setProfile, appSettings } = useStudioStore()
   const selectedMetrics = useOverviewStore((state) => state.selectedMetrics)
@@ -60,10 +65,16 @@ export function useProfileScreenModel() {
   const { data: activeServices = [] } = useServices('true')
   const [isEditing, setIsEditing] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const [draftProfile, setDraftProfile] = useState(profile)
+  const [draftProfile, setDraftProfile] = useState(() => ({
+    ...profile,
+    phone: formatPhoneForInput(profile.phone),
+  }))
 
   useEffect(() => {
-    setDraftProfile(profile)
+    setDraftProfile({
+      ...profile,
+      phone: formatPhoneForInput(profile.phone),
+    })
   }, [profile])
 
   useEffect(() => {
@@ -87,7 +98,7 @@ export function useProfileScreenModel() {
     return (
       draftProfile.name.trim() !== profile.name.trim() ||
       draftProfile.email.trim() !== profile.email.trim() ||
-      draftProfile.phone.trim() !== profile.phone.trim()
+      normalizePhoneForStorage(draftProfile.phone) !== normalizePhoneForStorage(profile.phone)
     )
   }, [draftProfile.email, draftProfile.name, draftProfile.phone, profile.email, profile.name, profile.phone])
   const currentThemeLabel = buildThemeLabel(
@@ -101,7 +112,7 @@ export function useProfileScreenModel() {
 
   const displayEmail = (user?.email ?? profile.email ?? '').trim()
   const displayName = profile.name.trim() || user?.displayName?.trim() || 'Add your name'
-  const displayPhone = profile.phone.trim()
+  const displayPhone = formatPhoneForDisplay(profile.phone)
   const showPhone = Boolean(displayPhone)
 
   const clientStatusSummary = !appSettings.clientsShowStatus
@@ -123,7 +134,7 @@ export function useProfileScreenModel() {
     setProfile({
       name: draftProfile.name.trim(),
       email: user?.email ?? draftProfile.email.trim(),
-      phone: draftProfile.phone.trim(),
+      phone: normalizePhoneForStorage(draftProfile.phone),
     })
     setIsEditing(false)
   }

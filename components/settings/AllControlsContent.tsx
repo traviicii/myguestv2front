@@ -406,12 +406,15 @@ export function AllControlsContent({
               Service catalog
             </Text>
             <Text fontSize={11} color="$textSecondary">
-              Control the services available when creating or editing appointment logs.
+              Choose what appears in appointment logs, set a default order, and keep
+              prices ready for new entries.
             </Text>
           </YStack>
-          <ActiveServicesSection model={model} />
-          <InactiveServicesSection model={model} />
-          <AddServiceSection model={model} />
+          <YStack gap="$4">
+            <ActiveServicesSection model={model} />
+            <InactiveServicesSection model={model} />
+            <AddServiceSection model={model} />
+          </YStack>
         </SurfaceCard>
       </YStack>
 

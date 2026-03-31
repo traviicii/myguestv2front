@@ -47,8 +47,9 @@ npm run dev
 Notes:
 
 - `EXPO_PUBLIC_API_BASE_URL` is required when `EXPO_PUBLIC_USE_MOCK_DATA=false`; the app no longer falls back to the hosted backend implicitly.
-- `npm run dev` uses a tunnel by default because it is more reliable on a physical iPhone.
-- `npm run dev:lan` is optional when your Mac and phone are on the same Wi-Fi.
+- `npm run dev` uses the local network by default because it is the simplest daily iPhone workflow.
+- `npm run dev:sim` uses `localhost` and is the fastest loop when you are working in the iOS Simulator on your Mac.
+- `npm run dev:tunnel` is the fallback when the same-Wi-Fi path is acting up.
 - `EXPO_PUBLIC_PRIVACY_POLICY_URL` and `EXPO_PUBLIC_SUPPORT_URL` power the in-app Data & Privacy section and should point at real public pages for release builds.
 - `EXPO_PUBLIC_DEV_ID_TOKEN` is still supported for one-off local API debugging.
 
@@ -70,16 +71,125 @@ What they cover:
 
 GitHub Actions mirrors the same commands in `.github/workflows/ci.yml`.
 
+## Local Toolchain
+
+Before running iOS builds, use the repo's pinned Node line:
+
+```bash
+nvm use
+```
+
+If `nvm` is not installed on your machine, use any Node version manager you
+prefer and target the same version from `.nvmrc` / `.node-version` instead.
+The target line is Node `20.19.x`. This project now includes both files for
+Expo SDK 54 compatibility, plus an empty `.watchmanconfig` so Watchman treats
+the app root as a stable project.
+
+Install dependencies before first run:
+
+```bash
+npm install
+```
+
+## iOS Development Paths
+
+This repo supports four main iOS paths:
+
+- **Simulator on Mac**: fastest day-to-day loop for UI and navigation work.
+- **Physical iPhone on same Wi-Fi**: best path for camera, gestures, auth, and real-device checks while your Mac is nearby.
+- **Physical iPhone over tunnel**: fallback when LAN discovery is flaky or you are off the local network.
+- **Away from your Mac**: installable preview/TestFlight path that does not need Metro or your laptop running.
+
+## Simulator Development On Mac
+
+```bash
+npm run ios
+npm run dev:sim
+```
+
+Use the simulator loop for most day-to-day UI, navigation, and state work.
+
+What to expect:
+
+- `npm run ios` installs or refreshes the local development build in the iOS Simulator.
+- `npm run dev:sim` keeps Metro on `localhost`, which avoids Wi-Fi and QR-code issues entirely.
+- Open `MyGuest Dev` in the simulator after Metro starts.
+- Re-run `npm run ios:sim:clean` only after native dependency changes or app config changes.
+
 ## iPhone Development
 
 ```bash
-npm run ios:rebuild
+npm run ios:device:clean
 npm run dev
 ```
 
-Use `npm run ios:rebuild` only when setting up the phone, after native dependency
-or app config changes, or when the dev build expires. For normal day-to-day work,
-`npm run dev` is the main command.
+Use `npm run ios:device:clean` the first time you install the local phone build,
+after native dependency changes, after app config changes, or when the dev build
+expires. It regenerates the native iPhone project as `MyGuest Dev` and removes
+the local Sign in with Apple entitlement so Personal Team provisioning can work.
+
+After the app is installed, `npm run dev` is the main day-to-day command.
+
+What to expect:
+
+- Keep the `npm run dev` terminal open while you work.
+- Make sure your Mac and iPhone are on the same Wi-Fi.
+- Open `MyGuest Dev` on your iPhone.
+- If this is the first local install, trust your Apple ID profile on the phone:
+  `Settings > Privacy & Security > Developer Mode`, then
+  `Settings > General > VPN & Device Management`.
+- If the dev server does not auto-appear in the app, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
+- Do not rely on the QR code as the main local-iPhone workflow. Opening `MyGuest Dev` directly is more reliable once the dev build is installed.
+- If LAN is flaky, switch to `npm run dev:tunnel`.
+- After the first successful install, `npm run ios:device` is usually enough for refreshes or re-installs.
+- `npm run ios:rebuild` still works as a legacy alias for `npm run ios:device`.
+
+## iPhone Development Over Tunnel
+
+```bash
+npm run dev:tunnel
+```
+
+Use this when:
+
+- your Mac and iPhone are not on the same Wi-Fi
+- LAN discovery is unreliable
+- you need a quick off-network dev-client session while your Mac stays running
+
+What to expect:
+
+- Keep the `npm run dev:tunnel` terminal open.
+- Open `MyGuest Dev` on the phone directly.
+- If the app does not auto-detect the server, use `Enter URL manually` with the Expo URL shown in the terminal.
+- The QR code is optional here too; it only helps after the dev build is already installed.
+- Tunnel mode still depends on your Mac staying awake with Metro running.
+
+## Away From Your Mac
+
+For dogfooding or showing the app when your computer is off or nowhere nearby,
+use an EAS preview build instead of a dev server.
+
+```bash
+npm run eas:login
+npm run eas:device:create
+npm run eas:build:ios:preview
+```
+
+What this gives you:
+
+- An installable iPhone build that launches without Metro or your Mac running.
+- A shareable build link for your phone or other registered test devices.
+- A cleaner path for real-world testing on cellular, travel Wi-Fi, or away from your desk.
+- The right path once your paid Apple Developer membership is fully active and you want Apple Sign In enabled end to end.
+
+Important limits:
+
+- iOS internal distribution still needs a paid Apple Developer account and a registered device UDID.
+- Preview/TestFlight builds need a hosted backend. If `EXPO_PUBLIC_API_BASE_URL` still points at `127.0.0.1`, the app will only work in mock mode away from your Mac.
+- Preview builds in this repo currently reuse the production bundle identifier for the simplest Apple/Google auth setup, so installing one replaces any existing MyGuest install on that iPhone.
+
+The detailed setup and EAS Update workflow lives in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-preview-distribution.md`.
 
 ## iOS Release Prep
 
@@ -92,26 +202,57 @@ credentials or submission answers in the local-only
 
 ## Troubleshooting iOS Dev Builds
 
-- **Build fails: “No profiles for bundle id …”**
-  - Open `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/ios/exporouterexample.xcworkspace` in Xcode.
-  - Target: `exporouterexample` → Signing & Capabilities → “Automatically manage signing” ON → select your Team.
-  - Build once in Xcode, then retry `npm run ios:rebuild`.
+- **Build fails: “No Account for Team …” or “No profiles for bundle id …”**
+  - In Xcode, open Settings → Accounts and sign in with the Apple ID you want to use for device builds.
+  - For the local phone dev build, open `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/ios/MyGuestDev.xcworkspace` in Xcode.
+  - App target → Signing & Capabilities → “Automatically manage signing” ON → select your Team.
+  - Build once in Xcode so it can register the device and create the development profile, then retry `npm run ios:device`.
+- **Build fails because Personal Team does not support Sign in with Apple**
+  - Use `npm run ios:device:clean` for the local phone development build.
+  - That command now regenerates the `MyGuest Dev` native project and strips the local Apple Sign In entitlement automatically.
+  - Once your paid Apple Developer membership is active, switch back to the paid setup with `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=true npm run ios:device:clean`.
 - **App won’t launch: “profile not trusted / invalid code signature”**
   - On the phone: Settings → Privacy & Security → Developer Mode.
   - Settings → General → VPN & Device Management → trust your Apple ID.
-  - Delete the app from the phone and re-run `npm run ios:rebuild`.
+  - Delete the app from the phone and re-run `npm run ios:device`.
+- **Expo says “No development build is installed”**
+  - Run `npm run ios` for the simulator or `npm run ios:device:clean` for a physical iPhone first.
 - **Bundler error: “Unable to resolve ansi-styles” or other missing modules**
   - Run `npm run dev:clean` to clear Metro cache.
   - If it persists: delete `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/node_modules` and run `npm install`.
+- **The simulator build is missing or stale**
+  - Run `npm run ios` to reinstall the simulator app.
+  - If native config changed, use `npm run ios:sim:clean`.
 - **The app says “No development servers found” or tries `localhost:8081`**
   - Make sure `npm run dev` is still running on your Mac.
-  - In `MyGuest`, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
-  - If local networking is stable, use `npm run dev:lan` instead.
+  - For simulator work, prefer `npm run dev:sim` so the app always talks to `localhost`.
+  - In `MyGuest Dev`, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
+  - If LAN is blocked or unstable, switch to `npm run dev:tunnel`.
+- **The QR code does nothing useful on iPhone**
+  - That is usually a sign the dev build is not installed yet or iOS did not hand off the custom dev-client link.
+  - Install the local app first with `npm run ios:device:clean`, then open `MyGuest Dev` directly.
+  - Treat the QR code as a fallback, not the primary same-Wi-Fi path.
+- **Tunnel startup fails or mentions ngrok**
+  - Prefer `npm run dev` first. It avoids ngrok entirely.
+  - Only use `npm run dev:tunnel` when you need it.
+  - If tunnel still fails, check [ngrok status](https://status.ngrok.com/).
 - **The dev app still shows old names or old schemes**
-  - Run `npm run ios:rebuild:clean` and reinstall the app on the phone.
+  - Run `npm run ios:sim:clean` for the simulator or `npm run ios:device:clean` for the phone.
+- **Watchman prints a recrawl warning**
+  - Run:
+    ```bash
+    watchman watch-del '/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front'
+    watchman watch-project '/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front'
+    ```
 
 ## Other Commands
 
+- `npm run ios` runs the iOS Simulator build.
+- `npm run ios:device` refreshes or reinstalls the local iPhone development build.
+- `npm run ios:device:clean` regenerates the local iPhone dev project and is the safest first-run phone install path.
+- `npm run ios:rebuild` remains an alias for `npm run ios:device`.
+- `npm run eas:build:ios:preview` creates an installable iPhone preview build that works away from your Mac.
+- `npm run eas:build:ios:production` creates the production/TestFlight build lane.
 - `npm run android` runs the Android native build.
 - `npm run web` starts the web target locally.
 - `npm run build:web` exports the web build to `dist/`.

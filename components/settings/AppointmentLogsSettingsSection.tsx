@@ -17,22 +17,25 @@ export function AppointmentLogsSettingsSection({ model }: SettingsSectionProps) 
         <XStack items="center" justify="space-between">
           <YStack gap="$0.5" flex={1} pr="$3">
             <XStack items="center" gap="$2">
-              <Text fontSize={13}>Service dropdown options</Text>
+              <Text fontSize={13}>Service catalog</Text>
               <SettingsInfoButton
-                title="Service dropdown options"
-                message="Controls the selectable services shown when creating or editing an appointment log."
+                title="Service catalog"
+                message="Controls which services appear in appointment logs, the order they appear in, and any default prices."
                 onShowInfo={model.showInfo}
               />
             </XStack>
             <Text fontSize={11} color="$textSecondary">
-              Names are formatted automatically (example: balayage {'->'} Balayage).
+              Choose what appears in appointment logs, set a default order, and keep
+              prices ready for new entries.
             </Text>
           </YStack>
         </XStack>
 
-        <ActiveServicesSection model={model} />
-        <InactiveServicesSection model={model} />
-        <AddServiceSection model={model} />
+        <YStack gap="$4">
+          <ActiveServicesSection model={model} />
+          <InactiveServicesSection model={model} />
+          <AddServiceSection model={model} />
+        </YStack>
       </SurfaceCard>
     </SettingsSection>
   )

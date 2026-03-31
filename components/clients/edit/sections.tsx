@@ -14,6 +14,7 @@ import {
   cardSurfaceProps,
 } from 'components/ui/controls'
 import { ClientTypeOptions } from 'components/clients/shared/ClientTypeOptions'
+import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { EditClientScreenModel } from './useEditClientScreenModel'
 
@@ -104,9 +105,11 @@ function EditClientDetailsSection({ model }: EditClientSectionProps) {
       <YStack gap="$2">
         <FieldLabel>Phone</FieldLabel>
         <TextField
+          placeholder={PHONE_INPUT_PLACEHOLDER}
+          keyboardType="phone-pad"
           value={model.form.phone}
           inputAccessoryViewID={model.keyboardAccessoryId}
-          onChangeText={(text) => model.updateField('phone', text)}
+          onChangeText={(text) => model.updateField('phone', formatPhoneForInput(text))}
         />
       </YStack>
       <YStack gap="$2">

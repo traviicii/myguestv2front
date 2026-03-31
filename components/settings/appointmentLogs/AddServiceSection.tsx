@@ -1,5 +1,5 @@
 import { Plus } from '@tamagui/lucide-icons'
-import { XStack, YStack } from 'tamagui'
+import { Text, XStack, YStack } from 'tamagui'
 
 import {
   CurrencyField,
@@ -13,12 +13,19 @@ import type { SettingsSectionProps } from '../sectionTypes'
 
 export function AddServiceSection({ model }: SettingsSectionProps) {
   return (
-    <YStack gap="$2">
-      <FieldLabel>Add service</FieldLabel>
-      <XStack gap="$2">
+    <YStack gap="$3">
+      <YStack gap="$1">
+        <FieldLabel>Add a service</FieldLabel>
+        <Text fontSize={11} color="$textSecondary">
+          New services show up in appointment logs right away. Default price is
+          optional.
+        </Text>
+      </YStack>
+      <YStack gap="$1">
+        <FieldLabel>Service name</FieldLabel>
         <TextField
           flex={1}
-          placeholder="ex: single process"
+          placeholder="Single process"
           value={model.serviceDraft}
           onChangeText={model.setServiceDraft}
           onBlur={() => {
@@ -29,6 +36,14 @@ export function AddServiceSection({ model }: SettingsSectionProps) {
           }}
           returnKeyType="done"
         />
+      </YStack>
+      <XStack items="center" gap="$2">
+        <YStack flex={1} gap="$0.5">
+          <FieldLabel>Default price</FieldLabel>
+          <Text fontSize={11} color="$textSecondary">
+            Optional
+          </Text>
+        </YStack>
         <CurrencyField
           containerProps={{ width: 120 }}
           placeholder="0.00"
@@ -36,17 +51,17 @@ export function AddServiceSection({ model }: SettingsSectionProps) {
           value={model.servicePriceDraft}
           onChangeText={model.setServicePriceDraft}
         />
-        <PrimaryButton
-          icon={<Plus size={14} />}
-          disabled={!model.canAddService || model.isCreatingService}
-          onPress={() => {
-            void model.handleAddService()
-          }}
-          opacity={model.canAddService && !model.isCreatingService ? 1 : 0.5}
-        >
-          {model.isCreatingService ? 'Adding...' : 'Add'}
-        </PrimaryButton>
       </XStack>
+      <PrimaryButton
+        icon={<Plus size={14} />}
+        disabled={!model.canAddService || model.isCreatingService}
+        onPress={() => {
+          void model.handleAddService()
+        }}
+        opacity={model.canAddService && !model.isCreatingService ? 1 : 0.5}
+      >
+        {model.isCreatingService ? 'Adding...' : 'Add service'}
+      </PrimaryButton>
     </YStack>
   )
 }

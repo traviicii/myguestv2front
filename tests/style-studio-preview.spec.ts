@@ -51,7 +51,7 @@ test.describe('Style Studio Preview', () => {
   }) => {
     await openThemePreferencesWithTheme(page, 'light')
 
-    await expect(page.getByText(linePattern('Saved', 'Citrus Signal · Light')).first()).toBeVisible()
+    await expect(page.getByText(linePattern('Live', 'Citrus Signal · Light')).first()).toBeVisible()
     await expect(page.getByTestId('theme-preview-stage')).toBeVisible()
     await expect(page.getByTestId('theme-mode-toggle-inline')).toBeVisible()
     await expect(page.getByTestId('theme-preview-stage').getByText(/save appointment/i)).toBeVisible()
@@ -62,14 +62,14 @@ test.describe('Style Studio Preview', () => {
     ).toHaveCount(0)
 
     await page.getByTestId('theme-mode-toggle-inline').click()
-    await expect(page.getByText(linePattern('Saved', 'Citrus Signal · Light')).first()).toBeVisible()
+    await expect(page.getByText(linePattern('Live', 'Citrus Signal · Light')).first()).toBeVisible()
     await expect(
-      page.getByText(linePattern('Previewing changes', 'Citrus Signal · Dark')).first()
+      page.getByText(linePattern('Preview', 'Citrus Signal · Dark')).first()
     ).toBeVisible()
 
     await page.getByTestId('theme-preset-neon-alloy').click()
     await expect(
-      page.getByText(linePattern('Previewing changes', 'Neon Alloy · Dark')).first()
+      page.getByText(linePattern('Preview', 'Neon Alloy · Dark')).first()
     ).toBeVisible()
 
     await page.getByTestId('theme-customize-button').click()
@@ -77,13 +77,13 @@ test.describe('Style Studio Preview', () => {
     await page.getByTestId('theme-customize-aesthetic-glass').click()
     await page.getByTestId('theme-customize-palette-alloy').click()
     await expect(
-      page.getByText(linePattern('Previewing changes', 'Custom · Glass · Alloy · Dark')).first()
+      page.getByText(linePattern('Preview', 'Custom · Glass · Alloy · Dark')).first()
     ).toBeVisible()
     await expect(page.getByTestId('theme-preset-custom')).toBeVisible()
     await page.getByRole('button', { name: 'Done' }).click()
 
-    await page.getByRole('button', { name: 'Reset' }).click()
-    await expect(page.getByText(linePattern('Saved', 'Citrus Signal · Light')).first()).toBeVisible()
+    await page.getByRole('button', { name: 'Reset Draft' }).click()
+    await expect(page.getByText(linePattern('Live', 'Citrus Signal · Light')).first()).toBeVisible()
     await expect(page.getByText(/previewing changes/i)).toHaveCount(0)
     await expect(page.getByTestId('theme-customize-sheet')).toHaveCount(0)
 
@@ -91,7 +91,9 @@ test.describe('Style Studio Preview', () => {
     await page.getByTestId('theme-preset-neon-alloy').click()
     await page.getByRole('button', { name: 'Apply Theme' }).click()
 
-    await expect(page.getByText(linePattern('Saved', 'Neon Alloy · Dark')).first()).toBeVisible()
+    await expect(page.getByText(linePattern('Theme applied', 'Neon Alloy · Dark')).first()).toBeVisible()
+    await expect(page.getByText(linePattern('Live', 'Neon Alloy · Dark')).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Applied' })).toBeVisible()
     await expect(page.getByText(/previewing changes/i)).toHaveCount(0)
   })
 })

@@ -48,6 +48,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-web-app-id>
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<google-ios-client-id>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<google-android-client-id>
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google-web-client-id>
+EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=true
 EXPO_PUBLIC_SITE_URL=<public-site-base-url>
 EXPO_PUBLIC_PRIVACY_POLICY_URL=<public-privacy-policy-url>
 EXPO_PUBLIC_SUPPORT_URL=<public-support-url>
@@ -58,6 +59,12 @@ Notes:
 
 - The app supports both Google and Apple sign-in on iPhone. Google still needs
   its Firebase and platform client IDs configured correctly.
+- Local `npm run dev` and `npm run ios:device` paths default
+  `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=false` so Personal Team iPhone builds can
+  install. Release builds should set it back to `true`.
+- The repo now also includes EAS `preview` and `production` lanes for builds
+  that need to work away from your Mac. See
+  `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-preview-distribution.md`.
 - `EXPO_PUBLIC_SITE_URL` can be used as the base for the hosted web app. When
   that is set, MyGuest can derive public `/privacy-policy` and `/support` URLs
   automatically if the explicit privacy/support env vars are left blank.
@@ -94,13 +101,15 @@ submitting:
 
 ## Local iOS Archive Flow
 
-This project is currently using a local iOS release-prep path rather than EAS.
+This project now supports both EAS distribution builds and a local Xcode archive
+path. Use EAS for preview/TestFlight lanes, and keep the local archive flow when
+you want direct Xcode control.
 
 1. Set production env values in `.env` or your local build environment.
 2. Run `npm install` after any native dependency change.
-3. Run `npm run ios:rebuild` when native config or plugins changed.
+3. Run `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=true npm run ios:device:clean` when native config or plugins changed.
 4. Open the generated Xcode workspace:
-   `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/ios/exporouterexample.xcworkspace`
+   `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/ios/MyGuest.xcworkspace`
 5. In Xcode, confirm the Apple Team, signing profile, bundle identifier, and
    Sign in with Apple capability are all valid for the target.
 6. Build and archive from Xcode using the release configuration.

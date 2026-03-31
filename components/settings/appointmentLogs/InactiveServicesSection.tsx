@@ -12,20 +12,25 @@ export function InactiveServicesSection({ model }: SettingsSectionProps) {
   }
 
   return (
-    <YStack gap="$2">
-      <FieldLabel>Inactive services</FieldLabel>
+    <YStack gap="$2.5">
+      <YStack gap="$1">
+        <FieldLabel>Archived services</FieldLabel>
+        <Text fontSize={11} color="$textSecondary">
+          Hidden from the picker, but still preserved on past appointment logs.
+        </Text>
+      </YStack>
       <YStack gap="$1.5">
         {model.inactiveServices.map((service) => (
           <YStack
             key={service.id}
-            gap="$2"
+            gap="$1.5"
             borderWidth={1}
             borderColor="$borderSubtle"
             rounded="$4"
-            p="$2.5"
+            p="$2"
           >
             <XStack items="center" justify="space-between">
-              <Text fontSize={12} color="$textSecondary">
+              <Text fontSize={13} fontWeight="600" color="$textPrimary">
                 {service.name}
               </Text>
               <Text fontSize={11} color="$textSecondary">
@@ -40,7 +45,7 @@ export function InactiveServicesSection({ model }: SettingsSectionProps) {
                   void model.handleReactivateService(service.id)
                 }}
               >
-                Reactivate
+                Restore
               </SecondaryButton>
               <SecondaryButton
                 size="$2"

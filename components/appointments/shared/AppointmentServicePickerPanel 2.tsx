@@ -34,32 +34,15 @@ type AppointmentServicePickerPanelProps = {
   trapPress?: boolean
 }
 
-type InlineServiceCreateProps = Pick<
-  AppointmentServicePickerPanelProps,
-  'allServices' | 'onSelectService'
-> & {
-  autoFocus?: boolean
-  draft: string
-  errorMessage: string | null
-  isExpanded: boolean
-  onCancel: () => void
-  onChangeDraft: (value: string) => void
-  onExpand: () => void
-}
-
 function InlineServiceCreate({
   allServices,
-  autoFocus = false,
-  draft,
-  errorMessage,
-  isExpanded,
-  onCancel,
-  onChangeDraft,
-  onExpand,
   onSelectService,
-}: InlineServiceCreateProps) {
+}: Pick<AppointmentServicePickerPanelProps, 'allServices' | 'onSelectService'>) {
   const createService = useCreateService()
   const reactivateService = useReactivateService()
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const normalizedDraft = useMemo(() => normalizeServiceName(draft), [draft])
   const existingService = useMemo(() => {
@@ -68,12 +51,19 @@ function InlineServiceCreate({
     return allServices.find((service) => service.normalizedName === key) ?? null
   }, [allServices, normalizedDraft])
 
+  const resetComposer = () => {
+    setDraft('')
+    setErrorMessage(null)
+    setIsExpanded(false)
+  }
+
   const handleCreateOrSelect = async () => {
     if (!normalizedDraft) return
+    setErrorMessage(null)
 
     if (existingService?.isActive) {
       onSelectService(existingService.id)
-      onCancel()
+      resetComposer()
       return
     }
 
@@ -81,31 +71,37 @@ function InlineServiceCreate({
       if (existingService && !existingService.isActive) {
         const reactivated = await reactivateService.mutateAsync(existingService.id)
         onSelectService(reactivated.id)
-        onCancel()
+        resetComposer()
         return
       }
 
       const created = await createService.mutateAsync({ name: normalizedDraft })
       onSelectService(created.id)
-      onCancel()
-    } catch {
-      // Error state is handled by the shared parent so both measured/visible
-      // panel copies stay in sync height-wise.
+      resetComposer()
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to add that service right now. Please try again.'
+      )
     }
   }
 
   const actionLabel = existingService
     ? existingService.isActive
-      ? 'Select Existing'
-      : 'Reactivate Service'
-    : 'Create'
+      ? `Select "${existingService.name}"`
+      : `Reactivate "${existingService.name}"`
+    : `Create "${normalizedDraft || 'Service'}"`
 
   const isSubmitting = createService.isPending || reactivateService.isPending
   const canSubmit = Boolean(normalizedDraft) && !isSubmitting
 
   if (!isExpanded) {
     return (
-      <GhostButton icon={<Plus size={14} />} onPress={onExpand}>
+      <GhostButton
+        icon={<Plus size={14} />}
+        onPress={() => setIsExpanded(true)}
+      >
         Add new service
       </GhostButton>
     )
@@ -116,12 +112,14 @@ function InlineServiceCreate({
       <YStack gap="$1.5">
         <FieldLabel>Add service</FieldLabel>
         <TextField
-          autoFocus={autoFocus}
           placeholder="ex: single process"
           value={draft}
-          onChangeText={onChangeDraft}
+          onChangeText={(text) => {
+            setDraft(text)
+            if (errorMessage) setErrorMessage(null)
+          }}
           onBlur={() => {
-            onChangeDraft(normalizeServiceName(draft))
+            setDraft((current) => normalizeServiceName(current))
           }}
           onSubmitEditing={() => {
             void handleCreateOrSelect()
@@ -130,11 +128,7 @@ function InlineServiceCreate({
         />
         {normalizedDraft ? (
           <Text fontSize={11} color="$textSecondary">
-            {existingService?.isActive
-              ? `Already in your catalog as ${existingService.name}.`
-              : existingService
-                ? `Reactivate ${existingService.name} and add it to this appointment.`
-                : `Will appear as ${normalizedDraft}.`}
+            Will appear as {normalizedDraft}.
           </Text>
         ) : null}
         {errorMessage ? (
@@ -142,12 +136,9 @@ function InlineServiceCreate({
             {errorMessage}
           </Text>
         ) : null}
-        <Text fontSize={11} color="$textSecondary">
-          You can set a default price later in Control Center {'>'} Services.
-        </Text>
       </YStack>
       <XStack gap="$2">
-        <SecondaryButton flex={1} onPress={onCancel}>
+        <SecondaryButton flex={1} onPress={resetComposer}>
           Cancel
         </SecondaryButton>
         <PrimaryButton
@@ -165,63 +156,30 @@ function InlineServiceCreate({
   )
 }
 
-type AppointmentServicePickerCardProps = Omit<
-  AppointmentServicePickerPanelProps,
-  'servicePanel' | 'trapPress'
-> & {
-  autoFocusComposer?: boolean
-  composerDraft: string
-  composerError: string | null
-  isComposerExpanded: boolean
-  onComposerCancel: () => void
-  onComposerChangeDraft: (value: string) => void
-  onComposerExpand: () => void
-}
-
 function AppointmentServicePickerCard({
   cardMode,
   cardTone,
-  autoFocusComposer = false,
-  composerDraft,
-  composerError,
-  isComposerExpanded,
   isGlass = false,
   allServices,
   services,
   selectedServiceIds,
   onClear,
-  onComposerCancel,
-  onComposerChangeDraft,
-  onComposerExpand,
   onSelectService,
   onToggleService,
-}: AppointmentServicePickerCardProps) {
-  const content = (
-    <>
-      <AppointmentServicePickerOptions
-        services={services}
-        selectedServiceIds={selectedServiceIds}
-        onClear={onClear}
-        onToggleService={onToggleService}
-      />
-      <InlineServiceCreate
-        allServices={allServices}
-        autoFocus={autoFocusComposer}
-        draft={composerDraft}
-        errorMessage={composerError}
-        isExpanded={isComposerExpanded}
-        onCancel={onComposerCancel}
-        onChangeDraft={onComposerChangeDraft}
-        onExpand={onComposerExpand}
-        onSelectService={onSelectService}
-      />
-    </>
-  )
-
+}: Omit<AppointmentServicePickerPanelProps, 'servicePanel' | 'trapPress'>) {
   if (isGlass) {
     return (
       <SurfaceCard mode={cardMode ?? 'alwaysCard'} tone={cardTone ?? 'secondary'} p="$2" gap="$0">
-        {content}
+        <AppointmentServicePickerOptions
+          services={services}
+          selectedServiceIds={selectedServiceIds}
+          onClear={onClear}
+          onToggleService={onToggleService}
+        />
+        <InlineServiceCreate
+          allServices={allServices}
+          onSelectService={onSelectService}
+        />
       </SurfaceCard>
     )
   }
@@ -239,7 +197,16 @@ function AppointmentServicePickerCard({
       shadowOffset={{ width: 0, height: 6 }}
       elevation={2}
     >
-      {content}
+      <AppointmentServicePickerOptions
+        services={services}
+        selectedServiceIds={selectedServiceIds}
+        onClear={onClear}
+        onToggleService={onToggleService}
+      />
+      <InlineServiceCreate
+        allServices={allServices}
+        onSelectService={onSelectService}
+      />
     </YStack>
   )
 }
@@ -257,51 +224,34 @@ export function AppointmentServicePickerPanel({
   onToggleService,
   trapPress = false,
 }: AppointmentServicePickerPanelProps) {
-  const [isComposerExpanded, setIsComposerExpanded] = useState(false)
-  const [composerDraft, setComposerDraft] = useState('')
-  const [composerError, setComposerError] = useState<string | null>(null)
-
   if (!servicePanel.showPanel) {
     return null
-  }
-
-  const handleComposerCancel = () => {
-    setComposerDraft('')
-    setComposerError(null)
-    setIsComposerExpanded(false)
-  }
-
-  const handleComposerChangeDraft = (value: string) => {
-    setComposerDraft(value)
-    if (composerError) {
-      setComposerError(null)
-    }
-  }
-
-  const handleComposerExpand = () => {
-    setComposerError(null)
-    setIsComposerExpanded(true)
   }
 
   const card = (
     <AppointmentServicePickerCard
       cardMode={cardMode}
       cardTone={cardTone}
-      autoFocusComposer={false}
-      composerDraft={composerDraft}
-      composerError={composerError}
-      isComposerExpanded={isComposerExpanded}
       isGlass={isGlass}
       allServices={allServices}
       services={services}
       selectedServiceIds={selectedServiceIds}
       onClear={onClear}
-      onComposerCancel={handleComposerCancel}
-      onComposerChangeDraft={handleComposerChangeDraft}
-      onComposerExpand={handleComposerExpand}
       onSelectService={onSelectService}
       onToggleService={onToggleService}
     />
+  )
+
+  const wrappedCard = trapPress ? (
+    <Pressable
+      onPress={(event) => {
+        event.stopPropagation?.()
+      }}
+    >
+      {card}
+    </Pressable>
+  ) : (
+    card
   )
 
   return (
@@ -320,51 +270,7 @@ export function AppointmentServicePickerPanel({
         {card}
       </YStack>
       <Animated.View style={[{ overflow: 'hidden' }, servicePanel.animatedStyle]}>
-        {trapPress ? (
-          <Pressable
-            onPress={(event) => {
-              event.stopPropagation?.()
-            }}
-          >
-            <AppointmentServicePickerCard
-              cardMode={cardMode}
-              cardTone={cardTone}
-              autoFocusComposer={true}
-              composerDraft={composerDraft}
-              composerError={composerError}
-              isComposerExpanded={isComposerExpanded}
-              isGlass={isGlass}
-              allServices={allServices}
-              services={services}
-              selectedServiceIds={selectedServiceIds}
-              onClear={onClear}
-              onComposerCancel={handleComposerCancel}
-              onComposerChangeDraft={handleComposerChangeDraft}
-              onComposerExpand={handleComposerExpand}
-              onSelectService={onSelectService}
-              onToggleService={onToggleService}
-            />
-          </Pressable>
-        ) : (
-          <AppointmentServicePickerCard
-            cardMode={cardMode}
-            cardTone={cardTone}
-            autoFocusComposer={true}
-            composerDraft={composerDraft}
-            composerError={composerError}
-            isComposerExpanded={isComposerExpanded}
-            isGlass={isGlass}
-            allServices={allServices}
-            services={services}
-            selectedServiceIds={selectedServiceIds}
-            onClear={onClear}
-            onComposerCancel={handleComposerCancel}
-            onComposerChangeDraft={handleComposerChangeDraft}
-            onComposerExpand={handleComposerExpand}
-            onSelectService={onSelectService}
-            onToggleService={onToggleService}
-          />
-        )}
+        {wrappedCard}
       </Animated.View>
     </YStack>
   )

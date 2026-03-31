@@ -21,6 +21,12 @@ Options:
 }
 
 const clean = args.has('--clean')
+const env = {
+  ...process.env,
+  EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN:
+    process.env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN ?? 'false',
+}
+const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
 
 const sanitizeNativeProjectName = (value) => value.replace(/[^A-Za-z0-9]/g, '')
 
@@ -49,6 +55,7 @@ const pruneStaleWorkspaces = async () => {
 const run = (command, commandArgs) =>
   new Promise((resolve, reject) => {
     const child = spawn(command, commandArgs, {
+      env,
       stdio: 'inherit',
       shell: process.platform === 'win32',
     })
@@ -68,6 +75,11 @@ console.log(
     : 'Rebuilding the MyGuest iPhone app.'
 )
 console.log('Use this when native packages change, signing breaks, or the dev build expires.')
+if (!appleSignInEnabled) {
+  console.log(
+    'Sign in with Apple is disabled for this local dev build so Personal Team provisioning can succeed. Set EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=true to opt in.'
+  )
+}
 
 if (clean) {
   await run('npx', ['expo', 'prebuild', '--clean'])

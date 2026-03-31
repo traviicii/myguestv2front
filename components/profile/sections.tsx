@@ -23,14 +23,15 @@ import {
   TextField,
   ThemedHeadingText,
 } from 'components/ui/controls'
+import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { ProfileSectionProps } from './sectionTypes'
 
 function SummaryIcon({ children }: { children: ReactNode }) {
   return (
     <XStack
-      width={36}
-      height={36}
+      width={34}
+      height={34}
       rounded={999}
       items="center"
       justify="center"
@@ -59,7 +60,7 @@ function SummaryRow({
   tone: 'default' | 'secondary'
 }) {
   return (
-    <SurfaceCard tone={tone} p="$4" gap="$3">
+    <SurfaceCard tone={tone} p="$4" gap="$2.5">
       <XStack gap="$3" items="flex-start">
         <SummaryIcon>{icon}</SummaryIcon>
         <YStack flex={1} gap="$1.5">
@@ -93,7 +94,7 @@ function ThemePreferencesRow({ model }: ProfileSectionProps) {
 
 function AccountSection({ model }: ProfileSectionProps) {
   return (
-    <SurfaceCard p="$5" gap="$4" tone={model.cardTone}>
+    <SurfaceCard p="$4" gap="$3" tone={model.cardTone}>
       <XStack items="center" justify="space-between" gap="$3">
         <XStack gap="$3" items="center" flex={1}>
           <SummaryIcon>
@@ -134,11 +135,14 @@ function AccountSection({ model }: ProfileSectionProps) {
               opacity={model.user?.email ? 0.6 : 1}
             />
             <TextField
-              placeholder="Add phone number"
+              placeholder={PHONE_INPUT_PLACEHOLDER}
               keyboardType="phone-pad"
               value={model.draftProfile.phone}
               onChangeText={(text) =>
-                model.setDraftProfile((prev) => ({ ...prev, phone: text }))
+                model.setDraftProfile((prev) => ({
+                  ...prev,
+                  phone: formatPhoneForInput(text),
+                }))
               }
             />
           </YStack>
@@ -226,7 +230,7 @@ export function ProfileContent({ model }: ProfileSectionProps) {
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: model.contentPaddingBottom } as never}>
       <YStack px="$5" pt={model.topInset} gap={model.sectionGap}>
-        <YStack gap="$2">
+        <YStack gap="$1.5">
           <ThemedHeadingText fontWeight="700" fontSize={18}>
             Control Center
           </ThemedHeadingText>

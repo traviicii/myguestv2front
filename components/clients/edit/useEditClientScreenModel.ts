@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { ClientType } from 'components/data/models'
 import { useClients, useDeleteClient, useUpdateClient } from 'components/data/queries'
 import { useThemePrefs } from 'components/ThemePrefs'
+import { formatPhoneForInput } from 'components/utils/phone'
 
 const normalizeType = (value: string, fallback: ClientType) => {
   const trimmed = value.trim()
@@ -56,7 +57,7 @@ export function useEditClientScreenModel() {
     () => ({
       name: client?.name ?? '',
       email: client?.email ?? '',
-      phone: client?.phone ?? '',
+      phone: formatPhoneForInput(client?.phone ?? ''),
       type: client?.type ?? 'Cut',
       notes: client?.notes ?? '',
     }),

@@ -86,9 +86,11 @@ export function NewAppointmentDetailsSection({ model }: NewAppointmentSectionPro
         </YStack>
         <AppointmentServicePickerPanel
           servicePanel={model.servicePanel}
-          services={model.serviceOptions}
+          services={model.pickerServices}
+          allServices={model.serviceCatalog}
           selectedServiceIds={model.selectedServiceIds}
           onClear={model.clearSelectedServices}
+          onSelectService={model.selectService}
           onToggleService={model.toggleServiceSelection}
           trapPress
         />

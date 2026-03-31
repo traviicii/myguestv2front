@@ -64,7 +64,11 @@ export const CurrencyField = forwardRef<
 
 CurrencyField.displayName = 'CurrencyField'
 
-export function TextAreaField(props: React.ComponentProps<typeof TextArea>) {
+type TextAreaFieldProps = React.ComponentProps<typeof TextArea> & {
+  inputRef?: React.Ref<React.ElementRef<typeof TextArea>>
+}
+
+export function TextAreaField({ inputRef, ...props }: TextAreaFieldProps) {
   const profile = useAestheticProfile()
   const focusStyle = {
     borderColor: '$focusRing',
@@ -74,6 +78,7 @@ export function TextAreaField(props: React.ComponentProps<typeof TextArea>) {
 
   return (
     <TextArea
+      ref={inputRef}
       minH={120}
       rounded={props.rounded ?? profile.inputRadius}
       bg="$surfaceField"

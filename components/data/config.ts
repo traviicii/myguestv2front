@@ -1,4 +1,6 @@
 export const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true'
+export const APPLE_SIGN_IN_ENABLED =
+  process.env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN !== 'false'
 
 export const MISSING_API_BASE_URL_ERROR =
   'Real API mode requires EXPO_PUBLIC_API_BASE_URL. Set it in .env or enable EXPO_PUBLIC_USE_MOCK_DATA=true.'

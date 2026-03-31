@@ -9,13 +9,13 @@ import { SectionDivider } from 'components/ui/controls'
 export default function NewClientScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const topInset = Math.max(insets.top + 8, 16)
+  const topInset = Math.max(insets.top + 4, 12)
 
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
       <ScreenTopBar topInset={topInset} onBack={() => router.back()} />
-      <YStack px="$5" pt="$6" gap="$4" flex={1}>
+      <YStack px="$5" pt="$4" gap="$4" flex={1}>
         <YStack gap="$2">
           <Text fontFamily="$heading" fontWeight="600" fontSize={18} color="$color">
             New Client

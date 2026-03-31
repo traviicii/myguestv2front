@@ -14,10 +14,27 @@ export function formatOnboardingTodayLabel(date = new Date()) {
 }
 
 export function getOnboardingStepTitle(step: OnboardingStep) {
-  if (step === 1) return 'Studio Profile'
-  if (step === 2) return 'Service Presets (Optional)'
+  if (step === 1) return 'Workspace'
+  if (step === 2) return 'Services'
   if (step === 3) return 'First Client'
   return 'First Appointment Log'
+}
+
+export function getOnboardingStepSubtitle(step: OnboardingStep) {
+  if (step === 1) return 'Add a few details so the workspace feels like yours.'
+  if (step === 2) return 'Starter services are ready. Add one if you want, or keep moving.'
+  if (step === 3) return 'Create one real client record so the app has something to work with.'
+  return 'Log the first appointment now, or finish setup and come back later.'
+}
+
+export function canGoBackOnboardingStep(step: OnboardingStep) {
+  return step > 1
+}
+
+export function getPreviousOnboardingStep(step: OnboardingStep): OnboardingStep {
+  if (step === 4) return 3
+  if (step === 3) return 2
+  return 1
 }
 
 export function canAdvanceOnboardingClientStep(firstName: string, lastName: string) {

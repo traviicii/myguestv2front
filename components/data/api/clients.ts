@@ -1,4 +1,5 @@
 import type { Client, ClientType } from '../models'
+import { normalizePhoneForStorage } from 'components/utils/phone'
 
 import { request, toClientIdString } from './core'
 
@@ -105,7 +106,7 @@ export async function createClientViaApi(input: CreateClientInput): Promise<Clie
     first_name: input.firstName.trim(),
     last_name: input.lastName.trim(),
     email: input.email?.trim() || null,
-    phone: input.phone?.trim() || null,
+    phone: normalizePhoneForStorage(input.phone ?? '') || null,
     birthday: input.birthday?.trim() || null,
     client_type: input.clientType,
     notes: input.notes?.trim() || null,
@@ -140,7 +141,9 @@ export async function updateClientViaApi(input: UpdateClientInput): Promise<Clie
     payload.last_name = lastName
   }
   if (input.email !== undefined) payload.email = input.email?.trim() || null
-  if (input.phone !== undefined) payload.phone = input.phone?.trim() || null
+  if (input.phone !== undefined) {
+    payload.phone = normalizePhoneForStorage(input.phone ?? '') || null
+  }
   if (input.birthday !== undefined) payload.birthday = input.birthday?.trim() || null
   if (input.clientType !== undefined) payload.client_type = input.clientType
   if (input.notes !== undefined) payload.notes = input.notes?.trim() || null

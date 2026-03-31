@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Platform } from 'react-native'
+import { Alert, Keyboard, Platform } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -41,7 +41,7 @@ export function useNewAppointmentScreenModel() {
   const { id } = useLocalSearchParams<{ id: string }>()
 
   const { data: clients = [], isLoading: clientsLoading } = useClients()
-  const { data: serviceOptions = [] } = useServices('true')
+  const { data: serviceCatalog = [] } = useServices('all')
   const createAppointmentLog = useCreateAppointmentLog()
 
   const client = clients.find((item) => item.id === id)
@@ -69,9 +69,14 @@ export function useNewAppointmentScreenModel() {
     showServicePicker,
   } = useAppointmentInteractiveUi()
 
+  const pickerServices = useMemo(
+    () => serviceCatalog.filter((service) => service.isActive),
+    [serviceCatalog]
+  )
+
   const selectedServices = useMemo(
-    () => getSelectedServices(serviceOptions, selectedServiceIds),
-    [selectedServiceIds, serviceOptions]
+    () => getSelectedServices(serviceCatalog, selectedServiceIds),
+    [selectedServiceIds, serviceCatalog]
   )
 
   const selectedServiceSummary = useMemo(
@@ -125,6 +130,12 @@ export function useNewAppointmentScreenModel() {
   const toggleServiceSelection = (serviceId: number) => {
     setSelectedServiceIds((current) =>
       toggleNewAppointmentServiceId(current, serviceId)
+    )
+  }
+
+  const selectService = (serviceId: number) => {
+    setSelectedServiceIds((current) =>
+      current.includes(serviceId) ? current : [...current, serviceId]
     )
   }
 
@@ -198,6 +209,13 @@ export function useNewAppointmentScreenModel() {
 
   const handleBack = () => router.back()
 
+  const handleScrollBeginDrag = () => {
+    Keyboard.dismiss()
+    if (showDatePicker) {
+      setShowDatePicker(false)
+    }
+  }
+
   return {
     canSave,
     cardMode: 'alwaysCard' as const,
@@ -215,6 +233,7 @@ export function useNewAppointmentScreenModel() {
     handleDateChange,
     handleDateFieldPress,
     handleSave,
+    handleScrollBeginDrag,
     handleServiceFieldPress,
     handleUpload,
     images,
@@ -222,6 +241,7 @@ export function useNewAppointmentScreenModel() {
     keyboardAccessoryId,
     keyboardDismissMode,
     pickerDate,
+    pickerServices,
     previewUri,
     pulseKey,
     removeImage,
@@ -230,8 +250,9 @@ export function useNewAppointmentScreenModel() {
     selectedServiceIds,
     selectedServiceSummary,
     selectedServices,
-    serviceOptions,
+    serviceCatalog,
     servicePanel,
+    selectService,
     setCoverImage,
     setForm,
     setPreviewUri,

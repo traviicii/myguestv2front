@@ -169,6 +169,12 @@ export function useEditAppointmentScreenModel() {
     )
   }
 
+  const selectService = (serviceId: number) => {
+    setSelectedServiceIds((current) =>
+      current.includes(serviceId) ? current : [...current, serviceId]
+    )
+  }
+
   const clearSelectedServices = () => setSelectedServiceIds([])
 
   const applySuggestedPrice = () => {
@@ -254,7 +260,9 @@ export function useEditAppointmentScreenModel() {
 
   const handleScrollBeginDrag = () => {
     Keyboard.dismiss()
-    closePickers()
+    if (showDatePicker) {
+      setShowDatePicker(false)
+    }
   }
 
   return {
@@ -294,7 +302,9 @@ export function useEditAppointmentScreenModel() {
     selectedServiceIds,
     selectedServiceSummary,
     selectedServices,
+    serviceCatalog,
     servicePanel,
+    selectService,
     setCoverImage,
     setForm,
     setPreviewUri,

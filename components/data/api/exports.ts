@@ -1,6 +1,5 @@
 import { Platform } from 'react-native'
 import { File, Paths } from 'expo-file-system'
-import * as Sharing from 'expo-sharing'
 
 import { getApiBaseUrl } from '../config'
 
@@ -56,6 +55,13 @@ async function exportMyDataForNative(): Promise<DataExportResult> {
       idempotent: true,
     }
   )
+
+  let Sharing: typeof import('expo-sharing')
+  try {
+    Sharing = await import('expo-sharing')
+  } catch {
+    throw new Error('Data export requires a newer iPhone build. Run `npm run ios:rebuild:clean` and try again.')
+  }
 
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(file.uri, {

@@ -1,6 +1,8 @@
 import { Text, XStack, YStack } from 'tamagui'
 
+import { AppointmentDatePickerField } from 'components/appointments/shared/AppointmentDatePickerField'
 import {
+  FieldLabel,
   OptionChip,
   OptionChipLabel,
   PrimaryButton,
@@ -13,18 +15,21 @@ import type { OnboardingSectionProps } from './sectionTypes'
 
 export function OnboardingAppointmentStep({ model }: OnboardingSectionProps) {
   return (
-    <YStack gap="$3">
+    <YStack gap="$3.5">
       <Text fontSize={13} color="$textSecondary">
-        Log the first appointment to see your dashboard metrics.
+        Your first client is ready. Logging one appointment now makes Overview immediately useful.
       </Text>
-      <TextField
-        placeholder="Date (MM/DD/YYYY)"
-        value={model.appointmentDraft.date}
-        onChangeText={(text) => model.setAppointmentDraft((prev) => ({ ...prev, date: text }))}
+      <AppointmentDatePickerField
+        datePanel={model.datePanel}
+        displayValue={model.appointmentDraft.date}
+        onDateChange={model.handleDateChange}
+        onFieldPress={model.handleDateFieldPress}
+        pickerDate={model.pickerDate}
+        pulseKey={0}
+        showDateError={false}
+        showDatePicker={model.showDatePicker}
       />
-      <Text fontSize={12} color="$textSecondary">
-        Choose a preset service
-      </Text>
+      <FieldLabel>Service</FieldLabel>
       <XStack gap="$2" flexWrap="wrap">
         {model.serviceOptions.map((service) => (
           <OptionChip
@@ -66,9 +71,14 @@ export function OnboardingAppointmentStep({ model }: OnboardingSectionProps) {
           your account later if you ever need to leave.
         </Text>
       </SurfaceCard>
-      <PrimaryButton disabled={model.isSaving} onPress={() => void model.handleFinish()}>
-        {model.isSaving ? 'Saving...' : 'Save & Finish'}
-      </PrimaryButton>
+      <YStack gap="$2.5">
+        <PrimaryButton disabled={model.isSaving} onPress={() => void model.handleFinish()}>
+          {model.isSaving ? 'Saving...' : 'Save & Finish'}
+        </PrimaryButton>
+        <SecondaryButton onPress={model.handleFinishWithoutAppointment}>
+          Finish Without Appointment
+        </SecondaryButton>
+      </YStack>
     </YStack>
   )
 }

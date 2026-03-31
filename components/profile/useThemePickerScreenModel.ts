@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
@@ -23,9 +23,6 @@ export function useThemePickerScreenModel() {
     mode,
     modePreference,
     palette,
-    setAesthetic,
-    setModePreference,
-    setPalette,
   } = useThemePrefs()
   const [draftTheme, setDraftTheme] = useState<Omit<ThemeDraft, 'modePreference'> & {
     mode: ThemeMode
@@ -34,8 +31,18 @@ export function useThemePickerScreenModel() {
     mode,
     palette,
   })
+  const [applyState, setApplyState] = useState<'idle' | 'applied'>('idle')
   const [modeTouched, setModeTouched] = useState(false)
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  const applyStateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (applyStateTimer.current) {
+        clearTimeout(applyStateTimer.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     setDraftTheme({
@@ -62,17 +69,23 @@ export function useThemePickerScreenModel() {
   )
   const controlsThemeSelection = useMemo(
     () => ({
-      aesthetic: 'modern' as const,
-      mode: draftTheme.mode,
-      palette: 'signal' as const,
+      aesthetic,
+      mode,
+      palette,
     }),
-    [draftTheme.mode]
+    [aesthetic, mode, palette]
   )
-  const controlsThemeName = getThemeName('signal', 'modern', draftTheme.mode)
+  const controlsThemeName = getThemeName(palette, aesthetic, mode)
   const hasPendingThemeChanges =
     draftTheme.aesthetic !== aesthetic ||
     draftTheme.palette !== palette ||
     (modeTouched && (modePreference === 'system' || draftTheme.mode !== mode))
+
+  useEffect(() => {
+    if (hasPendingThemeChanges) {
+      setApplyState('idle')
+    }
+  }, [hasPendingThemeChanges])
   const savedThemeLabel = buildThemePickerLabel(
     {
       aesthetic,
@@ -98,11 +111,25 @@ export function useThemePickerScreenModel() {
   const handleApplyTheme = () => {
     if (!hasPendingThemeChanges) return
 
-    setAesthetic(draftTheme.aesthetic)
-    setPalette(draftTheme.palette)
-    if (modeTouched) {
-      setModePreference(draftTheme.mode)
+    const nextModePreference = modeTouched ? draftTheme.mode : modePreference
+    useThemePrefs.setState((state) => {
+      const nextMode = nextModePreference === 'system' ? state.systemMode : nextModePreference
+      return {
+        aesthetic: draftTheme.aesthetic,
+        palette: draftTheme.palette,
+        modePreference: nextModePreference,
+        mode: nextMode,
+        themeName: getThemeName(draftTheme.palette, draftTheme.aesthetic, nextMode),
+      }
+    })
+    setApplyState('applied')
+    if (applyStateTimer.current) {
+      clearTimeout(applyStateTimer.current)
     }
+    applyStateTimer.current = setTimeout(() => {
+      setApplyState('idle')
+      applyStateTimer.current = null
+    }, 2200)
     setCustomizeOpen(false)
   }
 
@@ -159,6 +186,7 @@ export function useThemePickerScreenModel() {
 
   return {
     bottomInset,
+    applyState,
     controlsThemeName,
     controlsThemeSelection,
     customizeOpen,

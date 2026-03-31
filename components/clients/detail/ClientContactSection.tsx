@@ -3,6 +3,7 @@ import { Text, XStack } from 'tamagui'
 
 import type { ClientDetailSectionProps } from './sectionTypes'
 import { ClientDetailCard } from './ClientDetailPrimitives'
+import { formatPhoneForDisplay } from 'components/utils/phone'
 
 export function ClientContactSection({ model }: ClientDetailSectionProps) {
   if (!model.client) return null
@@ -18,7 +19,7 @@ export function ClientContactSection({ model }: ClientDetailSectionProps) {
       <XStack items="center" gap="$2">
         <Phone size={14} color="$textSecondary" />
         <Text fontSize={12} color="$textSecondary">
-          {model.client.phone}
+          {formatPhoneForDisplay(model.client.phone)}
         </Text>
       </XStack>
     </ClientDetailCard>
