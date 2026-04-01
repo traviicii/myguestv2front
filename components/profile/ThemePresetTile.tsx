@@ -15,7 +15,7 @@ const AESTHETIC_LABELS: Record<ThemeAesthetic, string> = {
   glass: 'Glass',
 }
 
-function ThemePresetMiniButton({ active }: { active: boolean }) {
+function ThemePresetMiniAction() {
   const profile = useAestheticProfile()
 
   return (
@@ -30,8 +30,81 @@ function ThemePresetMiniButton({ active }: { active: boolean }) {
       borderColor="$buttonPrimaryBorder"
     >
       <Text fontSize={11} fontWeight="700" color="$buttonPrimaryFg">
-        {active ? 'Selected' : 'Select'}
+        New client
       </Text>
+    </YStack>
+  )
+}
+
+function ThemePresetMiniMetric() {
+  const profile = useAestheticProfile()
+
+  return (
+    <YStack
+      rounded={Math.max(profile.panelRadius - 4, profile.controlRadius)}
+      bg="$surfacePanel"
+      borderWidth={1}
+      borderColor="$surfacePanelBorder"
+      p="$2"
+      gap="$1"
+    >
+      <Text fontSize={10} color="$textSecondary">
+        Overview
+      </Text>
+      <XStack items="flex-end" justify="space-between" gap="$2">
+        <YStack gap="$0.5">
+          <Text fontSize={10} color="$textMuted">
+            Active clients
+          </Text>
+          <Text fontSize={18} fontWeight="700" color="$textPrimary">
+            24
+          </Text>
+        </YStack>
+        <YStack
+          px="$1.5"
+          py={4}
+          rounded={profile.chipRadius}
+          bg="$surfaceChipActive"
+          borderWidth={1}
+          borderColor="$borderAccent"
+        >
+          <Text fontSize={10} fontWeight="700" color="$accent">
+            +3
+          </Text>
+        </YStack>
+      </XStack>
+    </YStack>
+  )
+}
+
+function ThemePresetMiniClientRow() {
+  const profile = useAestheticProfile()
+
+  return (
+    <YStack
+      rounded={Math.max(profile.cardRadius - 6, profile.controlRadius)}
+      bg="$surfaceCardRaised"
+      borderWidth={1}
+      borderColor="$surfaceCardBorder"
+      p="$2"
+      gap="$0.75"
+    >
+      <XStack items="center" justify="space-between" gap="$2">
+        <YStack flex={1} minW={0} gap="$0.5">
+          <Text numberOfLines={1} fontSize={11} fontWeight="600" color="$textPrimary">
+            Avery Stone
+          </Text>
+          <Text numberOfLines={1} fontSize={10} color="$textSecondary">
+            Balayage • Mar 21
+          </Text>
+        </YStack>
+        <YStack
+          width={8}
+          height={8}
+          rounded={profile.controlRadius === 0 ? 0 : 999}
+          bg="$accent"
+        />
+      </XStack>
     </YStack>
   )
 }
@@ -91,35 +164,9 @@ function ThemePresetTileContent({
         p="$2"
         gap="$1.5"
       >
-        <YStack gap="$0.75">
-          <Text fontSize={10} color="$textSecondary">
-            Overview
-          </Text>
-          <XStack items="flex-end" justify="space-between" gap="$2">
-            <YStack gap="$0.5">
-              <Text fontSize={10} color="$textMuted">
-                Active clients
-              </Text>
-              <Text fontSize={20} fontWeight="700" color="$textPrimary">
-                24
-              </Text>
-            </YStack>
-            <YStack
-              px="$1.5"
-              py={4}
-              rounded={profile.chipRadius}
-              bg="$surfaceChipActive"
-              borderWidth={1}
-              borderColor="$borderAccent"
-            >
-              <Text fontSize={10} fontWeight="700" color="$accent">
-                Ready
-              </Text>
-            </YStack>
-          </XStack>
-        </YStack>
-
-        <ThemePresetMiniButton active={active} />
+        <ThemePresetMiniMetric />
+        <ThemePresetMiniClientRow />
+        <ThemePresetMiniAction />
       </YStack>
     </YStack>
   )

@@ -79,9 +79,19 @@ Before running iOS builds, use the repo's pinned Node line:
 nvm use
 ```
 
+If `nvm use` says the version is not installed yet, install any Node 20 release
+from the supported line and keep the
+same app commands you already use:
+
+```bash
+nvm install 20
+nvm use 20
+npm install
+```
+
 If `nvm` is not installed on your machine, use any Node version manager you
 prefer and target the same version from `.nvmrc` / `.node-version` instead.
-The target line is Node `20.19.x`. This project now includes both files for
+The target line is Node `20.x` with a minimum of `20.19.0`. This project now includes both files for
 Expo SDK 54 compatibility, plus an empty `.watchmanconfig` so Watchman treats
 the app root as a stable project.
 
@@ -89,6 +99,14 @@ Install dependencies before first run:
 
 ```bash
 npm install
+```
+
+After that, the daily dev paths stay the same:
+
+```bash
+npm run dev
+npm run dev:tunnel
+npm run ios:device
 ```
 
 ## iOS Development Paths

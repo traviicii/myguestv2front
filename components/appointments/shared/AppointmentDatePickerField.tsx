@@ -1,12 +1,13 @@
-import { Platform, Pressable } from 'react-native'
+import { Platform, Pressable, StyleSheet } from 'react-native'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import Animated from 'react-native-reanimated'
 import { CalendarDays, ChevronDown } from '@tamagui/lucide-icons'
-import { Text, XStack, YStack } from 'tamagui'
+import { Text, XStack, YStack, useTheme } from 'tamagui'
 
+import { useResolvedThemeSelection } from 'components/ThemePrefs'
 import { ErrorPulseBorder } from 'components/ui/controls'
 import { type ExpandablePanel } from 'components/ui/useExpandablePanel'
-import { FALLBACK_COLORS } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 
 type AppointmentDatePickerFieldProps = {
   datePanel: ExpandablePanel
@@ -22,28 +23,47 @@ type AppointmentDatePickerFieldProps = {
 }
 
 function DatePickerPanelCard({
+  accentColor,
+  mode,
   onDateChange,
   pickerDate,
-}: Pick<AppointmentDatePickerFieldProps, 'onDateChange' | 'pickerDate'>) {
+  textColor,
+}: Pick<AppointmentDatePickerFieldProps, 'onDateChange' | 'pickerDate'> & {
+  accentColor: string
+  mode: 'light' | 'dark'
+  textColor: string
+}) {
   return (
     <YStack
       rounded="$4"
       borderWidth={1}
-      borderColor="$borderSubtle"
-      p="$2"
-      bg="$background"
+      borderColor="$surfacePanelBorder"
+      bg="$surfacePanel"
+      px="$2.5"
+      pt="$2"
+      pb="$1.5"
       shadowColor={FALLBACK_COLORS.shadowSoft}
       shadowRadius={14}
       shadowOpacity={1}
       shadowOffset={{ width: 0, height: 6 }}
       elevation={2}
     >
-      <DateTimePicker
-        value={pickerDate}
-        mode="date"
-        display={Platform.OS === 'ios' ? 'inline' : 'default'}
-        onChange={onDateChange}
-      />
+      <XStack justify="center" width="100%">
+        <DateTimePicker
+          value={pickerDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          onChange={onDateChange}
+          style={Platform.OS === 'ios' ? styles.inlinePicker : undefined}
+          {...(Platform.OS === 'ios'
+            ? {
+                accentColor,
+                textColor,
+                themeVariant: mode,
+              }
+            : {})}
+        />
+      </XStack>
     </YStack>
   )
 }
@@ -60,6 +80,11 @@ export function AppointmentDatePickerField({
   showDateError,
   showDatePicker,
 }: AppointmentDatePickerFieldProps) {
+  const theme = useTheme()
+  const { mode } = useResolvedThemeSelection()
+  const pickerAccentColor = toNativeColor(theme.accent?.val, FALLBACK_COLORS.textPrimary)
+  const pickerTextColor = toNativeColor(theme.textPrimary?.val, FALLBACK_COLORS.textPrimary)
+
   return (
     <>
       <YStack position="relative">
@@ -116,7 +141,13 @@ export function AppointmentDatePickerField({
               datePanel.setMeasured(event.nativeEvent.layout.height)
             }}
           >
-            <DatePickerPanelCard pickerDate={pickerDate} onDateChange={onDateChange} />
+            <DatePickerPanelCard
+              pickerDate={pickerDate}
+              onDateChange={onDateChange}
+              accentColor={pickerAccentColor}
+              textColor={pickerTextColor}
+              mode={mode}
+            />
           </YStack>
           <Animated.View style={[{ overflow: 'hidden' }, datePanel.animatedStyle]}>
             <Pressable
@@ -124,7 +155,13 @@ export function AppointmentDatePickerField({
                 event.stopPropagation?.()
               }}
             >
-              <DatePickerPanelCard pickerDate={pickerDate} onDateChange={onDateChange} />
+              <DatePickerPanelCard
+                pickerDate={pickerDate}
+                onDateChange={onDateChange}
+                accentColor={pickerAccentColor}
+                textColor={pickerTextColor}
+                mode={mode}
+              />
             </Pressable>
           </Animated.View>
         </YStack>
@@ -137,3 +174,10 @@ export function AppointmentDatePickerField({
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  inlinePicker: {
+    alignSelf: 'center',
+    transform: [{ scale: 0.93 }],
+  },
+})

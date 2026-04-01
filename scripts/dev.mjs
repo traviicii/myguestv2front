@@ -44,6 +44,8 @@ const env = {
   APP_VARIANT: process.env.APP_VARIANT ?? 'development',
   EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN:
     process.env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN ?? 'false',
+  EXPO_TUNNEL_TIMEOUT_MS:
+    process.env.EXPO_TUNNEL_TIMEOUT_MS ?? '45000',
 }
 const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
 

@@ -80,6 +80,25 @@ const patches = [
         )
   },
   {
+    name: 'expo-cli-ngrok-timeout',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@expo',
+      'cli',
+      'build',
+      'src',
+      'start',
+      'server',
+      'AsyncNgrok.js'
+    ),
+    apply: (source) =>
+      source.replace(
+        `const TUNNEL_TIMEOUT = 10 * 1000;`,
+        `const TUNNEL_TIMEOUT = Number(process.env.EXPO_TUNNEL_TIMEOUT_MS || 45000);`
+      )
+  },
+  {
     name: 'expo-ngrok-client',
     target: path.join(
       process.cwd(),
@@ -128,6 +147,7 @@ const patches = [
           responseBody ?? { msg: fallbackMessage }
         );
       }
+      clientError.code = error?.code;
       throw clientError;
     }`
         )
@@ -145,8 +165,65 @@ const patches = [
       } catch (e) {
         response = responseBody ?? { msg: fallbackMessage };
       }
-      throw new NgrokClientError(response.msg || fallbackMessage, error?.response, response);
+      const clientError = new NgrokClientError(response.msg || fallbackMessage, error?.response, response);
+      clientError.code = error?.code;
+      throw clientError;
     }`
+        )
+  },
+  {
+    name: 'expo-ngrok-retry',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@expo',
+      'ngrok',
+      'index.js'
+    ),
+    apply: (source) =>
+      source.replace(
+        `  } catch (err) {
+    if (!isRetriable(err) || retryCount >= 100) {
+      throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return connectRetry(opts, ++retryCount);
+  }`,
+        `  } catch (err) {
+    const isLocalApiRace =
+      err?.code === "ECONNREFUSED" ||
+      /ECONNREFUSED 127\\.0\\.0\\.1:4040/.test(err?.message || "") ||
+      /ECONNREFUSED 127\\.0\\.0\\.1:4040/.test(err?.body?.msg || "");
+    if ((!isRetriable(err) && !isLocalApiRace) || retryCount >= 100) {
+      throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return connectRetry(opts, ++retryCount);
+  }`
+      )
+  },
+  {
+    name: 'expo-ngrok-client-code',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@expo',
+      'ngrok',
+      'src',
+      'client.js'
+    ),
+    apply: (source) =>
+      source
+        .replace(
+          `      throw clientError;`,
+          `      clientError.code = error?.code;
+      throw clientError;`
+        )
+        .replace(
+          `      throw new NgrokClientError(response.msg || fallbackMessage, error?.response, response);`,
+          `      const clientError = new NgrokClientError(response.msg || fallbackMessage, error?.response, response);
+      clientError.code = error?.code;
+      throw clientError;`
         )
   },
   {

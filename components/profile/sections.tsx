@@ -215,7 +215,19 @@ function AccountSection({ model }: ProfileSectionProps) {
             {model.isSigningOut ? 'Signing out...' : 'Sign Out'}
           </SecondaryButton>
         ) : null}
+      </YStack>
 
+      <SectionDivider />
+
+      <YStack gap="$2">
+        <YStack gap="$1">
+          <Text fontSize={11} color="$textSecondary">
+            Danger zone
+          </Text>
+          <Text fontSize={12} color="$textSecondary">
+            Permanently remove your account and associated app access.
+          </Text>
+        </YStack>
         <Link href="/account-delete" asChild>
           <SecondaryButton icon={<Trash2 size={16} />}>
             Delete Account

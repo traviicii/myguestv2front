@@ -55,11 +55,10 @@ test.describe('Style Studio Preview', () => {
     await expect(page.getByTestId('theme-preview-stage')).toBeVisible()
     await expect(page.getByTestId('theme-mode-toggle-inline')).toBeVisible()
     await expect(page.getByTestId('theme-preview-stage').getByText(/save appointment/i)).toBeVisible()
+    await expect(page.getByTestId('theme-preset-rail').getByText(/overview/i).first()).toBeVisible()
     await expect(
-      page
-        .getByTestId('theme-preset-rail')
-        .getByText(/save appointment|formula \/ notes|price|date|services|avery stone/i)
-    ).toHaveCount(0)
+      page.getByTestId('theme-preset-rail').getByText(/avery stone/i).first()
+    ).toBeVisible()
 
     await page.getByTestId('theme-mode-toggle-inline').click()
     await expect(page.getByText(linePattern('Live', 'Citrus Signal · Light')).first()).toBeVisible()
