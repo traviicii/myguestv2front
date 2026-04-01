@@ -80,7 +80,8 @@ re-verified before release.
 
 ## Related Files
 
-- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app.json`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app.config.base.js`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app.config.js`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/auth/`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/privacy/`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app/account-delete.tsx`

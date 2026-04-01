@@ -18,7 +18,9 @@ Related tracked docs:
 ## Current Production Identity
 
 The Expo app is currently configured for first-release production identity in
-`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app.json`.
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app.config.base.js`,
+with variant-specific overrides layered in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app.config.js`.
 
 - App name: `MyGuest`
 - Slug: `myguest`
@@ -78,8 +80,8 @@ Notes:
   Store Connect even though the in-app fallback screens remain available.
 - Privacy Policy and Support are also reachable from the pre-login auth surface,
   so App Review can access trust information before authenticating.
-- `EXPO_PUBLIC_DEV_ID_TOKEN` remains a local debugging escape hatch only and
-  should not be part of release configuration.
+- Release builds no longer support a public bearer-token auth escape hatch; real
+  API access must come from Firebase-authenticated sessions.
 
 ## Release-Sensitive User Flows
 

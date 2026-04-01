@@ -1,13 +1,16 @@
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
 const projectRoot = path.resolve(scriptDir, '..')
 const iosDir = path.join(projectRoot, 'ios')
 const xcodeBuildLogPath = path.join(projectRoot, '.expo', 'xcodebuild.log')
 const supportedNodeMajor = 20
+const baseExpoConfig = require(path.join(projectRoot, 'app.config.base.js'))
 
 const args = new Set(process.argv.slice(2))
 
@@ -75,22 +78,12 @@ const resolveNativeProjectDisplayName = (baseName) => {
 }
 const resolveNativeProjectName = (baseName) =>
   sanitizeNativeProjectName(resolveNativeProjectDisplayName(baseName))
+const resolveBaseAppName = () => baseExpoConfig.name ?? 'App'
 
 const pruneStaleWorkspaces = async () => {
-  let appConfigRaw
-
-  try {
-    appConfigRaw = await readFile(path.join(projectRoot, 'app.json'), 'utf8')
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return
-    }
-    throw error
-  }
-
-  const appConfig = JSON.parse(appConfigRaw)
-  const baseProjectName = sanitizeNativeProjectName(appConfig.expo?.name ?? 'App')
-  const expectedProjectName = resolveNativeProjectName(appConfig.expo?.name ?? 'App')
+  const baseAppName = resolveBaseAppName()
+  const baseProjectName = sanitizeNativeProjectName(baseAppName)
+  const expectedProjectName = resolveNativeProjectName(baseAppName)
   const expectedNames = new Set([
     expectedProjectName,
     `${expectedProjectName}.xcodeproj`,
@@ -132,15 +125,7 @@ const stripAppleSignInEntitlement = async () => {
     return
   }
 
-  let appConfigRaw
-  try {
-    appConfigRaw = await readFile(path.join(projectRoot, 'app.json'), 'utf8')
-  } catch {
-    return
-  }
-
-  const appConfig = JSON.parse(appConfigRaw)
-  const projectName = resolveNativeProjectName(appConfig.expo?.name ?? 'App')
+  const projectName = resolveNativeProjectName(resolveBaseAppName())
   const entitlementsPath = path.join(iosDir, projectName, `${projectName}.entitlements`)
 
   let entitlements
@@ -258,16 +243,9 @@ const printDeviceProvisioningGuidance = async () => {
     return false
   }
 
-  let appConfigRaw
-  try {
-    appConfigRaw = await readFile(path.join(projectRoot, 'app.json'), 'utf8')
-  } catch {
-    appConfigRaw = '{}'
-  }
-  const appConfig = JSON.parse(appConfigRaw)
   const workspacePath = path.join(
     iosDir,
-    `${sanitizeNativeProjectName(resolveNativeProjectDisplayName(appConfig.expo?.name ?? 'App'))}.xcworkspace`
+    `${sanitizeNativeProjectName(resolveNativeProjectDisplayName(resolveBaseAppName()))}.xcworkspace`
   )
 
   console.error('')

@@ -1,6 +1,4 @@
-const appJson = require('./app.json')
-
-const baseConfig = appJson.expo ?? {}
+const baseConfig = require('./app.config.base.js')
 const variantDisplayNames = {
   development: 'MyGuest Dev',
   preview: 'MyGuest Preview',

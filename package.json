@@ -98,7 +98,7 @@
     "@tamagui/babel-plugin": "2.0.0-rc.17",
     "@types/react": "~19.1.10",
     "eslint": "^8.57.1",
-    "eslint-config-expo": "^9.2.0",
+    "eslint-config-expo": "~10.0.0",
     "react-refresh": "^0.14.2",
     "serve": "^14.2.5",
     "typescript": "~5.9.2"

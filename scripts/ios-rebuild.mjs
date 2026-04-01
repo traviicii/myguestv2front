@@ -1,11 +1,14 @@
 import { spawn } from 'node:child_process'
-import { readFile, readdir, rm } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { readdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
 const projectRoot = path.resolve(scriptDir, '..')
 const iosDir = path.join(projectRoot, 'ios')
+const baseExpoConfig = require(path.join(projectRoot, 'app.config.base.js'))
 
 const args = new Set(process.argv.slice(2))
 
@@ -31,9 +34,7 @@ const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
 const sanitizeNativeProjectName = (value) => value.replace(/[^A-Za-z0-9]/g, '')
 
 const pruneStaleWorkspaces = async () => {
-  const appConfigRaw = await readFile(path.join(projectRoot, 'app.json'), 'utf8')
-  const appConfig = JSON.parse(appConfigRaw)
-  const expectedWorkspaceName = `${sanitizeNativeProjectName(appConfig.expo?.name ?? 'App')}.xcworkspace`
+  const expectedWorkspaceName = `${sanitizeNativeProjectName(baseExpoConfig.name ?? 'App')}.xcworkspace`
   const entries = await readdir(iosDir, { withFileTypes: true })
   const workspaceNames = entries
     .filter((entry) => entry.isDirectory() && entry.name.endsWith('.xcworkspace'))
