@@ -77,5 +77,6 @@ test('sortable grid helpers keep trailing honeycomb items in the left column', a
     layoutVariant: 'hexHoneycomb',
   })
 
+  expect(layout.containerHeight).toBe(162)
   expect(getSortableGridPosition(2, layout, true)).toEqual({ x: 0, y: 83 })
 })

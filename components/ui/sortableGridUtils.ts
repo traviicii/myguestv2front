@@ -42,6 +42,15 @@ export function buildSortableGridLayout({
     const columnStep = Math.round((visibleHexWidth * 104) / 140) + honeycombGap
     const rowStep = visibleHexHeight + honeycombGap
     const staggerOffset = Math.round(rowStep / 2)
+    let containerHeight = 0
+
+    for (let index = 0; index < itemCount; index += 1) {
+      const row = Math.floor(index / columns)
+      const col = index % columns
+      const itemY = row * rowStep + (col % 2 ? staggerOffset : 0)
+      containerHeight = Math.max(containerHeight, itemY + visibleHexHeight)
+    }
+
     return {
       columns,
       itemCount,
@@ -55,8 +64,7 @@ export function buildSortableGridLayout({
       rows,
       remainder,
       containerWidth: visibleHexWidth + columnStep * (columns - 1),
-      containerHeight:
-        visibleHexHeight + rowStep * (rows - 1) + (columns > 1 ? staggerOffset : 0),
+      containerHeight: containerHeight || visibleHexHeight,
       lastRowIndex: rows - 1,
     }
   }

@@ -196,6 +196,11 @@ export function OverviewQuickActionsSection({
       model.quickActionItemSize,
     ]
   )
+  const quickActionClusterInsetTop = model.isCyberpunk ? 10 : 0
+  const quickActionClusterInsetBottom = model.isCyberpunk ? 14 : 0
+  const quickActionClusterHeight = cyberpunkQuickActionLayout
+    ? Math.max(cyberpunkQuickActionLayout.containerHeight, model.quickActionItemSize)
+    : Math.max(model.quickActionGridHeight, 160)
 
   return (
     <YStack>
@@ -250,17 +255,22 @@ export function OverviewQuickActionsSection({
           Drag buttons to rearrange order.
         </Text>
       </RNAnimated.View>
-      <YStack mt="$1" minH={160} justify="center" items="center" width="100%">
+      <YStack
+        mt="$1"
+        minH={160 + quickActionClusterInsetTop + quickActionClusterInsetBottom}
+        justify="center"
+        items="center"
+        width="100%"
+        height={quickActionClusterHeight + quickActionClusterInsetTop + quickActionClusterInsetBottom}
+        pt={quickActionClusterInsetTop}
+        pb={quickActionClusterInsetBottom}
+      >
         {model.enabledQuickActions.length ? (
           <YStack
             width="100%"
             position="relative"
             minH={160}
-            height={
-              cyberpunkQuickActionLayout
-                ? Math.max(cyberpunkQuickActionLayout.containerHeight, model.quickActionItemSize)
-                : Math.max(model.quickActionGridHeight, 160)
-            }
+            height={quickActionClusterHeight}
           >
             <SortableGrid
               data={model.enabledQuickActions}
