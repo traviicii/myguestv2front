@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+export type SortableGridVariant = 'grid' | 'hexHoneycomb'
+
 export type SortableGridProps<T> = {
   data: T[]
   keyExtractor: (item: T) => string
@@ -11,11 +13,13 @@ export type SortableGridProps<T> = {
   onDragActiveChange?: (dragging: boolean) => void
   dragEnabled?: boolean
   centerLastRow?: boolean
+  layoutVariant?: SortableGridVariant
 }
 
 export type Positions = Record<string, number>
 
 export type SortableGridLayoutInput = {
+  layoutVariant: SortableGridVariant
   columns: number
   itemCount: number
   itemSize: number
@@ -24,6 +28,9 @@ export type SortableGridLayoutInput = {
 
 export type SortableGridLayout = SortableGridLayoutInput & {
   cellSize: number
+  columnStep: number
+  rowStep: number
+  staggerOffset: number
   rows: number
   remainder: number
   containerWidth: number

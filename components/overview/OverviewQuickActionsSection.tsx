@@ -1,16 +1,20 @@
 import type { Href } from 'expo-router'
-import { Animated as RNAnimated } from 'react-native'
-import { Text, XStack, YStack } from 'tamagui'
+import { useMemo } from 'react'
+import { Animated as RNAnimated, StyleSheet } from 'react-native'
+import { Text, XStack, YStack, useTheme } from 'tamagui'
 
 import { ExpandableEditPanel } from 'components/ui/ExpandableEditPanel'
 import { SortableGrid } from 'components/ui/SortableGrid'
+import { buildSortableGridLayout } from 'components/ui/sortableGridUtils'
 import {
   GhostButton,
   GlassOrbAction,
   ThemedHeadingText,
   ThemedSwitch,
 } from 'components/ui/controls'
-import { FALLBACK_COLORS } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
+
+import Svg, { Polygon } from 'react-native-svg'
 
 import type { OverviewNavigableSectionProps, OverviewQuickActionCardProps } from './sectionTypes'
 
@@ -20,12 +24,15 @@ const editPanelCardBorder = {
   borderColor: '$borderSubtle',
 } as const
 
+const CYBERPUNK_HEX_POINTS = '35,1 105,1 139,61 105,121 35,121 1,61'
+
 function QuickActionCard({
   action,
   model,
   onPress,
   isDragging = false,
 }: OverviewQuickActionCardProps) {
+  const theme = useTheme()
   const Icon = action.icon
   const isPrimary = action.variant === 'primary'
   const isSecondary = action.variant === 'secondary'
@@ -58,6 +65,76 @@ function QuickActionCard({
     : isSecondary
       ? '$accent'
       : '$textSecondary'
+
+  if (model.isCyberpunk) {
+    const hexFill = isPrimary
+      ? toNativeColor(theme.buttonPrimaryBg?.val, '#202B20')
+      : toNativeColor(theme.surfaceCard?.val, '#121212')
+    const hexStroke = isPrimary
+      ? toNativeColor(theme.accent?.val, '#D7FF5C')
+      : isSecondary
+        ? toNativeColor(theme.accent?.val, '#D7FF5C')
+        : toNativeColor(theme.borderColor?.val, FALLBACK_COLORS.borderSubtle)
+    return (
+      <YStack
+        width={140}
+        aspectRatio={1}
+        position="relative"
+        items="center"
+        justify="center"
+        cursor={isDisabled ? 'default' : 'pointer'}
+        opacity={isDisabled ? 0.55 : 1}
+        pressStyle={isDisabled ? undefined : { opacity: 0.88 }}
+        onPress={!isDisabled ? onPress : undefined}
+        scale={isDragging ? 0.97 : 1}
+        shadowColor={isPrimary ? FALLBACK_COLORS.shadowPrimaryCard : FALLBACK_COLORS.shadowSecondaryCard}
+        shadowRadius={isPrimary ? 18 : 14}
+        shadowOpacity={isPrimary ? 0.38 : 0.22}
+        shadowOffset={{ width: 0, height: 6 }}
+        elevation={isPrimary ? 4 : 2}
+      >
+        <YStack style={styles.hexShell}>
+          <Svg
+            pointerEvents="none"
+            viewBox="0 0 140 122"
+            preserveAspectRatio="none"
+            style={styles.hexFrame}
+          >
+            <Polygon
+              points={CYBERPUNK_HEX_POINTS}
+              fill={hexFill}
+              stroke={hexStroke}
+              strokeWidth={isPrimary ? 2.25 : 1.5}
+            />
+          </Svg>
+          <YStack
+            px="$4.5"
+            py="$3"
+            gap="$1.5"
+            items="center"
+            justify="center"
+            width="100%"
+            height="100%"
+          >
+            <Icon size={24} color={iconColor} />
+            <Text
+              fontSize={12}
+              color={labelColor}
+              style={{ textAlign: 'center' }}
+              numberOfLines={2}
+            >
+              {action.label}
+            </Text>
+            {isDisabled ? (
+              <Text fontSize={10} color="$textMuted">
+                Coming soon
+              </Text>
+            ) : null}
+          </YStack>
+        </YStack>
+      </YStack>
+    )
+  }
 
   return (
     <YStack
@@ -100,6 +177,26 @@ export function OverviewQuickActionsSection({
   model,
   onNavigate,
 }: OverviewNavigableSectionProps) {
+  const cyberpunkQuickActionLayout = useMemo(
+    () =>
+      model.isCyberpunk
+        ? buildSortableGridLayout({
+            columns: model.quickActionColumns,
+            itemCount: model.enabledQuickActions.length,
+            itemSize: model.quickActionItemSize,
+            gap: model.quickActionGap,
+            layoutVariant: 'hexHoneycomb',
+          })
+        : null,
+    [
+      model.enabledQuickActions.length,
+      model.isCyberpunk,
+      model.quickActionColumns,
+      model.quickActionGap,
+      model.quickActionItemSize,
+    ]
+  )
+
   return (
     <YStack>
       <XStack items="center" justify="space-between" mb="$2">
@@ -159,7 +256,11 @@ export function OverviewQuickActionsSection({
             width="100%"
             position="relative"
             minH={160}
-            height={Math.max(model.quickActionGridHeight, 160)}
+            height={
+              cyberpunkQuickActionLayout
+                ? Math.max(cyberpunkQuickActionLayout.containerHeight, model.quickActionItemSize)
+                : Math.max(model.quickActionGridHeight, 160)
+            }
           >
             <SortableGrid
               data={model.enabledQuickActions}
@@ -168,6 +269,7 @@ export function OverviewQuickActionsSection({
               itemSize={model.quickActionItemSize}
               gap={model.quickActionGap}
               centerLastRow={model.shouldCenterQuickActionRow}
+              layoutVariant={model.isCyberpunk ? 'hexHoneycomb' : 'grid'}
               dragEnabled={model.showQuickActionEditor}
               onDragActiveChange={model.setIsQuickActionDragging}
               onOrderChange={model.handleQuickActionReorder}
@@ -197,3 +299,14 @@ export function OverviewQuickActionsSection({
     </YStack>
   )
 }
+
+const styles = StyleSheet.create({
+  hexShell: {
+    ...StyleSheet.absoluteFillObject,
+    top: 10,
+    bottom: 10,
+  },
+  hexFrame: {
+    ...StyleSheet.absoluteFillObject,
+  },
+})

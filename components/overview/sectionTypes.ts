@@ -27,6 +27,6 @@ export type OverviewLayoutItemProps = {
 export type OverviewQuickActionCardProps = {
   action: OverviewQuickAction
   isDragging?: boolean
-  model: Pick<OverviewScreenModel, 'actionCardRadius' | 'isGlass'>
+  model: Pick<OverviewScreenModel, 'actionCardRadius' | 'isCyberpunk' | 'isGlass'>
   onPress?: () => void
 }

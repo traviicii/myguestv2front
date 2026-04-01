@@ -22,6 +22,7 @@ test('sortable grid helpers compute centered rows and clamp drag order', async (
     itemCount: 5,
     itemSize: 100,
     gap: 10,
+    layoutVariant: 'grid',
   })
 
   expect(layout.containerWidth).toBe(320)
@@ -48,4 +49,33 @@ test('sortable grid helpers move items and produce ordered data', async () => {
   )
 
   expect(ordered.map((item) => item.id)).toEqual(['b', 'c', 'a'])
+})
+
+test('sortable grid helpers support hex honeycomb positions', async () => {
+  const layout = buildSortableGridLayout({
+    columns: 2,
+    itemCount: 4,
+    itemSize: 100,
+    gap: 10,
+    layoutVariant: 'hexHoneycomb',
+  })
+
+  expect(layout.containerWidth).toBe(164)
+  expect(layout.containerHeight).toBe(204)
+  expect(getSortableGridPosition(0, layout, false)).toEqual({ x: 0, y: 0 })
+  expect(getSortableGridPosition(1, layout, false)).toEqual({ x: 72, y: 42 })
+  expect(getSortableGridPosition(2, layout, false)).toEqual({ x: 0, y: 83 })
+  expect(getSortableGridOrder(72, 42, layout, false)).toBe(1)
+})
+
+test('sortable grid helpers keep trailing honeycomb items in the left column', async () => {
+  const layout = buildSortableGridLayout({
+    columns: 2,
+    itemCount: 3,
+    itemSize: 100,
+    gap: 10,
+    layoutVariant: 'hexHoneycomb',
+  })
+
+  expect(getSortableGridPosition(2, layout, true)).toEqual({ x: 0, y: 83 })
 })

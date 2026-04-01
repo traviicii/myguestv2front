@@ -22,6 +22,7 @@ export const SortableGrid = <T,>({
   onDragActiveChange,
   dragEnabled = true,
   centerLastRow = false,
+  layoutVariant = 'grid',
 }: SortableGridProps<T>) => {
   const [activeKeyState, setActiveKeyState] = useState<string | null>(null)
   const isDragging = useSharedValue(false)
@@ -39,8 +40,9 @@ export const SortableGrid = <T,>({
         itemCount: keys.length,
         itemSize,
         gap,
+        layoutVariant,
       }),
-    [columns, gap, itemSize, keys.length]
+    [columns, gap, itemSize, keys.length, layoutVariant]
   )
 
   useEffect(() => {
