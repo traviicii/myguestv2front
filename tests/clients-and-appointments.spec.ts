@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('client detail route renders actions, history, and color chart data in mock mode', async ({
+test('client detail route renders actions, timeline, and color chart data in mock mode', async ({
   page,
 }) => {
   await page.goto('/clients', { waitUntil: 'networkidle' })
@@ -8,10 +8,12 @@ test('client detail route renders actions, history, and color chart data in mock
   await expect(page).toHaveURL(/\/client\/c-101$/)
 
   await expect(page.getByText('Avery Stone', { exact: true }).last()).toBeVisible()
-  await expect(page.getByText('2125550101')).toBeVisible()
+  await expect(page.getByText('(212) 555-0101')).toBeVisible()
+  await expect(page.getByText('Rebooking')).toBeVisible()
   await expect(page.getByText('Quick Actions')).toBeVisible()
-  await expect(page.getByText('Appointment Logs')).toBeVisible()
-  await expect(page.getByText('View Full Chart')).toBeVisible()
+  await expect(page.getByText('Client Timeline')).toBeVisible()
+  await expect(page.getByText('Color chart updated')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View Full Chart' }).first()).toBeVisible()
 })
 
 test('client edit route loads existing client values in mock mode', async ({ page }) => {
@@ -75,20 +77,20 @@ test('control route renders style, summary, and account controls in mock mode', 
 
   await page.getByRole('link', { name: 'Open Theme Picker' }).click()
   await expect(page).toHaveURL(/\/theme-preferences$/)
-  await expect(page.getByText(/^saved:/i)).toBeVisible()
+  await expect(page.getByText(/^live · /i)).toBeVisible()
   await expect(page.getByText(/^customize$/i)).toBeVisible()
   await page.goBack()
   await expect(page).toHaveURL(/\/profile$/)
 
   await page.getByText('Edit').last().click()
   await expect(page.getByRole('textbox', { name: /^name$/i })).toBeVisible()
-  await expect(page.getByPlaceholder('Add phone number')).toBeVisible()
+  await expect(page.getByPlaceholder('(555) 555-5555')).toBeVisible()
 })
 
 test('color chart edit route renders grouped fields in mock mode', async ({ page }) => {
   await page.goto('/clients', { waitUntil: 'networkidle' })
   await page.getByText('Avery Stone', { exact: true }).first().click()
-  await page.getByText('View Full Chart').click()
+  await page.getByRole('link', { name: 'View Full Chart' }).first().click()
   await page.getByRole('link', { name: 'Edit' }).click()
 
   await expect(page).toHaveURL(/\/client\/c-101\/color-chart\/edit$/)

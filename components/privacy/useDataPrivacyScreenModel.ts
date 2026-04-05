@@ -18,7 +18,7 @@ export function useDataPrivacyScreenModel() {
   const insets = useSafeAreaInsets()
   const toast = useToastController()
   const { aesthetic } = useThemePrefs()
-  const { user, canUseDevTokenFallback } = useAuth()
+  const { user } = useAuth()
   const exportMyData = useExportMyData()
 
   const topInset = Math.max(insets.top + 8, 16)
@@ -95,7 +95,7 @@ export function useDataPrivacyScreenModel() {
 
   return {
     bottomInset,
-    canManageAccount: Boolean(user) || canUseDevTokenFallback,
+    canManageAccount: Boolean(user),
     cardTone,
     handleExportMyData,
     handleOpenPrivacyPolicy,

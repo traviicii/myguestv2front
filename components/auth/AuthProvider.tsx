@@ -11,7 +11,6 @@ import {
 } from 'react'
 import { Platform } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import * as Crypto from 'expo-crypto'
 import {
@@ -35,8 +34,6 @@ import {
   setAuthTokenProvider,
 } from 'components/data/api/shared'
 import { APPLE_SIGN_IN_ENABLED } from 'components/data/config'
-
-const DEV_AUTH_BYPASS_DISABLED_KEY = 'myguest:dev-auth-bypass-disabled'
 
 type AuthContextValue = {
   isReady: boolean
@@ -66,59 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false)
-  const [isDevTokenFallbackReady, setIsDevTokenFallbackReady] = useState(!hasStaticDevToken())
-  const [isDevTokenFallbackDisabled, setIsDevTokenFallbackDisabled] = useState(false)
-  const canUseDevTokenFallback = hasStaticDevToken() && !isDevTokenFallbackDisabled
-
-  const persistDevTokenFallbackDisabled = useCallback(async (disabled: boolean) => {
-    setIsDevTokenFallbackDisabled(disabled)
-    if (!hasStaticDevToken()) {
-      setIsDevTokenFallbackReady(true)
-      return
-    }
-
-    try {
-      if (disabled) {
-        await AsyncStorage.setItem(DEV_AUTH_BYPASS_DISABLED_KEY, 'true')
-      } else {
-        await AsyncStorage.removeItem(DEV_AUTH_BYPASS_DISABLED_KEY)
-      }
-    } finally {
-      setIsDevTokenFallbackReady(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    let isMounted = true
-
-    if (!hasStaticDevToken()) {
-      setIsDevTokenFallbackDisabled(false)
-      setIsDevTokenFallbackReady(true)
-      return () => {
-        isMounted = false
-      }
-    }
-
-    AsyncStorage.getItem(DEV_AUTH_BYPASS_DISABLED_KEY)
-      .then((value) => {
-        if (!isMounted) return
-        setIsDevTokenFallbackDisabled(value === 'true')
-        setIsDevTokenFallbackReady(true)
-      })
-      .catch(() => {
-        if (!isMounted) return
-        setIsDevTokenFallbackDisabled(false)
-        setIsDevTokenFallbackReady(true)
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const canUseDevTokenFallback = hasStaticDevToken()
+  const isDevTokenFallbackReady = true
 
   useEffect(() => {
     if (!canUseFirebaseAuth) {
       setAuthTokenProvider(null)
+      setUser(null)
+      setAuthError(null)
       setIsReady(true)
       return
     }
@@ -140,9 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(nextUser)
         setIsReady(true)
         setAuthError(null)
-        if (nextUser) {
-          void persistDevTokenFallbackDisabled(false)
-        }
       },
       (error) => {
         setAuthError(error.message || 'Failed to read Firebase auth state.')
@@ -155,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe()
       setAuthTokenProvider(null)
     }
-  }, [canUseFirebaseAuth, persistDevTokenFallbackDisabled])
+  }, [canUseFirebaseAuth])
 
   useEffect(() => {
     let isMounted = true
@@ -180,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false
     }
-  }, [canUseFirebaseAuth, persistDevTokenFallbackDisabled])
+  }, [canUseFirebaseAuth])
 
   const signInWithApple = useCallback(async () => {
     if (!canUseFirebaseAuth) {
@@ -220,7 +169,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await signInWithCredential(auth, firebaseCredential)
       await auth.currentUser?.getIdToken(true)
-      await persistDevTokenFallbackDisabled(false)
     } catch (error) {
       if (
         error &&
@@ -232,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw error
     }
-  }, [canUseFirebaseAuth, persistDevTokenFallbackDisabled])
+  }, [canUseFirebaseAuth])
 
   const signInWithGoogle = useCallback(async () => {
     if (!canUseFirebaseAuth) {
@@ -250,8 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     provider.setCustomParameters({ prompt: 'select_account' })
     await signInWithPopup(auth, provider)
     await auth.currentUser?.getIdToken(true)
-    await persistDevTokenFallbackDisabled(false)
-  }, [canUseFirebaseAuth, persistDevTokenFallbackDisabled])
+  }, [canUseFirebaseAuth])
 
   const signInWithGoogleIdToken = useCallback(
     async (idToken: string) => {
@@ -266,17 +213,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const credential = GoogleAuthProvider.credential(idToken)
       await signInWithCredential(auth, credential)
       await auth.currentUser?.getIdToken(true)
-      await persistDevTokenFallbackDisabled(false)
     },
-    [canUseFirebaseAuth, persistDevTokenFallbackDisabled]
+    [canUseFirebaseAuth]
   )
 
   const signOutUser = useCallback(async () => {
-    await persistDevTokenFallbackDisabled(true)
-    if (!canUseFirebaseAuth) return
+    if (!canUseFirebaseAuth) {
+      queryClient.clear()
+      return
+    }
     await signOut(getFirebaseAuth())
     queryClient.clear()
-  }, [canUseFirebaseAuth, persistDevTokenFallbackDisabled, queryClient])
+  }, [canUseFirebaseAuth, queryClient])
 
   const value = useMemo<AuthContextValue>(
     () => ({

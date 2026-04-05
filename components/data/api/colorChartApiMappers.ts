@@ -40,6 +40,10 @@ export const coerceColorChartItems = (payload: unknown): FlexibleColorChart[] =>
 
 export function toColorAnalysisModel(chart: FlexibleColorChart): ColorAnalysis {
   return {
+    id: chart.id != null ? String(chart.id) : undefined,
+    clientId: getColorChartClientId(chart) ?? undefined,
+    createdAt: chart.created_at ?? chart.createdAt ?? undefined,
+    updatedAt: chart.updated_at ?? chart.updatedAt ?? undefined,
     porosity: normalizeColorValue(chart.porosity),
     texture: normalizeColorValue(chart.hair_texture ?? chart.texture),
     elasticity: normalizeColorValue(chart.elasticity),

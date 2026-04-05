@@ -10,18 +10,71 @@ import {
   MOCK_IMAGES_BY_CLIENT,
 } from '../mock/fixtures'
 import type { ColorAnalysis } from '../models'
-import { DEFAULT_APPOINTMENT_SERVICES, normalizeServiceName } from 'components/utils/services'
+import { normalizeServiceName } from 'components/utils/services'
 import type { DataSource } from './types'
 
-export const MOCK_SERVICES: ServiceOption[] = DEFAULT_APPOINTMENT_SERVICES.map((name, index) => ({
-  id: index + 1,
-  name,
-  normalizedName: name.toLowerCase(),
-  sortOrder: index,
-  defaultPriceCents: null,
-  isActive: true,
-  usageCount: 0,
-}))
+export const MOCK_SERVICES: ServiceOption[] = [
+  {
+    id: 1,
+    name: 'Cut',
+    normalizedName: 'cut',
+    sortOrder: 0,
+    defaultPriceCents: 7500,
+    defaultReturnWeeks: 6,
+    isActive: true,
+    usageCount: 2,
+  },
+  {
+    id: 2,
+    name: 'Color',
+    normalizedName: 'color',
+    sortOrder: 1,
+    defaultPriceCents: 14000,
+    defaultReturnWeeks: 8,
+    isActive: true,
+    usageCount: 1,
+  },
+  {
+    id: 3,
+    name: 'Cut & Color',
+    normalizedName: 'cut & color',
+    sortOrder: 2,
+    defaultPriceCents: 21000,
+    defaultReturnWeeks: 8,
+    isActive: true,
+    usageCount: 2,
+  },
+  {
+    id: 4,
+    name: 'Balayage',
+    normalizedName: 'balayage',
+    sortOrder: 3,
+    defaultPriceCents: 26000,
+    defaultReturnWeeks: 12,
+    isActive: true,
+    usageCount: 1,
+  },
+  {
+    id: 5,
+    name: 'Single Process',
+    normalizedName: 'single process',
+    sortOrder: 4,
+    defaultPriceCents: 15500,
+    defaultReturnWeeks: 6,
+    isActive: true,
+    usageCount: 1,
+  },
+  {
+    id: 6,
+    name: 'Glaze',
+    normalizedName: 'glaze',
+    sortOrder: 5,
+    defaultPriceCents: 9500,
+    defaultReturnWeeks: 8,
+    isActive: true,
+    usageCount: 3,
+  },
+]
 
 const readOnlyError = (message: string) => {
   throw new Error(`Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to ${message}.`)

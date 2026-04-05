@@ -102,6 +102,28 @@ export function ActiveServicesSection({ model }: SettingsSectionProps) {
     }
   }
 
+  const getReturnStatusCopy = (serviceId: number) => {
+    switch (model.returnWeeksSaveStates[serviceId]) {
+      case 'saving':
+        return {
+          copy: 'Saving...',
+          color: '$textSecondary' as RenameStatusColor,
+        }
+      case 'saved':
+        return {
+          copy: 'Saved',
+          color: '$accent' as RenameStatusColor,
+        }
+      case 'error':
+        return {
+          copy: 'Not saved',
+          color: '$red10' as RenameStatusColor,
+        }
+      default:
+        return null
+    }
+  }
+
   return (
     <YStack gap="$2.5">
       <YStack gap="$1">
@@ -119,6 +141,7 @@ export function ActiveServicesSection({ model }: SettingsSectionProps) {
           priceStatus={getPriceStatusCopy(service.id)}
           pulseTrigger={model.reorderPulseKeys[service.id] ?? 0}
           renameStatus={getRenameStatusCopy(service.id)}
+          returnStatus={getReturnStatusCopy(service.id)}
           service={service}
         />
       ))}
@@ -132,6 +155,7 @@ function ActiveServiceCard({
   priceStatus,
   pulseTrigger,
   renameStatus,
+  returnStatus,
   service,
 }: {
   index: number
@@ -144,6 +168,12 @@ function ActiveServiceCard({
     | null
   pulseTrigger: number
   renameStatus:
+    | {
+        copy: string
+        color: ComponentProps<typeof Text>['color']
+      }
+    | null
+  returnStatus:
     | {
         copy: string
         color: ComponentProps<typeof Text>['color']
@@ -250,11 +280,10 @@ function ActiveServiceCard({
               />
             </XStack>
           </XStack>
-          <XStack items="flex-start" gap="$1.5">
-            <YStack flex={1} gap="$1">
+          <YStack gap="$2">
+            <YStack gap="$1">
               <FieldLabel>Service name</FieldLabel>
               <TextField
-                flex={1}
                 value={model.renameDrafts[service.id] ?? service.name}
                 onChangeText={(text) => model.handleRenameDraftChange(service.id, text)}
                 onBlur={() => {
@@ -267,7 +296,8 @@ function ActiveServiceCard({
                 </Text>
               ) : null}
             </YStack>
-            <YStack width={120} gap="$1">
+            <XStack items="flex-start" gap="$1.5">
+              <YStack flex={1} gap="$1">
               <FieldLabel>Default price</FieldLabel>
               <CurrencyField
                 containerProps={{ width: '100%' }}
@@ -291,8 +321,34 @@ function ActiveServiceCard({
                   {priceStatus.copy}
                 </Text>
               ) : null}
-            </YStack>
-          </XStack>
+              </YStack>
+              <YStack width={120} gap="$1">
+                <FieldLabel>Recommended return</FieldLabel>
+                <TextField
+                  width="100%"
+                  placeholder="6"
+                  keyboardType="number-pad"
+                  value={
+                    model.returnWeeksDrafts[service.id] ??
+                    model.formatReturnWeeksInput(service.defaultReturnWeeks)
+                  }
+                  onChangeText={(text) => model.handleReturnWeeksDraftChange(service.id, text)}
+                  onBlur={() => {
+                    void model.handleReturnWeeksBlur(service.id, service.defaultReturnWeeks)
+                  }}
+                />
+                {returnStatus ? (
+                  <Text
+                    fontSize={11}
+                    color={returnStatus.color}
+                    style={{ textAlign: 'right' }}
+                  >
+                    {returnStatus.copy}
+                  </Text>
+                ) : null}
+              </YStack>
+            </XStack>
+          </YStack>
           <XStack items="center" justify="space-between" gap="$2">
             <SecondaryButton
               size="$2"

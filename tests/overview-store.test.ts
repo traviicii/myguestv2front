@@ -27,6 +27,7 @@ test('normalizeOverviewSectionOrder keeps known sections unique and appends miss
   expect(normalizeOverviewSectionOrder(['recentClients', 'metrics', 'metrics'])).toEqual([
     'recentClients',
     'metrics',
+    'needsAttention',
     'quickActions',
     'pinnedClients',
     'recentAppointments',
@@ -56,6 +57,7 @@ test('mergeOverviewStoreState preserves editor flags and normalizes persisted se
   expect(merged.sectionOrder).toEqual([
     'metrics',
     'recentClients',
+    'needsAttention',
     'quickActions',
     'pinnedClients',
     'recentAppointments',

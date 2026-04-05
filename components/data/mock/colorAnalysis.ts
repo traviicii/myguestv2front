@@ -2,6 +2,10 @@ import type { ColorAnalysis } from '../models'
 
 export const MOCK_COLOR_ANALYSIS_BY_CLIENT: Record<string, ColorAnalysis> = {
   'c-101': {
+    id: 'cc-101',
+    clientId: 'c-101',
+    createdAt: '2026-01-18T14:00:00Z',
+    updatedAt: '2026-03-06T16:30:00Z',
     porosity: 'normal',
     texture: 'medium',
     elasticity: 'normal',
@@ -17,6 +21,10 @@ export const MOCK_COLOR_ANALYSIS_BY_CLIENT: Record<string, ColorAnalysis> = {
     eyeColor: 'green',
   },
   'c-103': {
+    id: 'cc-103',
+    clientId: 'c-103',
+    createdAt: '2025-12-28T15:00:00Z',
+    updatedAt: '2026-02-25T18:15:00Z',
     porosity: 'porous',
     texture: 'fine',
     elasticity: 'poor',
@@ -32,6 +40,10 @@ export const MOCK_COLOR_ANALYSIS_BY_CLIENT: Record<string, ColorAnalysis> = {
     eyeColor: 'brown',
   },
   'c-106': {
+    id: 'cc-106',
+    clientId: 'c-106',
+    createdAt: '2026-02-15T13:00:00Z',
+    updatedAt: '2026-03-09T17:45:00Z',
     porosity: 'normal',
     texture: 'medium',
     elasticity: 'normal',

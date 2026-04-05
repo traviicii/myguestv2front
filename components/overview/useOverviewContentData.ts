@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 
 import type { OverviewMetrics } from 'components/data/api/metrics'
+import type { ServiceOption } from 'components/data/api/services'
 import type { AppointmentHistory, Client } from 'components/data/models'
 import type { OverviewSectionId } from 'components/state/studioStore'
 import { buildClientMap, deriveLastVisitByClient } from 'components/utils/clientDerived'
@@ -8,6 +9,7 @@ import { buildClientMap, deriveLastVisitByClient } from 'components/utils/client
 import type { OverviewMetricCard, OverviewQuickAction } from './overviewModelTypes'
 import {
   buildOverviewMetricCards,
+  buildOverviewAttentionCards,
   buildRecentClients,
   buildRecentHistory,
   getEnabledQuickActions,
@@ -20,12 +22,15 @@ export function useOverviewContentData({
   appSettings,
   clients,
   appointmentHistory,
+  serviceCatalog,
   overviewMetrics,
   orderedQuickActions,
   pinnedClientIds,
   sectionOrder,
 }: {
   appSettings: {
+    dateDisplayFormat: 'short' | 'long'
+    dateLongIncludeWeekday: boolean
     overviewQuickActions: Record<string, boolean>
     overviewRecentAppointmentsCount: number
     overviewRecentClientsCount: number
@@ -33,6 +38,7 @@ export function useOverviewContentData({
   }
   clients: Client[]
   appointmentHistory: AppointmentHistory[]
+  serviceCatalog: ServiceOption[]
   overviewMetrics: OverviewMetrics | null | undefined
   orderedQuickActions: OverviewQuickAction[]
   pinnedClientIds: string[]
@@ -59,6 +65,22 @@ export function useOverviewContentData({
   const metrics = useMemo<OverviewMetricCard[]>(
     () => buildOverviewMetricCards(overviewMetrics, clients.length),
     [clients.length, overviewMetrics]
+  )
+
+  const attentionCards = useMemo(
+    () =>
+      buildOverviewAttentionCards({
+        appSettings,
+        appointmentHistory,
+        clients,
+        serviceCatalog,
+      }),
+    [
+      appSettings,
+      appointmentHistory,
+      clients,
+      serviceCatalog,
+    ]
   )
 
   const enabledQuickActions = useMemo(
@@ -92,6 +114,7 @@ export function useOverviewContentData({
     derivedLastVisitByClient,
     enabledQuickActions,
     isEmptyAccount,
+    attentionCards,
     metrics,
     pinnedClients,
     quickActionColumns,

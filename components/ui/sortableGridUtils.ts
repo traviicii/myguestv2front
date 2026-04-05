@@ -35,7 +35,7 @@ export function buildSortableGridLayout({
   const cellSize = itemSize + gap
 
   if (layoutVariant === 'hexHoneycomb') {
-    const visibleHexWidth = itemSize - 8
+    const visibleHexWidth = itemSize - 4
     // Match the actual flat-top hex shell we render in the cyberpunk quick actions.
     const visibleHexHeight = Math.round((visibleHexWidth * 120) / 140)
     const honeycombGap = Math.max(4, Math.round(gap * 0.2))

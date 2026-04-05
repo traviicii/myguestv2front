@@ -99,7 +99,7 @@ export async function fetchAppointmentHistoryFromApi(
 export async function fetchAppointmentHistoryLite(): Promise<AppointmentHistory[]> {
   return fetchAppointmentHistoryFromApi({
     fields: 'lite',
-    include: ['images'],
+    include: ['images', 'services'],
     imageLimit: 1,
   })
 }

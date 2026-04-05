@@ -2,6 +2,12 @@ import { spawn } from 'node:child_process'
 
 const args = new Set(process.argv.slice(2))
 const supportedNodeMajor = 20
+const tunnelRetryPatterns = [
+  /ECONNREFUSED 127\.0\.0\.1:4040/,
+  /ngrok tunnel took too long to connect/i,
+]
+const maxTunnelRetries = 3
+const tunnelRetryDelayMs = 1500
 
 const warnIfNodeVersionLooksOff = () => {
   const [major] = process.versions.node.split('.').map(Number)
@@ -83,15 +89,67 @@ console.log(
 )
 console.log('Rebuild native apps only when native dependencies, app config, or signing change.')
 
-const child = spawn('npx', expoArgs, {
-  env,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-})
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-child.on('exit', (code) => {
-  if (code && host === 'tunnel') {
-    console.log('Tunnel startup failed. Retry with `npm run dev:lan` to use the simpler LAN path.')
+const startExpoProcess = () => {
+  const child = spawn('npx', expoArgs, {
+    env,
+    stdio: ['inherit', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
+  })
+
+  let output = ''
+  child.stdout?.on('data', (chunk) => {
+    const text = chunk.toString()
+    output = `${output}${text}`.slice(-20_000)
+    process.stdout.write(chunk)
+  })
+  child.stderr?.on('data', (chunk) => {
+    const text = chunk.toString()
+    output = `${output}${text}`.slice(-20_000)
+    process.stderr.write(chunk)
+  })
+
+  return {
+    child,
+    getOutput: () => output,
   }
-  process.exit(code ?? 1)
-})
+}
+
+const runWithTunnelRetry = async () => {
+  let attempt = 1
+
+  while (true) {
+    const { child, getOutput } = startExpoProcess()
+    const exitCode = await new Promise((resolve) => {
+      child.on('exit', (code, signal) => {
+        if (signal === 'SIGINT') {
+          resolve(0)
+          return
+        }
+        resolve(code ?? 1)
+      })
+    })
+
+    const shouldRetry =
+      host === 'tunnel' &&
+      exitCode !== 0 &&
+      attempt < maxTunnelRetries &&
+      tunnelRetryPatterns.some((pattern) => pattern.test(getOutput()))
+
+    if (!shouldRetry) {
+      if (exitCode && host === 'tunnel') {
+        console.log('Tunnel startup failed. Retry with `npm run dev:lan` to use the simpler LAN path.')
+      }
+      process.exit(exitCode)
+    }
+
+    attempt += 1
+    console.log(
+      `Tunnel startup hit Expo's local ngrok race. Retrying automatically (${attempt}/${maxTunnelRetries})...`
+    )
+    await delay(tunnelRetryDelayMs)
+  }
+}
+
+await runWithTunnelRetry()

@@ -4,8 +4,10 @@ import {
   buildDisplayRows,
   clampPreviewCount,
   formatPriceInput,
+  formatReturnWeeksInput,
   getSettingsCardTone,
   parsePriceInputToCents,
+  parseReturnWeeksInput,
 } from '../components/settings/settingsModelUtils'
 
 test('settings helper formatting round-trips supported price inputs', () => {
@@ -16,12 +18,19 @@ test('settings helper formatting round-trips supported price inputs', () => {
   expect(formatPriceInput(9550)).toBe('95.50')
   expect(formatPriceInput(9500)).toBe('95')
   expect(formatPriceInput(null)).toBe('')
+  expect(parseReturnWeeksInput('6')).toBe(6)
+  expect(parseReturnWeeksInput('')).toBeNull()
+  expect(formatReturnWeeksInput(8)).toBe('8')
+  expect(formatReturnWeeksInput(null)).toBe('')
 })
 
 test('settings helpers reject invalid price values and clamp preview counts', () => {
   expect(parsePriceInputToCents('-1')).toBeUndefined()
   expect(parsePriceInputToCents('12.345')).toBeUndefined()
   expect(parsePriceInputToCents('abc')).toBeUndefined()
+  expect(parseReturnWeeksInput('0')).toBeUndefined()
+  expect(parseReturnWeeksInput('53')).toBeUndefined()
+  expect(parseReturnWeeksInput('6.5')).toBeUndefined()
   expect(clampPreviewCount(1, -3)).toBe(1)
   expect(clampPreviewCount(12, 4)).toBe(12)
   expect(clampPreviewCount(5, 2)).toBe(7)
@@ -52,8 +61,8 @@ test('settings helpers build display rows and resolve card tones', () => {
     },
     {
       id: 'clientDetailsAppointmentLogsCount',
-      label: 'Client details appointment logs',
-      help: 'How many appointment logs are previewed on each client details screen.',
+      label: 'Client timeline preview',
+      help: 'How many recent timeline moments are previewed on each client details screen.',
       value: 4,
     },
   ])

@@ -5,6 +5,7 @@ export type Client = {
   name: string
   email: string
   phone: string
+  birthday?: string | null
   createdAt?: string
   lastVisit: string
   type: ClientType
@@ -35,6 +36,10 @@ export type AppointmentHistory = {
 }
 
 export type ColorAnalysis = {
+  id?: string
+  clientId?: string
+  createdAt?: string
+  updatedAt?: string
   porosity: string
   texture: string
   elasticity: string

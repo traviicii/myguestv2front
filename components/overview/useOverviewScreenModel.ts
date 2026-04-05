@@ -9,6 +9,7 @@ import {
   useAppointmentHistoryLite,
   useClients,
   useOverviewMetrics,
+  useServices,
 } from 'components/data/queries'
 import { useOverviewStore } from 'components/state/overviewStore'
 import { useStudioStore } from 'components/state/studioStore'
@@ -69,6 +70,7 @@ export function useOverviewScreenModel() {
     data: appointmentHistory = [],
     refetch: refetchAppointments,
   } = useAppointmentHistoryLite()
+  const { data: serviceCatalog = [] } = useServices('all')
 
   const [isQuickActionDragging, setIsQuickActionDragging] = useState(false)
 
@@ -99,6 +101,7 @@ export function useOverviewScreenModel() {
     derivedLastVisitByClient,
     enabledQuickActions,
     isEmptyAccount,
+    attentionCards,
     metrics,
     pinnedClients,
     quickActionColumns,
@@ -113,6 +116,7 @@ export function useOverviewScreenModel() {
     appSettings,
     clients,
     appointmentHistory,
+    serviceCatalog,
     overviewMetrics,
     orderedQuickActions,
     pinnedClientIds,
@@ -174,6 +178,7 @@ export function useOverviewScreenModel() {
     clientMap,
     controlRadius,
     enabledQuickActions,
+    attentionCards,
     formatLastVisitLabel,
     handleCancelLayout,
     handleQuickActionReorder,

@@ -15,7 +15,9 @@ import { normalizeServiceName } from 'components/utils/services'
 import { showSettingsInfo } from './settingsInfo'
 import {
   formatPriceInput,
+  formatReturnWeeksInput,
   parsePriceInputToCents,
+  parseReturnWeeksInput,
   removeDraftEntry,
   sortActiveServices,
   sortInactiveServices,
@@ -29,18 +31,24 @@ export function useSettingsServiceManagement() {
   const toast = useToastController()
   const [serviceDraft, setServiceDraft] = useState('')
   const [servicePriceDraft, setServicePriceDraft] = useState('')
+  const [serviceReturnWeeksDraft, setServiceReturnWeeksDraft] = useState('')
   const [optimisticActiveOrder, setOptimisticActiveOrder] = useState<number[] | null>(null)
   const [reorderPulseKeys, setReorderPulseKeys] = useState<Record<number, number>>({})
   const [renameDrafts, setRenameDrafts] = useState<Record<number, string>>({})
   const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({})
+  const [returnWeeksDrafts, setReturnWeeksDrafts] = useState<Record<number, string>>({})
   const [renameSaveStates, setRenameSaveStates] = useState<
     Record<number, 'idle' | 'editing' | 'saving' | 'saved' | 'error'>
   >({})
   const [priceSaveStates, setPriceSaveStates] = useState<
     Record<number, 'idle' | 'editing' | 'saving' | 'saved' | 'error'>
   >({})
+  const [returnWeeksSaveStates, setReturnWeeksSaveStates] = useState<
+    Record<number, 'idle' | 'editing' | 'saving' | 'saved' | 'error'>
+  >({})
   const renameSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const priceSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
+  const returnWeeksSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
 
   const { data: serviceCatalog = [] } = useServices('all')
   const createService = useCreateService()
@@ -75,9 +83,14 @@ export function useSettingsServiceManagement() {
   const canAddService = Boolean(normalizeServiceName(serviceDraft))
 
   useEffect(() => {
+    const renameTimers = renameSaveTimers.current
+    const priceTimers = priceSaveTimers.current
+    const returnWeeksTimers = returnWeeksSaveTimers.current
+
     return () => {
-      Object.values(renameSaveTimers.current).forEach((timer) => clearTimeout(timer))
-      Object.values(priceSaveTimers.current).forEach((timer) => clearTimeout(timer))
+      Object.values(renameTimers).forEach((timer) => clearTimeout(timer))
+      Object.values(priceTimers).forEach((timer) => clearTimeout(timer))
+      Object.values(returnWeeksTimers).forEach((timer) => clearTimeout(timer))
     }
   }, [])
 
@@ -93,6 +106,13 @@ export function useSettingsServiceManagement() {
     if (!timer) return
     clearTimeout(timer)
     delete priceSaveTimers.current[serviceId]
+  }
+
+  const clearReturnWeeksSaveTimer = (serviceId: number) => {
+    const timer = returnWeeksSaveTimers.current[serviceId]
+    if (!timer) return
+    clearTimeout(timer)
+    delete returnWeeksSaveTimers.current[serviceId]
   }
 
   const setRenameSaveState = (
@@ -117,6 +137,22 @@ export function useSettingsServiceManagement() {
   ) => {
     clearPriceSaveTimer(serviceId)
     setPriceSaveStates((prev) => {
+      if (state === 'idle') {
+        if (!(serviceId in prev)) return prev
+        const next = { ...prev }
+        delete next[serviceId]
+        return next
+      }
+      return { ...prev, [serviceId]: state }
+    })
+  }
+
+  const setReturnWeeksSaveState = (
+    serviceId: number,
+    state: 'idle' | 'editing' | 'saving' | 'saved' | 'error'
+  ) => {
+    clearReturnWeeksSaveTimer(serviceId)
+    setReturnWeeksSaveStates((prev) => {
       if (state === 'idle') {
         if (!(serviceId in prev)) return prev
         const next = { ...prev }
@@ -153,6 +189,19 @@ export function useSettingsServiceManagement() {
     }, 1800)
   }
 
+  const markReturnWeeksSaved = (serviceId: number) => {
+    setReturnWeeksSaveState(serviceId, 'saved')
+    returnWeeksSaveTimers.current[serviceId] = setTimeout(() => {
+      setReturnWeeksSaveStates((prev) => {
+        if (prev[serviceId] !== 'saved') return prev
+        const next = { ...prev }
+        delete next[serviceId]
+        return next
+      })
+      delete returnWeeksSaveTimers.current[serviceId]
+    }, 1800)
+  }
+
   const handleRenameDraftChange = (serviceId: number, text: string) => {
     setRenameDrafts((prev) => ({
       ...prev,
@@ -169,6 +218,14 @@ export function useSettingsServiceManagement() {
     setPriceSaveState(serviceId, 'editing')
   }
 
+  const handleReturnWeeksDraftChange = (serviceId: number, text: string) => {
+    setReturnWeeksDrafts((prev) => ({
+      ...prev,
+      [serviceId]: text,
+    }))
+    setReturnWeeksSaveState(serviceId, 'editing')
+  }
+
   const handleAddService = async () => {
     const normalized = normalizeServiceName(serviceDraft)
     if (!normalized) return
@@ -182,6 +239,15 @@ export function useSettingsServiceManagement() {
       return
     }
 
+    if (parseReturnWeeksInput(serviceReturnWeeksDraft) === undefined) {
+      showSettingsInfo(
+        'Invalid return cadence',
+        'Use a whole number of weeks between 1 and 52, or leave blank.'
+      )
+      return
+    }
+    const resolvedDefaultReturnWeeks = parseReturnWeeksInput(serviceReturnWeeksDraft)
+
     const alreadyExists = hasServiceNameConflict(serviceCatalog, normalized)
     if (alreadyExists) {
       showSettingsInfo('Already listed', `${normalized} is already in your service list.`)
@@ -193,9 +259,11 @@ export function useSettingsServiceManagement() {
         name: normalized,
         sortOrder: activeServices.length,
         defaultPriceCents,
+        defaultReturnWeeks: resolvedDefaultReturnWeeks,
       })
       setServiceDraft('')
       setServicePriceDraft('')
+      setServiceReturnWeeksDraft('')
       toast.show('Service added', {
         message: `${normalized} is ready in appointment logs.`,
       })
@@ -325,6 +393,53 @@ export function useSettingsServiceManagement() {
     }
   }
 
+  const handleReturnWeeksBlur = async (
+    serviceId: number,
+    currentDefaultReturnWeeks: number | null
+  ) => {
+    const draft = returnWeeksDrafts[serviceId]
+    if (draft === undefined) {
+      setReturnWeeksSaveState(serviceId, 'idle')
+      return
+    }
+
+    const parsed = parseReturnWeeksInput(draft)
+    if (parsed === undefined) {
+      showSettingsInfo(
+        'Invalid return cadence',
+        'Use a whole number of weeks between 1 and 52, or leave blank.'
+      )
+      setReturnWeeksDrafts((prev) => ({
+        ...prev,
+        [serviceId]: formatReturnWeeksInput(currentDefaultReturnWeeks),
+      }))
+      setReturnWeeksSaveState(serviceId, 'error')
+      return
+    }
+
+    if (parsed === currentDefaultReturnWeeks) {
+      setReturnWeeksDrafts((prev) => removeDraftEntry(prev, serviceId))
+      setReturnWeeksSaveState(serviceId, 'idle')
+      return
+    }
+
+    try {
+      setReturnWeeksSaveState(serviceId, 'saving')
+      await updateService.mutateAsync({
+        serviceId,
+        defaultReturnWeeks: parsed,
+      })
+      setReturnWeeksDrafts((prev) => removeDraftEntry(prev, serviceId))
+      markReturnWeeksSaved(serviceId)
+    } catch (error) {
+      setReturnWeeksSaveState(serviceId, 'error')
+      showSettingsInfo(
+        'Unable to update return cadence',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
+    }
+  }
+
   const handleMoveService = async (serviceId: number, direction: 'up' | 'down') => {
     const currentOrder = activeServices.map((service) => service.id)
     const currentIndex = currentOrder.indexOf(serviceId)
@@ -413,6 +528,7 @@ export function useSettingsServiceManagement() {
     activeServices,
     canAddService,
     formatPriceInput,
+    formatReturnWeeksInput,
     handleAddService,
     handleDeactivateService,
     handleMoveService,
@@ -420,21 +536,28 @@ export function useSettingsServiceManagement() {
     handleRenameDraftChange,
     handlePriceDraftChange,
     handlePriceBlur,
+    handleReturnWeeksBlur,
     handleReactivateService,
     handleRenameService,
+    handleReturnWeeksDraftChange,
     inactiveServices,
     isCreatingService: createService.isPending,
     isDeletingService: permanentlyDeleteService.isPending,
     priceDrafts,
     priceSaveStates,
+    returnWeeksDrafts,
+    returnWeeksSaveStates,
     reorderPulseKeys,
     renameDrafts,
     renameSaveStates,
     serviceDraft,
     servicePriceDraft,
+    serviceReturnWeeksDraft,
     setPriceDrafts,
     setRenameDrafts,
+    setReturnWeeksDrafts,
     setServiceDraft,
     setServicePriceDraft,
+    setServiceReturnWeeksDraft,
   }
 }

@@ -23,6 +23,11 @@ export const photoCoverageOptions: Option<PhotoCoverageRange>[] = [
 
 export const overviewSectionOptions: OverviewSectionOption[] = [
   {
+    id: 'needsAttention',
+    label: 'Needs Attention',
+    help: 'Show rebooking and birthday reminders on Overview.',
+  },
+  {
     id: 'quickActions',
     label: 'Quick Actions',
     help: 'Show the quick action buttons at the top of Overview.',

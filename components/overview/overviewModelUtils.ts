@@ -1,11 +1,20 @@
 import type { ThemeAesthetic } from 'components/ThemePrefs'
 import type { OverviewMetrics } from 'components/data/api/metrics'
 import type { AppointmentHistory, Client } from 'components/data/models'
+import type { ServiceOption } from 'components/data/api/services'
 import type { AppSettings, OverviewSectionId, QuickActionId } from 'components/state/studioStore'
 import { sortClientsByNewest } from 'components/utils/clientSort'
 import { formatDateByStyle } from 'components/utils/date'
+import {
+  buildRebookingAttentionLists,
+  buildRebookingRecommendationMap,
+} from 'components/utils/rebooking'
 
-import type { OverviewMetricCard, OverviewQuickAction } from './overviewModelTypes'
+import type {
+  OverviewAttentionCard,
+  OverviewMetricCard,
+  OverviewQuickAction,
+} from './overviewModelTypes'
 
 const QUICK_ACTION_COLUMNS = 2
 const QUICK_ACTION_ITEM_SIZE = 148
@@ -177,4 +186,86 @@ export function getVisibleSections(
   overviewSections: Record<OverviewSectionId, boolean>
 ) {
   return sectionOrder.filter((id) => overviewSections[id])
+}
+
+export function buildOverviewAttentionCards({
+  appSettings,
+  appointmentHistory,
+  clients,
+  serviceCatalog,
+}: {
+  appSettings: Pick<AppSettings, 'dateDisplayFormat' | 'dateLongIncludeWeekday'>
+  appointmentHistory: AppointmentHistory[]
+  clients: Client[]
+  serviceCatalog: ServiceOption[]
+}): OverviewAttentionCard[] {
+  const clientMap = new Map(clients.map((client) => [client.id, client]))
+  const rebookingByClient = buildRebookingRecommendationMap({
+    appointmentHistory,
+    clients,
+    serviceCatalog,
+  })
+  const { birthdays, dueThisWeek, overdue } = buildRebookingAttentionLists({
+    rebookingByClient,
+    clients,
+  })
+
+  return [
+    {
+      id: 'dueThisWeek',
+      label: 'Due this week',
+      count: dueThisWeek.length,
+      emptyLabel: 'No clients are due within the next 7 days.',
+      previewItems: dueThisWeek.slice(0, 3).map((item) => ({
+        clientId: item.clientId,
+        clientName: clientMap.get(item.clientId)?.name ?? 'Client',
+        primaryLabel: item.drivingServiceName,
+        secondaryLabel: `${item.secondaryLabel} · ${formatDateByStyle(
+          item.suggestedNextVisitDate,
+          appSettings.dateDisplayFormat,
+          {
+            todayLabel: true,
+            includeWeekday: appSettings.dateLongIncludeWeekday,
+          }
+        )}`,
+      })),
+    },
+    {
+      id: 'overdue',
+      label: 'Overdue',
+      count: overdue.length,
+      emptyLabel: 'No clients are past their suggested return window.',
+      previewItems: overdue.slice(0, 3).map((item) => ({
+        clientId: item.clientId,
+        clientName: clientMap.get(item.clientId)?.name ?? 'Client',
+        primaryLabel: item.drivingServiceName,
+        secondaryLabel: `${item.secondaryLabel} · ${formatDateByStyle(
+          item.suggestedNextVisitDate,
+          appSettings.dateDisplayFormat,
+          {
+            todayLabel: true,
+            includeWeekday: appSettings.dateLongIncludeWeekday,
+          }
+        )}`,
+      })),
+    },
+    {
+      id: 'upcomingBirthdays',
+      label: 'Upcoming birthdays',
+      count: birthdays.length,
+      emptyLabel: 'No client birthdays are coming up in the next 14 days.',
+      previewItems: birthdays.slice(0, 3).map((item) => ({
+        clientId: item.clientId,
+        clientName: item.clientName,
+        primaryLabel:
+          item.daysUntilBirthday === 0
+            ? 'Birthday today'
+            : `Birthday in ${item.daysUntilBirthday} day${item.daysUntilBirthday === 1 ? '' : 's'}`,
+        secondaryLabel: formatDateByStyle(item.nextBirthday, appSettings.dateDisplayFormat, {
+          todayLabel: true,
+          includeWeekday: appSettings.dateLongIncludeWeekday,
+        }),
+      })),
+    },
+  ]
 }

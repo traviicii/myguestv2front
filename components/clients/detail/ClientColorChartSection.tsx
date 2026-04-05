@@ -24,6 +24,11 @@ export function ClientColorChartSection({ model }: ClientDetailSectionProps) {
       <ClientDetailCard model={model} rounded={model.cardRadius} p="$4" gap="$2">
         {model.colorAnalysis ? (
           <>
+            {model.colorAnalysis.updatedAt ? (
+              <Text fontSize={12} color="$textSecondary">
+                Last updated {model.formatAppointmentDate(model.colorAnalysis.updatedAt)}
+              </Text>
+            ) : null}
             <XStack justify="space-between">
               <Text fontSize={12} color="$textSecondary">
                 Porosity

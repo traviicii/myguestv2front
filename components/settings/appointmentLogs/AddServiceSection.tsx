@@ -52,6 +52,21 @@ export function AddServiceSection({ model }: SettingsSectionProps) {
           onChangeText={model.setServicePriceDraft}
         />
       </XStack>
+      <XStack items="center" gap="$2">
+        <YStack flex={1} gap="$0.5">
+          <FieldLabel>Recommended return</FieldLabel>
+          <Text fontSize={11} color="$textSecondary">
+            Optional weeks between visits
+          </Text>
+        </YStack>
+        <TextField
+          width={120}
+          placeholder="6"
+          keyboardType="number-pad"
+          value={model.serviceReturnWeeksDraft}
+          onChangeText={model.setServiceReturnWeeksDraft}
+        />
+      </XStack>
       <PrimaryButton
         icon={<Plus size={14} />}
         disabled={!model.canAddService || model.isCreatingService}

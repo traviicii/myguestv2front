@@ -139,10 +139,10 @@ test('glass themes expose new surface tokens and keep readable text contrast', (
   }
 })
 
-test('glass signal light applies high-contrast spectral backdrop override', () => {
+test('glass signal light applies the curated glass-light backdrop override', () => {
   const theme = themes.signal_glass_light
-  expect(readThemeColor(theme, 'surfacePage')).toBe('#F7FFE6')
-  expect(readThemeColor(theme, 'backdropStart')).toBe('#B6E200')
-  expect(readThemeColor(theme, 'backdropEnd')).toBe('#F4FFD6')
-  expect(readThemeColor(theme, 'backdropAccent')).toBe('#6CFF00')
+  expect(readThemeColor(theme, 'surfacePage')).toBe('#FFFDF1')
+  expect(readThemeColor(theme, 'backdropStart')).toBe('#D3E56A')
+  expect(readThemeColor(theme, 'backdropEnd')).toBe('#FBFDEA')
+  expect(readThemeColor(theme, 'backdropAccent')).toBe('#C9DB4A')
 })

@@ -51,6 +51,7 @@ export const defaultAppSettings: AppSettings = {
   },
   overviewQuickActionOrder: quickActionDefaults,
   overviewSections: {
+    needsAttention: true,
     quickActions: true,
     metrics: true,
     recentAppointments: true,

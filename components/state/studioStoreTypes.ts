@@ -9,6 +9,7 @@ export type AppointmentDateFormat = 'short' | 'long'
 export type AvgTicketRange = '3m' | '6m' | '12m' | '18m' | 'allTime'
 export type PhotoCoverageRange = 'allTime' | '6m' | '12m'
 export type OverviewSectionId =
+  | 'needsAttention'
   | 'quickActions'
   | 'metrics'
   | 'recentAppointments'

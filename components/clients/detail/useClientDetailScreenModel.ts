@@ -9,9 +9,13 @@ import {
   useClients,
   useColorAnalysisByClient,
   useColorAnalysisForClient,
+  useServices,
 } from 'components/data/queries'
 import { useStudioStore } from 'components/state/studioStore'
 import { formatDateByStyle } from 'components/utils/date'
+import { buildRebookingRecommendationForClient } from 'components/utils/rebooking'
+
+import { buildClientTimelineEntries } from './timelineUtils'
 
 export function useClientDetailScreenModel() {
   const { aesthetic } = useThemePrefs()
@@ -26,6 +30,7 @@ export function useClientDetailScreenModel() {
   const resolvedClientId = typeof id === 'string' ? id : ''
   const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: appointmentHistory = [] } = useAppointmentHistoryLite()
+  const { data: serviceCatalog = [] } = useServices('all')
   const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
   const { pinnedClientIds, togglePinnedClient, appSettings } = useStudioStore()
   const topInset = Math.max(insets.top + 8, 16)
@@ -92,9 +97,37 @@ export function useClientDetailScreenModel() {
   )
 
   const latestHistoryDate = matchingHistory[0]?.date ?? null
+  const rebookingRecommendation = useMemo(
+    () =>
+      resolvedClientId
+        ? buildRebookingRecommendationForClient({
+            clientId: resolvedClientId,
+            appointmentHistory,
+            serviceCatalog,
+          })
+        : null,
+    [appointmentHistory, resolvedClientId, serviceCatalog]
+  )
   const colorAnalysis =
     colorAnalysisForClient ??
     (resolvedClientId ? colorAnalysisByClient[resolvedClientId] : undefined)
+  const timelineEntries = useMemo(
+    () =>
+      resolvedClientId
+        ? buildClientTimelineEntries({
+            clientId: resolvedClientId,
+            appointmentHistory,
+            colorAnalysis,
+            limit: appSettings.clientDetailsAppointmentLogsCount,
+          })
+        : [],
+    [
+      appSettings.clientDetailsAppointmentLogsCount,
+      appointmentHistory,
+      colorAnalysis,
+      resolvedClientId,
+    ]
+  )
   const hasColorChartData = Boolean(colorAnalysis)
   const isPinned = resolvedClientId ? pinnedClientIds.includes(resolvedClientId) : false
   const isBootstrapping = clientsLoading && !clients.length
@@ -194,6 +227,8 @@ export function useClientDetailScreenModel() {
     thumbRadius,
     topInset,
     latestHistoryDate,
+    rebookingRecommendation,
+    timelineEntries,
   }
 }
 

@@ -1,6 +1,8 @@
 export type ApiColorChart = {
   id: number
   client_id: number
+  created_at?: string | null
+  updated_at?: string | null
   porosity: string | null
   hair_texture: string | null
   elasticity: string | null
@@ -26,6 +28,9 @@ export type ApiColorChartListResponse = {
 export type FlexibleColorChart = Partial<ApiColorChart> &
   Partial<{
     clientId: number | string | null
+    id: number | string | null
+    createdAt: string | null
+    updatedAt: string | null
     texture: string | null
     scalpCondition: string | null
     naturalLevel: string | null

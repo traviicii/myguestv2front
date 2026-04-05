@@ -24,6 +24,7 @@ const editPanelCardBorder = {
   borderColor: '$borderSubtle',
 } as const
 
+const CYBERPUNK_HEX_CARD_SIZE = 144
 const CYBERPUNK_HEX_POINTS = '35,1 105,1 139,61 105,121 35,121 1,61'
 
 function QuickActionCard({
@@ -77,7 +78,7 @@ function QuickActionCard({
         : toNativeColor(theme.borderColor?.val, FALLBACK_COLORS.borderSubtle)
     return (
       <YStack
-        width={140}
+        width={CYBERPUNK_HEX_CARD_SIZE}
         aspectRatio={1}
         position="relative"
         items="center"
@@ -196,7 +197,7 @@ export function OverviewQuickActionsSection({
       model.quickActionItemSize,
     ]
   )
-  const quickActionClusterInsetTop = model.isCyberpunk ? 10 : 0
+  const quickActionClusterInsetTop = model.isCyberpunk ? 8 : 0
   const quickActionClusterInsetBottom = model.isCyberpunk ? 14 : 0
   const quickActionClusterHeight = cyberpunkQuickActionLayout
     ? Math.max(cyberpunkQuickActionLayout.containerHeight, model.quickActionItemSize)

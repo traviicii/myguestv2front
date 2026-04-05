@@ -8,6 +8,21 @@ export type OverviewMetricCard = {
   value: string
 }
 
+export type OverviewAttentionPreviewItem = {
+  clientId: string
+  clientName: string
+  primaryLabel: string
+  secondaryLabel: string
+}
+
+export type OverviewAttentionCard = {
+  id: 'dueThisWeek' | 'overdue' | 'upcomingBirthdays'
+  label: string
+  count: number
+  emptyLabel: string
+  previewItems: OverviewAttentionPreviewItem[]
+}
+
 type OverviewQuickActionIcon = typeof UserPlus
 
 export type OverviewQuickAction = {

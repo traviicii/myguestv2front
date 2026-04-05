@@ -1,6 +1,7 @@
 import { type OverviewSectionId } from 'components/state/studioStore'
 
 import { OverviewLayoutItem } from './OverviewLayoutItem'
+import { OverviewNeedsAttentionSection } from './OverviewNeedsAttentionSection'
 import { OverviewMetricsSection } from './OverviewMetricsSection'
 import { OverviewPinnedClientsSection } from './OverviewPinnedClientsSection'
 import { OverviewQuickActionsSection } from './OverviewQuickActionsSection'
@@ -24,6 +25,10 @@ export function OverviewSectionRenderer({
 }) {
   if (sectionId === 'quickActions') {
     return <OverviewQuickActionsSection model={model} onNavigate={onNavigate} />
+  }
+
+  if (sectionId === 'needsAttention') {
+    return <OverviewNeedsAttentionSection model={model} onNavigate={onNavigate} />
   }
 
   if (sectionId === 'metrics') {

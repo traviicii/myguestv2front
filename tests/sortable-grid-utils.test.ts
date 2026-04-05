@@ -60,12 +60,12 @@ test('sortable grid helpers support hex honeycomb positions', async () => {
     layoutVariant: 'hexHoneycomb',
   })
 
-  expect(layout.containerWidth).toBe(164)
-  expect(layout.containerHeight).toBe(204)
+  expect(layout.containerWidth).toBe(171)
+  expect(layout.containerHeight).toBe(211)
   expect(getSortableGridPosition(0, layout, false)).toEqual({ x: 0, y: 0 })
-  expect(getSortableGridPosition(1, layout, false)).toEqual({ x: 72, y: 42 })
-  expect(getSortableGridPosition(2, layout, false)).toEqual({ x: 0, y: 83 })
-  expect(getSortableGridOrder(72, 42, layout, false)).toBe(1)
+  expect(getSortableGridPosition(1, layout, false)).toEqual({ x: 75, y: 43 })
+  expect(getSortableGridPosition(2, layout, false)).toEqual({ x: 0, y: 86 })
+  expect(getSortableGridOrder(75, 43, layout, false)).toBe(1)
 })
 
 test('sortable grid helpers keep trailing honeycomb items in the left column', async () => {
@@ -77,6 +77,6 @@ test('sortable grid helpers keep trailing honeycomb items in the left column', a
     layoutVariant: 'hexHoneycomb',
   })
 
-  expect(layout.containerHeight).toBe(162)
-  expect(getSortableGridPosition(2, layout, true)).toEqual({ x: 0, y: 83 })
+  expect(layout.containerHeight).toBe(168)
+  expect(getSortableGridPosition(2, layout, true)).toEqual({ x: 0, y: 86 })
 })

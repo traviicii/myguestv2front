@@ -1,7 +1,5 @@
 import { USE_MOCK_DATA, getApiBaseUrl } from '../config'
 
-const DEV_ID_TOKEN = process.env.EXPO_PUBLIC_DEV_ID_TOKEN?.trim()
-
 type AuthTokenProvider = () => Promise<string | null>
 
 type ApiErrorEnvelope = {
@@ -28,27 +26,17 @@ const tokenSyncPromises = new Map<string, Promise<void>>()
 let syncedToken: string | null = null
 let authTokenProvider: AuthTokenProvider | null = null
 
-function hasDevToken() {
-  return Boolean(DEV_ID_TOKEN)
-}
-
-function getDevToken() {
-  if (!DEV_ID_TOKEN) {
-    throw new Error(
-      __DEV__
-        ? 'Not authenticated. Sign in with Google or set EXPO_PUBLIC_DEV_ID_TOKEN in .env.'
-        : 'Not authenticated. Please sign in again and retry.'
-    )
-  }
-  return DEV_ID_TOKEN
-}
-
 async function getRequestToken() {
   if (authTokenProvider) {
     const token = await authTokenProvider()
     if (token) return token
   }
-  return getDevToken()
+
+  throw new Error(
+    __DEV__
+      ? 'Not authenticated. Sign in to MyGuest and retry.'
+      : 'Not authenticated. Please sign in again and retry.'
+  )
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -147,7 +135,8 @@ export async function getAuthorizedHeaders(accept = 'application/json') {
 }
 
 export function hasStaticDevToken() {
-  return USE_MOCK_DATA || hasDevToken()
+  // Mock mode is the only supported auth bypass. Real API mode must use Firebase auth.
+  return USE_MOCK_DATA
 }
 
 export function setAuthTokenProvider(provider: AuthTokenProvider | null) {

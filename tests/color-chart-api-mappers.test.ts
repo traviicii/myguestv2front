@@ -23,12 +23,18 @@ test('color chart mappers coerce flexible payload shapes and normalize missing v
 
   expect(
     toColorAnalysisModel({
+      id: 12,
+      client_id: 9,
+      updated_at: '2026-03-06T16:30:00Z',
       porosity: ' High ',
       texture: null,
       elasticity: '',
       scalpCondition: 'Oily',
     })
   ).toMatchObject({
+    id: '12',
+    clientId: '9',
+    updatedAt: '2026-03-06T16:30:00Z',
     porosity: 'High',
     texture: '—',
     elasticity: '—',

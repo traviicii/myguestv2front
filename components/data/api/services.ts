@@ -7,6 +7,7 @@ type ApiService = {
   normalized_name: string
   sort_order: number
   default_price_cents: number | null
+  default_return_weeks: number | null
   is_active: boolean
   usage_count: number
   created_at: string
@@ -23,6 +24,7 @@ export type ServiceOption = {
   normalizedName: string
   sortOrder: number
   defaultPriceCents: number | null
+  defaultReturnWeeks: number | null
   isActive: boolean
   usageCount: number
 }
@@ -31,6 +33,7 @@ export type CreateServiceInput = {
   name: string
   sortOrder?: number
   defaultPriceCents?: number | null
+  defaultReturnWeeks?: number | null
 }
 
 export type UpdateServiceInput = {
@@ -38,6 +41,7 @@ export type UpdateServiceInput = {
   name?: string
   sortOrder?: number
   defaultPriceCents?: number | null
+  defaultReturnWeeks?: number | null
   isActive?: boolean
 }
 
@@ -47,6 +51,7 @@ const toServiceOption = (service: ApiService): ServiceOption => ({
   normalizedName: service.normalized_name,
   sortOrder: service.sort_order,
   defaultPriceCents: service.default_price_cents ?? null,
+  defaultReturnWeeks: service.default_return_weeks ?? null,
   isActive: service.is_active,
   usageCount: service.usage_count ?? 0,
 })
@@ -71,6 +76,7 @@ export async function createServiceViaApi(
       name: input.name,
       sort_order: input.sortOrder,
       default_price_cents: input.defaultPriceCents ?? null,
+      default_return_weeks: input.defaultReturnWeeks ?? null,
     }),
   })
   return toServiceOption(response)
@@ -84,6 +90,9 @@ export async function updateServiceViaApi(
   if (input.sortOrder !== undefined) payload.sort_order = input.sortOrder
   if (input.defaultPriceCents !== undefined) {
     payload.default_price_cents = input.defaultPriceCents
+  }
+  if (input.defaultReturnWeeks !== undefined) {
+    payload.default_return_weeks = input.defaultReturnWeeks
   }
   if (input.isActive !== undefined) payload.is_active = input.isActive
 

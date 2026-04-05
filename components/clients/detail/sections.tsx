@@ -2,12 +2,13 @@ import { ScrollView, YStack } from 'tamagui'
 
 import { SectionDivider } from 'components/ui/controls'
 
-import { ClientAppointmentsSection } from './ClientAppointmentsSection'
 import { ClientColorChartSection } from './ClientColorChartSection'
 import { ClientContactSection } from './ClientContactSection'
 import { ClientHeroSection } from './ClientHeroSection'
 import { ClientNotesSection } from './ClientNotesSection'
 import { ClientQuickActionsSection } from './ClientQuickActionsSection'
+import { ClientRebookingSection } from './ClientRebookingSection'
+import { ClientTimelineSection } from './ClientTimelineSection'
 import { ClientDetailStateMessage } from './ClientDetailPrimitives'
 import { ClientDetailTopBar } from './ClientDetailTopBar'
 import type { ClientDetailSectionProps } from './sectionTypes'
@@ -21,14 +22,20 @@ export function ClientDetailContent({ model }: ClientDetailSectionProps) {
     <ScrollView contentContainerStyle={{ paddingBottom: 40 } as never}>
       <YStack px="$5" pt="$3" gap="$4">
         <ClientHeroSection model={model} />
-        <ClientContactSection model={model} />
-        <SectionDivider />
         <ClientQuickActionsSection model={model} />
+        <SectionDivider />
+        <ClientContactSection model={model} />
         <SectionDivider />
         <ClientNotesSection model={model} />
         <SectionDivider />
-        <ClientAppointmentsSection model={model} />
+        <ClientTimelineSection model={model} />
         <SectionDivider />
+        {model.rebookingRecommendation ? (
+          <>
+            <ClientRebookingSection model={model} />
+            <SectionDivider />
+          </>
+        ) : null}
         <ClientColorChartSection model={model} />
       </YStack>
     </ScrollView>

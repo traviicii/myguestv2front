@@ -71,6 +71,7 @@ function toClientModel(client: ApiClient): Client {
     name: `${client.first_name} ${client.last_name}`.trim(),
     email: client.email ?? '',
     phone: client.phone ?? '',
+    birthday: client.birthday ?? null,
     createdAt: client.created_at ?? undefined,
     lastVisit: hasLastVisit ? (client.last_service_at as string) : 'No visits yet',
     type: clientType,

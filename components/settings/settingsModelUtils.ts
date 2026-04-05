@@ -39,8 +39,8 @@ export function buildDisplayRows(appSettings: SettingsDisplayCounts): SettingsDi
     },
     {
       id: 'clientDetailsAppointmentLogsCount',
-      label: 'Client details appointment logs',
-      help: 'How many appointment logs are previewed on each client details screen.',
+      label: 'Client timeline preview',
+      help: 'How many recent timeline moments are previewed on each client details screen.',
       value: appSettings.clientDetailsAppointmentLogsCount,
     },
   ]
@@ -70,4 +70,18 @@ export function parsePriceInputToCents(value: string): number | null | undefined
   const parsed = Number(normalized)
   if (!Number.isFinite(parsed) || parsed < 0) return undefined
   return Math.round(parsed * 100)
+}
+
+export function formatReturnWeeksInput(value: number | null | undefined) {
+  if (value === null || value === undefined) return ''
+  return String(value)
+}
+
+export function parseReturnWeeksInput(value: string): number | null | undefined {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (!/^\d+$/.test(trimmed)) return undefined
+  const parsed = Number(trimmed)
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 52) return undefined
+  return parsed
 }

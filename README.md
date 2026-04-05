@@ -51,7 +51,7 @@ Notes:
 - `npm run dev:sim` uses `localhost` and is the fastest loop when you are working in the iOS Simulator on your Mac.
 - `npm run dev:tunnel` is the fallback when the same-Wi-Fi path is acting up.
 - `EXPO_PUBLIC_PRIVACY_POLICY_URL` and `EXPO_PUBLIC_SUPPORT_URL` power the in-app Data & Privacy section and should point at real public pages for release builds.
-- `EXPO_PUBLIC_DEV_ID_TOKEN` is still supported for one-off local API debugging.
+- Real API mode now requires a signed-in Firebase user; there is no public bearer-token fallback in the Expo bundle.
 
 ## Quality Gate
 
