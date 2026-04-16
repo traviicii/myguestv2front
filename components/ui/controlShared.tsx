@@ -71,7 +71,7 @@ const AESTHETIC_PROFILE: Record<ThemeAesthetic, AestheticProfile> = {
     controlRadius: 0,
     chipRadius: 0,
     inputRadius: 4,
-    switchRadius: 4,
+    switchRadius: 0,
     previewRadius: 0,
     chipBorderWidth: 1.5,
     sectionTransparent: false,

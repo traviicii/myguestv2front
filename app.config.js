@@ -1,4 +1,5 @@
 const baseConfig = require('./app.config.base.js')
+const DEFAULT_EAS_PROJECT_ID = '075d53ad-3557-4660-907f-b1bbc5274372'
 const variantDisplayNames = {
   development: 'MyGuest Dev',
   preview: 'MyGuest Preview',
@@ -16,7 +17,7 @@ function resolveAppVariant() {
 
 function resolveEasProjectId() {
   const projectId = process.env.EXPO_EAS_PROJECT_ID?.trim()
-  return projectId ? projectId : undefined
+  return projectId || DEFAULT_EAS_PROJECT_ID
 }
 
 function normalizePluginEntry(plugin) {

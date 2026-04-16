@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import {
   buildOverviewAppearance,
+  buildOverviewAttentionCards,
   buildOverviewMetricCards,
   getQuickActionLayout,
 } from '../components/overview/overviewModelUtils'
@@ -83,4 +84,33 @@ test('buildOverviewMetricCards formats overview metrics and safe fallbacks', () 
       0
     )
   ).toContainEqual({ id: 'serviceMix', label: 'Top Service Mix', value: 'Gloss (35%)' })
+})
+
+test('buildOverviewAttentionCards returns upcoming cards in priority order with summaries', () => {
+  const cards = buildOverviewAttentionCards({
+    appSettings: {
+      dateDisplayFormat: 'short',
+      dateLongIncludeWeekday: false,
+    },
+    appointmentHistory: [],
+    clients: [],
+    serviceCatalog: [],
+  })
+
+  expect(cards.map((card) => card.id)).toEqual([
+    'overdue',
+    'dueThisWeek',
+    'upcomingBirthdays',
+  ])
+  expect(cards.map((card) => card.label)).toEqual([
+    'Overdue',
+    'Due this week',
+    'Upcoming birthdays',
+  ])
+  expect(cards.map((card) => card.priority)).toEqual(['high', 'medium', 'low'])
+  expect(cards.map((card) => card.summary)).toEqual([
+    '0 clients past the suggested return window',
+    '0 clients due in the next 7 days',
+    '0 birthdays in the next 14 days',
+  ])
 })

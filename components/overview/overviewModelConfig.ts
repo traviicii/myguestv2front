@@ -1,10 +1,10 @@
 import type { OverviewSectionId } from 'components/state/studioStore'
 
 export const overviewSectionLabels: Record<OverviewSectionId, string> = {
-  needsAttention: 'Needs Attention',
+  needsAttention: 'Upcoming',
   quickActions: 'Quick Actions',
   metrics: 'Metrics',
-  pinnedClients: 'Pinned Clients',
+  pinnedClients: 'Pinned',
   recentAppointments: 'Recent Appointments',
-  recentClients: 'Recent Clients',
+  recentClients: 'Recently Added',
 }

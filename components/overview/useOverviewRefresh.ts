@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { usePullToRefresh } from 'components/ui/usePullToRefresh'
 
 export function useOverviewRefresh({
   refetchAppointments,
@@ -9,33 +9,13 @@ export function useOverviewRefresh({
   refetchClients: () => Promise<unknown>
   refetchOverviewMetrics: () => Promise<unknown>
 }) {
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const isRefreshingRef = useRef(false)
-  const minRefreshMs = 650
-
-  const handleRefresh = async () => {
-    if (isRefreshingRef.current) return
-    isRefreshingRef.current = true
-    setIsRefreshing(true)
-    const startedAt = Date.now()
-    try {
+  return usePullToRefresh({
+    onRefreshAction: async () => {
       await Promise.all([
         refetchClients(),
         refetchAppointments(),
         refetchOverviewMetrics(),
       ])
-    } finally {
-      const elapsed = Date.now() - startedAt
-      if (elapsed < minRefreshMs) {
-        await new Promise((resolve) => setTimeout(resolve, minRefreshMs - elapsed))
-      }
-      setIsRefreshing(false)
-      isRefreshingRef.current = false
-    }
-  }
-
-  return {
-    handleRefresh,
-    isRefreshing,
-  }
+    },
+  })
 }

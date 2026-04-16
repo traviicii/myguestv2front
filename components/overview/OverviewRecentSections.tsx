@@ -19,9 +19,10 @@ export function OverviewRecentAppointmentsSection({
 }: OverviewNavigableSectionProps) {
   const hasAppointments = model.recentHistory.length > 0
   const canLogAppointment = model.clients.length > 0
+  const sectionGap = model.isCyberpunk ? '$2' : '$3'
 
   return (
-    <YStack gap="$3">
+    <YStack gap={sectionGap}>
       <XStack items="center" justify="space-between">
         <ThemedHeadingText fontWeight="700" fontSize={16}>
           Recent Appointments
@@ -108,11 +109,13 @@ export function OverviewRecentClientsSection({
   model,
   onNavigate,
 }: OverviewNavigableSectionProps) {
+  const sectionGap = model.isCyberpunk ? '$2' : '$3'
+
   return (
-    <YStack gap="$3">
+    <YStack gap={sectionGap}>
       <XStack items="center" justify="space-between">
         <ThemedHeadingText fontWeight="700" fontSize={16}>
-          Recent Clients
+          Recently Added
         </ThemedHeadingText>
         <Link href="/recent-clients" asChild>
           <XStack items="center" gap="$1">

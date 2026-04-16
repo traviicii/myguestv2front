@@ -1,6 +1,6 @@
 # iOS Launch Readiness
 
-Last updated: 2026-03-23
+Last updated: 2026-04-15
 
 This file is the tracked release-prep guide for the frontend repo. It covers the
 production settings and App Store preparation work that belong in source control.
@@ -61,9 +61,11 @@ Notes:
 
 - The app supports both Google and Apple sign-in on iPhone. Google still needs
   its Firebase and platform client IDs configured correctly.
-- Local `npm run dev` and `npm run ios:device` paths default
-  `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=false` so Personal Team iPhone builds can
-  install. Release builds should set it back to `true`.
+- The standard local dev lane defaults `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=false`
+  so the `MyGuest Dev` build stays easy to install and iterate on.
+- Use `npm run ios:device:release-like`, `npm run ios:device:release-like:clean`,
+  preview builds, and production builds when you need shipping-style Apple
+  Sign In behavior enabled end to end.
 - The repo now also includes EAS `preview` and `production` lanes for builds
   that need to work away from your Mac. See
   `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-preview-distribution.md`.
@@ -90,6 +92,7 @@ submitting:
 
 - Sign in with Apple works from the auth gate and reaches the normal onboarding
   or returning-user path.
+- Sign in with Apple works for both `Share My Email` and `Hide My Email`.
 - Google sign-in works on iPhone and web without dev-only error copy.
 - Settings shows the Data & Privacy actions for:
   - Privacy Policy
@@ -101,6 +104,38 @@ submitting:
   against the live backend.
 - Photo-library and camera denial do not break appointment logging.
 
+If Apple sign-in ever shows an audience-mismatch error in preview or release
+QA, use the troubleshooting steps in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-preview-distribution.md`
+before rebuilding the binary.
+
+## High-Priority Auth Follow-Up
+
+Before public launch while both Apple and Google sign-in remain customer-facing,
+we should treat cross-provider account linking as high priority.
+
+Why:
+
+- The backend sync flow in
+  `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/app/api/v1/endpoints/auth.py`
+  only auto-links legacy accounts by verified matching email when
+  `firebase_uid` is still null.
+- Apple `Hide My Email` can produce a relay address that does not match the
+  user's Google or direct email identity.
+- Without explicit provider linking, the same person could unintentionally end
+  up with separate Google-backed and Apple-backed accounts.
+
+Launch recommendation:
+
+- Do not rely on implicit merge heuristics for Apple relay email identities.
+- Add an explicit signed-in `Link Apple` / `Link Google` account-linking flow
+  before broad public rollout of dual-provider auth.
+- QA that flow with:
+  - Google-first then link Apple
+  - Apple-first then link Google
+  - Apple `Hide My Email` path
+  - already-separated account recovery copy
+
 ## Local iOS Archive Flow
 
 This project now supports both EAS distribution builds and a local Xcode archive
@@ -109,7 +144,9 @@ you want direct Xcode control.
 
 1. Set production env values in `.env` or your local build environment.
 2. Run `npm install` after any native dependency change.
-3. Run `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=true npm run ios:device:clean` when native config or plugins changed.
+3. Run `npm run ios:device:release-like:clean` when native config or plugins
+   changed and you want the regenerated device build to match shipping auth
+   capabilities.
 4. Open the generated Xcode workspace:
    `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/ios/MyGuest.xcworkspace`
 5. In Xcode, confirm the Apple Team, signing profile, bundle identifier, and

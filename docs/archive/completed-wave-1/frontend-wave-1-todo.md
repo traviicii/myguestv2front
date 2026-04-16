@@ -2,6 +2,11 @@
 
 Last updated: 2026-03-13
 
+Archive note:
+- Wave 1 shipped.
+- This file is preserved as historical context only.
+- Do not treat it as the current frontend backlog.
+
 This file tracks the final Wave 1 frontend polish backlog.
 
 Current status:

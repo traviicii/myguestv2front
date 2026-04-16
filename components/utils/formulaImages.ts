@@ -4,9 +4,17 @@ import type { AppointmentImageRef } from 'components/data/models'
 const fallbackFileName = (index: number) => `image-${index + 1}.jpg`
 
 const isHttpUrl = (value: string) => /^https?:\/\//i.test(value)
+const isDisplayableUri = (value: string) =>
+  /^(https?:\/\/|file:\/\/|content:\/\/|ph:\/\/|assets-library:\/\/)/i.test(value)
 
 export const getImageDisplayUri = (image: AppointmentImageRef) =>
   image.publicUrl ?? image.objectKey ?? ''
+
+export const getRenderableImageUri = (image: AppointmentImageRef) => {
+  const candidate = getImageDisplayUri(image).trim()
+  if (!candidate) return ''
+  return isDisplayableUri(candidate) ? candidate : ''
+}
 
 export const deriveImageFileName = (value: string, index: number) => {
   const trimmed = value.trim()

@@ -33,8 +33,8 @@ const OVERVIEW_SECTION_LABELS: Record<string, string> = {
   quickActions: 'Quick Actions',
   metrics: 'Metrics',
   recentAppointments: 'Recent Appointments',
-  recentClients: 'Recent Clients',
-  pinnedClients: 'Pinned Clients',
+  recentClients: 'Recently Added',
+  pinnedClients: 'Pinned',
 }
 
 const formatDateSummary = (

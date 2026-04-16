@@ -25,3 +25,4 @@ export {
   SectionDivider,
   SurfaceCard,
 } from './surfaces'
+export { ThemedRefreshControl } from './ThemedRefreshControl'

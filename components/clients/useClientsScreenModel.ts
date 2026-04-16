@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from 'tamagui'
 
@@ -10,6 +10,7 @@ import { deriveLastVisitByClient } from 'components/utils/clientDerived'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { formatDateByStyle } from 'components/utils/date'
 import { useDebouncedValue } from 'components/utils/useDebouncedValue'
+import { usePullToRefresh } from 'components/ui/usePullToRefresh'
 
 export function useClientsScreenModel() {
   const insets = useSafeAreaInsets()
@@ -42,10 +43,6 @@ export function useClientsScreenModel() {
     data: appointmentHistory = [],
     refetch: refetchAppointments,
   } = useAppointmentHistoryLite()
-
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const isRefreshingRef = useRef(false)
-  const minRefreshMs = 650
 
   const showStatus = useStudioStore(
     (state) =>
@@ -136,23 +133,20 @@ export function useClientsScreenModel() {
   const hasClients = clients.length > 0
   const hasFilteredClients = filteredClients.length > 0
 
-  const handleRefresh = async () => {
-    if (isRefreshingRef.current) return
-    isRefreshingRef.current = true
-    setIsRefreshing(true)
-    const startedAt = Date.now()
-
-    try {
+  const {
+    feedbackMessage: refreshFeedbackMessage,
+    handleRefresh,
+    handleScroll: handleRefreshScroll,
+    handleScrollRelease: handleRefreshScrollRelease,
+    isPullActive: isRefreshPullActive,
+    isRefreshing,
+    isThresholdReached: isRefreshThresholdReached,
+    pullProgress: refreshPullProgress,
+  } = usePullToRefresh({
+    onRefreshAction: async () => {
       await Promise.all([refetchClients(), refetchAppointments()])
-    } finally {
-      const elapsed = Date.now() - startedAt
-      if (elapsed < minRefreshMs) {
-        await new Promise((resolve) => setTimeout(resolve, minRefreshMs - elapsed))
-      }
-      setIsRefreshing(false)
-      isRefreshingRef.current = false
-    }
-  }
+    },
+  })
 
   const handleClearSearch = () => {
     if (!searchText) return
@@ -170,14 +164,20 @@ export function useClientsScreenModel() {
     formatLastVisitLabel,
     handleClearSearch,
     handleRefresh,
+    handleRefreshScroll,
+    handleRefreshScrollRelease,
     hasClients,
     hasFilteredClients,
     insets,
     isActive,
     isGlass,
     isGlassLight,
+    isRefreshPullActive,
     isRefreshing,
+    isRefreshThresholdReached,
     lineColor,
+    refreshFeedbackMessage,
+    refreshPullProgress,
     resetFilters,
     resolveLastVisit,
     searchInputRef,

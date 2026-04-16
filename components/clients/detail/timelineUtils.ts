@@ -1,15 +1,21 @@
-import type { AppointmentHistory, ColorAnalysis } from 'components/data/models'
-import { getServiceLabel } from 'components/utils/services'
+import type {
+  AppointmentHistory,
+  ColorAnalysis,
+} from 'components/data/models'
+import { getServiceLabel, normalizeServiceName } from 'components/utils/services'
 
 export type ClientTimelineEntry =
   | {
       id: string
       kind: 'appointment'
       date: string
+      eventLabel: string
       title: string
-      detail: string
-      secondaryDetail?: string
-      notePreview?: string
+      supportingLine?: string
+      tertiaryLine?: string
+      priceLabel: string
+      photoCount: number
+      photoLabel?: string
       imageUrl?: string
       sourceId: string
     }
@@ -17,10 +23,11 @@ export type ClientTimelineEntry =
       id: string
       kind: 'colorChart'
       date: string
+      eventLabel: string
       title: string
-      detail: string
-      secondaryDetail?: string
-      notePreview?: string
+      supportingLine: string
+      tertiaryLine?: string
+      metaLabel: string
       sourceId: string
     }
 
@@ -50,14 +57,52 @@ function parseTimelineDate(value: string) {
   return new Date(0)
 }
 
-function buildAppointmentDetail(entry: AppointmentHistory) {
-  const photoCount = entry.images?.length ?? 0
-  return photoCount > 0 ? `$${entry.price} • ${photoCount} photo${photoCount === 1 ? '' : 's'}` : `$${entry.price}`
+function shortenText(value: string, maxLength = 72) {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, Math.max(maxLength - 1, 0)).trimEnd()}…`
+}
+
+function buildPriceLabel(price: number) {
+  return `$${price}`
+}
+
+function buildPhotoLabel(photoCount: number) {
+  if (photoCount <= 0) return ''
+  return `${photoCount} photo${photoCount === 1 ? '' : 's'}`
+}
+
+function getAppointmentServiceLabels(entry: AppointmentHistory) {
+  const normalizedLabels =
+    entry.serviceLabels
+      ?.map((label) => normalizeServiceName(label))
+      .filter(Boolean) ?? []
+
+  if (normalizedLabels.length > 0) return normalizedLabels
+
+  return [getServiceLabel(entry.services, entry.notes)]
+}
+
+function buildAdditionalServiceSummary(serviceLabels: string[]) {
+  const extras = serviceLabels.slice(1)
+  if (extras.length === 0) return ''
+  if (extras.length === 1) return `Also ${extras[0]}`
+  if (extras.length === 2) return `Also ${extras[0]} + ${extras[1]}`
+  return `Also ${extras[0]} +${extras.length - 1} more`
 }
 
 function buildAppointmentNotePreview(entry: AppointmentHistory) {
-  const notes = normalizeValue(entry.notes)
-  return notes
+  const notes = normalizeValue(entry.notes).replace(/\s+/g, ' ')
+  if (!notes) return ''
+  return shortenText(notes, 84)
+}
+
+function buildAppointmentSupportingLine(entry: AppointmentHistory, serviceLabels: string[]) {
+  return buildAdditionalServiceSummary(serviceLabels) || buildAppointmentNotePreview(entry)
+}
+
+function buildAppointmentTertiaryLine(entry: AppointmentHistory, serviceLabels: string[]) {
+  if (serviceLabels.length <= 1) return ''
+  return buildAppointmentNotePreview(entry)
 }
 
 function buildColorChartDetail(colorAnalysis: ColorAnalysis) {
@@ -74,16 +119,14 @@ function joinNonEmpty(values: string[]) {
 }
 
 function buildColorChartSecondaryDetail(colorAnalysis: ColorAnalysis) {
-  return (
-    joinNonEmpty([
-      normalizeValue(colorAnalysis.contributingPigment)
-        ? `Pigment ${normalizeValue(colorAnalysis.contributingPigment)}`
-        : '',
-      normalizeValue(colorAnalysis.texture)
-        ? `Texture ${normalizeValue(colorAnalysis.texture)}`
-        : '',
-    ]) || 'Color profile updated'
-  )
+  return joinNonEmpty([
+    normalizeValue(colorAnalysis.contributingPigment)
+      ? `Pigment ${normalizeValue(colorAnalysis.contributingPigment)}`
+      : '',
+    normalizeValue(colorAnalysis.texture)
+      ? `Texture ${normalizeValue(colorAnalysis.texture)}`
+      : '',
+  ])
 }
 
 function buildColorChartNotePreview(colorAnalysis: ColorAnalysis) {
@@ -95,6 +138,14 @@ function buildColorChartNotePreview(colorAnalysis: ColorAnalysis) {
       ? `Elasticity ${normalizeValue(colorAnalysis.elasticity)}`
       : '',
   ])
+}
+
+function buildColorChartTertiaryLine(colorAnalysis: ColorAnalysis) {
+  return (
+    buildColorChartSecondaryDetail(colorAnalysis) ||
+    buildColorChartNotePreview(colorAnalysis) ||
+    ''
+  )
 }
 
 type BuildClientTimelineEntriesInput = {
@@ -112,17 +163,25 @@ export function buildClientTimelineEntries({
 }: BuildClientTimelineEntriesInput): ClientTimelineEntry[] {
   const appointmentEntries: ClientTimelineEntry[] = appointmentHistory
     .filter((entry) => entry.clientId === clientId)
-    .map((entry) => ({
-      id: `appointment-${entry.id}`,
-      kind: 'appointment',
-      date: entry.date,
-      title: getServiceLabel(entry.services, entry.notes),
-      detail: buildAppointmentDetail(entry),
-      secondaryDetail: undefined,
-      notePreview: buildAppointmentNotePreview(entry),
-      imageUrl: entry.images?.[0],
-      sourceId: entry.id,
-    }))
+    .map((entry) => {
+      const serviceLabels = getAppointmentServiceLabels(entry)
+      const photoCount = entry.images?.length ?? 0
+
+      return {
+        id: `appointment-${entry.id}`,
+        kind: 'appointment',
+        date: entry.date,
+        eventLabel: 'Appointment log',
+        title: serviceLabels[0] ?? getServiceLabel(entry.services, entry.notes),
+        supportingLine: buildAppointmentSupportingLine(entry, serviceLabels) || undefined,
+        tertiaryLine: buildAppointmentTertiaryLine(entry, serviceLabels) || undefined,
+        priceLabel: buildPriceLabel(entry.price),
+        photoCount,
+        photoLabel: buildPhotoLabel(photoCount) || undefined,
+        imageUrl: entry.images?.[0],
+        sourceId: entry.id,
+      }
+    })
 
   const timelineEntries = [...appointmentEntries]
   if (colorAnalysis?.updatedAt) {
@@ -130,10 +189,11 @@ export function buildClientTimelineEntries({
       id: `color-chart-${colorAnalysis.id ?? clientId}`,
       kind: 'colorChart',
       date: colorAnalysis.updatedAt,
+      eventLabel: 'Color chart',
       title: 'Color chart updated',
-      detail: buildColorChartDetail(colorAnalysis),
-      secondaryDetail: buildColorChartSecondaryDetail(colorAnalysis),
-      notePreview: buildColorChartNotePreview(colorAnalysis),
+      supportingLine: buildColorChartDetail(colorAnalysis),
+      tertiaryLine: buildColorChartTertiaryLine(colorAnalysis) || undefined,
+      metaLabel: 'Chart',
       sourceId: colorAnalysis.id ?? clientId,
     })
   }

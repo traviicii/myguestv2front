@@ -1,372 +1,222 @@
-# Rebooking, Timeline, and Action Dashboard Roadmap
+# Rebooking, Timeline, and Action Dashboard Snapshot
 
-## Why these three
+Last updated: 2026-04-15
 
-These are the highest-leverage next product moves for MyGuest because they turn the app from a strong record-keeping tool into a stronger day-to-day operator tool.
+This document started as a forward-looking roadmap. Parts of that work are now
+live in the product, so this file now serves two purposes:
+
+- record what already shipped
+- define the next product slices without pretending the current app is still at
+  zero
+
+This is a planning document, not a launch checklist.
+
+## Why These Three Areas Still Matter
+
+These remain high-leverage product bets because they move MyGuest from
+remembering what happened to helping the stylist decide what to do next.
 
 Current strengths:
 
 - client records
 - appointment logging
-- color charting
-- photos and formulas
+- color-charting
+- formulas and appointment photos
+- revenue and activity metrics
 
-Current gap:
+Current product tension:
 
-- the app remembers what happened, but it does less to help the stylist decide what to do next
+- the app is much better at storing history than turning that history into a
+  lightweight daily work queue
 
-This roadmap focuses on:
+## Current Shipped Baseline
 
-1. rebooking intelligence
-2. a unified client timeline
-3. an action-first overview/dashboard
+The following foundations already exist in the repo today:
 
-## Language choice
+### Rebooking foundation is live
 
-The term `follow-up` may be too vague for this product.
+- Services support `default_return_weeks` in the backend model, schemas, API,
+  and frontend service types.
+- Client detail already shows a dedicated rebooking section with:
+  - latest visit
+  - suggested next visit
+  - driving service
+  - status treatment for on-track / due-soon / overdue states
+- Overview logic already derives rebooking recommendations and surfaces
+  attention cards alongside other upcoming items.
 
-Recommended language:
-
-- `Rebooking reminder` for outreach tied to return timing
-- `Client action` for anything the stylist should do next
-- `Needs attention` for overview cards
-
-When we say `what's slipping`, we mean:
-
-- clients who are passing their expected return window
-- high-value clients who have gone quiet
-- color clients whose records are incomplete enough to weaken future service quality
-
-## Priority 2: Rebooking Intelligence
-
-### Product goal
-
-Help stylists know when a client should come back, when they are overdue, and what action to take next.
-
-### MVP behavior
-
-Each service gets an optional default return cadence in weeks.
-
-Examples:
-
-- Root Touch-Up: 6 weeks
-- Gloss: 8 weeks
-- Highlight Refresh: 10 to 12 weeks
-- Haircut: 6 to 8 weeks
-
-From that, the app derives:
-
-- suggested next visit date
-- due this week
-- overdue
-- overdue by how long
-
-### Where it should appear
-
-#### Settings / Services
-
-Add cadence configuration next to default pricing.
-
-Relevant files today:
+Relevant files:
 
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/app/models/service.py`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/app/schemas/service.py`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/app/api/v1/endpoints/services.py`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/data/api/services.ts`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/utils/rebooking.ts`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/clients/detail/ClientRebookingSection.tsx`
 
-Suggested new field:
+### Client timeline is partially live
 
-- `default_return_weeks: int | null`
+- Client detail already renders a `Client Timeline` section.
+- The current merged timeline pulls together:
+  - appointment history
+  - color-chart updates
+- The timeline is already tested and wired into client detail.
 
-#### Appointment save flow
+Relevant files:
 
-After saving an appointment, show:
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/clients/detail/ClientTimelineSection.tsx`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/clients/detail/timelineUtils.ts`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/tests/client-timeline-utils.test.ts`
 
-- `Next suggested visit: May 14`
-- `Based on Root Touch-Up cadence (6 weeks)`
+### Overview is already moving toward action-first
 
-Optional CTA later:
+- Overview metrics are live.
+- The app already includes a needs-attention / upcoming surface for:
+  - overdue clients
+  - due-soon follow-ups
+  - upcoming birthdays
+- Those cards already expand into short preview lists that deep-link into the
+  relevant client record.
 
-- `Mark as rebooked`
-- `Remind me later`
+Relevant files:
 
-#### Client detail
-
-Show a dedicated rebooking section near the top:
-
-- last visit
-- primary recent service
-- next suggested visit
-- current status: `on track`, `due soon`, `overdue`
-
-#### Overview
-
-Show aggregate rebooking cards:
-
-- due this week
-- overdue now
-- top clients gone quiet
-
-### Data model and logic
-
-Start simple and derive rather than store.
-
-Inputs:
-
-- latest appointment date
-- service used on latest appointment
-- service cadence
-
-Derived fields:
-
-- `suggested_next_visit_at`
-- `rebooking_status`
-- `days_overdue`
-
-This does not need calendar sync to be useful.
-
-### MVP rules
-
-- if the latest appointment has one recognized service with cadence, use it
-- if multiple services exist, use the longest cadence first for MVP or define a preferred-service rule
-- if no cadence exists, show no rebooking recommendation
-- if the client has no visits, show no rebooking state
-
-### Why this is strong
-
-This creates daily usefulness without forcing the app to become a full booking platform.
-
-## Priority 4: Unified Client Timeline
-
-### Product goal
-
-Give the stylist one chronological memory stream for each client instead of splitting memory across different screens.
-
-### Current issue
-
-Client memory is distributed across:
-
-- client detail
-- appointment detail
-- color chart
-- notes
-- photos
-
-Relevant routes today:
-
-- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app/client/[id].tsx`
-- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app/appointment/[id].tsx`
-- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app/client/[id]/color-chart/index.tsx`
-
-### Timeline event types
-
-The timeline should combine:
-
-- appointment logged
-- service labels
-- price
-- notes
-- photos added
-- formula details
-- color chart created or updated
-
-Optional later:
-
-- birthday
-- rebooking reminder sent
-- client tagged VIP or inactive
-
-### Timeline card examples
-
-#### Appointment event
-
-- `Mar 12, 2026`
-- `Partial Highlight + Gloss`
-- `$185`
-- `Notes: toned cooler through mids`
-- photo strip
-- quick actions: `Open appointment`, `Compare to previous`
-
-#### Color chart event
-
-- `Color chart updated`
-- summary chips for major fields changed
-- quick action: `Open color chart`
-
-#### Formula event
-
-- formula summary
-- pinned photo
-- quick action: `Reuse formula`
-
-### Why this matters
-
-For a stylist, memory is not separated by technical model type.
-The valuable question is:
-
-- `What happened with this client over time?`
-
-### MVP approach
-
-Do not build a brand-new backend event store first.
-Instead, aggregate from existing data:
-
-- appointments/formulas
-- formula images
-- color chart timestamps
-
-Then render a merged sorted list.
-
-This keeps scope grounded.
-
-## Priority 6: Action-First Overview
-
-### Product goal
-
-Make the overview answer:
-
-- who needs attention today
-- what is falling behind
-- what is helping growth
-
-### Current opportunity
-
-Current overview metrics are already meaningful:
-
-- revenue YTD
-- average ticket
-- active clients
-- service mix
-- color coverage
-- photo coverage
-
-Relevant backend/frontend metrics files:
-
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/overview/OverviewNeedsAttentionSection.tsx`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/overview/overviewModelUtils.ts`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/app/api/v1/endpoints/metrics.py`
-- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/app/schemas/metrics.py`
-- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/components/data/api/metrics.ts`
 
-What is missing is action-oriented output.
+## What Is Still Missing
 
-### New overview cards
+The product direction is good, but the current implementation is still more
+"helpful intelligence layered onto a record system" than a fully coherent daily
+workflow.
 
-Recommended first set:
+### 1. Rebooking needs a stronger completion loop
 
-- `Due to rebook this week`
-- `Overdue for return`
-- `Upcoming birthdays`
+Still missing or still thin:
+
+- post-save appointment guidance such as `Next suggested visit`
+- a visible rebooking action after a save
+- a clear distinction between an inferred recommendation and an actual booked
+  future appointment
+- better handling for multi-service visits when several services could drive the
+  cadence
+
+### 2. Timeline still under-represents the full client story
+
+Still missing or still thin:
+
+- formula events in the merged timeline
+- richer photo event treatment beyond the appointment card preview
+- clearer comparison affordances between recent visits
+- possible future state changes such as VIP/inactive tags or outreach history
+
+### 3. Overview still reads more like insight than work queue
+
+Still missing or still thin:
+
+- `gone quiet` detection for valuable clients
+- missing-record hygiene cards such as:
+  - color clients missing a color chart
+  - recent visits missing photos
+- a clearer "what should I do right now?" hierarchy
+- a stronger dedicated Today/Appointments surface if we decide the current tab
+  structure is too passive
+
+## Recommended Language
+
+Keep the product language concrete:
+
+- `Rebooking` for return timing guidance
+- `Needs attention` for overview cards
+- `Client actions` for lightweight next steps
+
+Avoid vague catch-all language like `follow-up` unless the UI is explicit about
+what the actual next action is.
+
+## Recommended Next Slices
+
+### Slice 1: Finish the rebooking loop
+
+Scope:
+
+- show `Next suggested visit` immediately after appointment save
+- expose the recommendation more consistently in appointment detail/edit flows
+- tighten multi-service cadence selection rules and document them
+
+Why first:
+
+- this builds directly on shipped logic
+- it improves day-to-day usefulness without requiring a new screen family
+
+### Slice 2: Make overview more decisively action-oriented
+
+Scope:
+
+- add `gone quiet` heuristics
+- add one or two missing-record cards with strong product value
+- make each card feel like a work list, not just a metric with a dropdown
+
+Good candidates:
+
 - `Top clients gone quiet`
-
-Recommended second set:
-
 - `Color clients missing a color chart`
 - `Recent visits missing photos`
-- `High-value clients not seen in X weeks`
 
-### Definitions
+### Slice 3: Enrich the client timeline
 
-#### Due to rebook this week
+Scope:
 
-Clients whose suggested next visit date falls within the next 7 days.
+- add formula-derived events
+- decide whether photo additions deserve their own timeline moment or remain
+  embedded in appointment cards
+- improve "open / compare / reuse" actions where they create real speed for the
+  stylist
 
-#### Overdue for return
+### Slice 4: Revisit tab architecture only after the above feels strong
 
-Clients whose suggested next visit date has passed.
-
-#### Upcoming birthdays
-
-Clients with birthdays in the next 14 days.
-
-Note: birthdays already exist in the client model.
-
-#### Top clients gone quiet
-
-Clients with stronger value history who have gone beyond their usual cadence or a fallback inactivity threshold.
-
-### Interaction model
-
-Each card should expand into a short, actionable list:
-
-- client name
-- last visit
-- recommended action
-- one tap to open client
-
-This is more useful than passive counts alone.
-
-## Recommended build order
-
-### Slice 1: Rebooking data foundation
-
-- add service cadence field
-- expose it in service create/update/read
-- wire it through frontend service types and settings UI
-
-### Slice 2: Rebooking logic in client and overview surfaces
-
-- derive suggested next visit from latest appointment + cadence
-- show rebooking status on client detail
-- add overview cards for due this week and overdue
-
-### Slice 3: Birthday and quiet-client cards
-
-- add upcoming birthdays card
-- add gone quiet card using simple heuristics first
-
-### Slice 4: Unified client timeline
-
-- aggregate appointments, photos, formulas, and color chart updates
-- show merged timeline on client detail
-
-### Slice 5: Optional navigation change
-
-If this proves valuable, consider replacing the `Control` tab with `Appointments` or `Today`.
+If the product keeps trending toward daily action management, revisit the tab
+language and information scent.
 
 Current tab file:
 
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/app/(tabs)/_layout.tsx`
 
-If we choose `Appointments`:
+Potential directions:
 
-- upcoming appointments
-- recent logs
-- quick log CTA
-- due-to-rebook list
+- `Today`
+- `Appointments`
 
-If we choose `Today`:
+Do this only if the new surface is materially clearer than the current control /
+overview split.
 
-- due to rebook
-- overdue
-- birthdays
-- recent incomplete records
-
-`Today` is the stronger product direction.
-
-## What not to do yet
+## What Not To Do Yet
 
 - do not start with full calendar sync
-- do not add AI-generated messaging before the rebooking model is solid
-- do not invent a complex follow-up system before the app proves that `client actions` are actually useful
-- do not build a generic event engine before the timeline proves its value
+- do not add AI-generated outreach before the rebooking model feels trustworthy
+- do not build a generic event engine before the current merged timeline proves
+  where the real value is
+- do not market the app as an automated follow-up machine until the workflow is
+  genuinely visible and manageable in-product
 
-## Success metrics
+## Success Metrics
 
-Track whether these changes actually improve behavior:
+When we extend this area, measure whether it changes behavior:
 
 - percent of active services with cadence configured
 - clients with a visible rebooking recommendation
-- number of overdue clients reviewed per week
-- rebook rate
+- number of overdue or due-soon clients reviewed per week
 - median days between suggested return date and next logged visit
-- overview card open rate
-- client detail timeline engagement
+- engagement with overview attention cards
+- engagement with client timeline cards
 
 ## Recommendation
 
-Build these in this order:
+The clean next order is:
 
-1. rebooking intelligence
-2. action-first overview cards
-3. unified client timeline
+1. finish the rebooking loop
+2. strengthen the overview work queue
+3. enrich the client timeline
+4. reconsider navigation only after those three land well
 
-That order gives the fastest product payoff with the least architecture risk.
+That path keeps the work grounded in the product that already exists instead of
+resetting the story back to an older roadmap state.

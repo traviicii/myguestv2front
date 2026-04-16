@@ -3,8 +3,6 @@ import { ChevronDown, ChevronUp } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
-  GhostButton,
-  PreviewCard,
   SurfaceCard,
   ThemedHeadingText,
 } from 'components/ui/controls'
@@ -20,52 +18,73 @@ function AttentionCard({
   card: OverviewAttentionCard
   model: Pick<
     OverviewNavigableSectionProps['model'],
-    'controlRadius' | 'isGlass' | 'sectionCardRadius'
+    'controlRadius' | 'isCyberpunk' | 'isGlass' | 'sectionCardRadius'
   >
   onNavigate: OverviewNavigableSectionProps['onNavigate']
 }) {
-  const [expanded, setExpanded] = useState(card.count > 0)
+  const [expanded, setExpanded] = useState(false)
+  const countColor =
+    card.priority === 'high'
+      ? '$danger'
+      : card.priority === 'medium'
+        ? '$accent'
+        : '$color'
 
   return (
     <SurfaceCard
-      p="$4"
-      gap="$3"
+      p={model.isCyberpunk ? '$3' : '$4'}
+      gap={model.isCyberpunk ? '$2' : '$2.5'}
       rounded={model.sectionCardRadius}
-      minW={180}
-      flex={1}
       tone={model.isGlass ? 'secondary' : 'default'}
     >
-      <XStack items="flex-start" justify="space-between" gap="$2">
-        <YStack gap="$1">
+      <XStack items="center" justify="space-between" gap="$3">
+        <YStack flex={1} gap="$1">
           <Text fontSize={12} color="$textSecondary">
             {card.label}
           </Text>
-          <Text fontSize={24} fontWeight="700">
-            {card.count}
+          <Text fontSize={12} color="$textMuted">
+            {card.summary}
           </Text>
         </YStack>
-        {card.count > 0 ? (
-          <GhostButton onPress={() => setExpanded((current) => !current)}>
-            <XStack items="center" gap="$1">
-              <Text fontSize={12} color="$accent">
-                {expanded ? 'Hide' : 'Show'}
-              </Text>
-              {expanded ? <ChevronUp size={14} color="$accent" /> : <ChevronDown size={14} color="$accent" />}
-            </XStack>
-          </GhostButton>
-        ) : null}
+        <YStack items="flex-end" gap="$1">
+          <Text fontSize={26} fontWeight="700" color={countColor}>
+            {card.count}
+          </Text>
+          <XStack
+            items="center"
+            gap="$1"
+            px={model.isCyberpunk ? '$1.5' : '$2'}
+            py="$1"
+            rounded={model.controlRadius}
+            borderWidth={model.isCyberpunk ? 1 : 0}
+            borderColor="$borderSubtle"
+            bg={model.isCyberpunk ? '$surfaceField' : 'transparent'}
+            onPress={() => setExpanded((current) => !current)}
+            pressStyle={{ opacity: 0.8 }}
+          >
+            <Text fontSize={11} color="$accent">
+              {expanded ? 'Hide' : 'Show'}
+            </Text>
+            {expanded ? <ChevronUp size={14} color="$accent" /> : <ChevronDown size={14} color="$accent" />}
+          </XStack>
+        </YStack>
       </XStack>
 
       {expanded && card.previewItems.length > 0 ? (
-        <YStack gap="$2">
+        <YStack pt="$1.5" gap="$1.5" borderTopWidth={1} borderTopColor="$borderSubtle">
           {card.previewItems.map((item) => (
-            <PreviewCard
+            <YStack
               key={`${card.id}-${item.clientId}`}
               rounded={model.controlRadius}
-              p="$3"
-              gap="$3"
+              px="$3"
+              py="$2.5"
+              bg={model.isCyberpunk ? '$surfaceField' : '$surfacePreview'}
+              borderWidth={model.isCyberpunk ? 1 : 0}
+              borderColor="$borderSubtle"
               pressStyle={{ opacity: 0.85 }}
-              onPress={() => onNavigate({ pathname: '/client/[id]', params: { id: item.clientId } })}
+              onPress={() =>
+                onNavigate({ pathname: '/client/[id]', params: { id: item.clientId } })
+              }
             >
               <XStack items="center" justify="space-between" gap="$3">
                 <YStack flex={1} gap="$0.5">
@@ -79,18 +98,14 @@ function AttentionCard({
                     {item.secondaryLabel}
                   </Text>
                 </YStack>
-                <Text fontSize={12} color="$accent">
+                <Text fontSize={11} color="$accent">
                   Open
                 </Text>
               </XStack>
-            </PreviewCard>
+            </YStack>
           ))}
         </YStack>
-      ) : (
-        <Text fontSize={12} color="$textSecondary">
-          {card.emptyLabel}
-        </Text>
-      )}
+      ) : null}
     </SurfaceCard>
   )
 }
@@ -99,21 +114,40 @@ export function OverviewNeedsAttentionSection({
   model,
   onNavigate,
 }: OverviewNavigableSectionProps) {
+  const sectionGap = model.isCyberpunk ? '$2' : '$3'
+  const activeCards = model.attentionCards.filter((card) => card.count > 0)
+
   return (
-    <YStack gap="$3">
+    <YStack gap={sectionGap}>
       <ThemedHeadingText fontWeight="700" fontSize={16}>
-        Needs Attention
+        Upcoming
       </ThemedHeadingText>
-      <XStack gap="$3" flexWrap="wrap">
-        {model.attentionCards.map((card) => (
-          <AttentionCard
-            key={card.id}
-            card={card}
-            model={model}
-            onNavigate={onNavigate}
-          />
-        ))}
-      </XStack>
+      {activeCards.length ? (
+        <YStack gap={sectionGap}>
+          {activeCards.map((card) => (
+            <AttentionCard
+              key={card.id}
+              card={card}
+              model={model}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </YStack>
+      ) : (
+        <SurfaceCard
+          p="$4"
+          gap="$2"
+          rounded={model.sectionCardRadius}
+          tone={model.isGlass ? 'secondary' : 'default'}
+        >
+          <Text fontSize={14} fontWeight="600">
+            You're all caught up
+          </Text>
+          <Text fontSize={12} color="$textSecondary">
+            No overdue clients, due-soon follow-ups, or upcoming birthdays right now.
+          </Text>
+        </SurfaceCard>
+      )}
     </YStack>
   )
 }

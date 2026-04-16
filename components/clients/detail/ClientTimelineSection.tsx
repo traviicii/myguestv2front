@@ -12,6 +12,111 @@ import {
   ClientDetailSectionTitle,
 } from './ClientDetailPrimitives'
 import type { ClientDetailSectionProps } from './sectionTypes'
+import type { ClientTimelineEntry } from './timelineUtils'
+
+function TimelineEntryGlyph({
+  entry,
+  model,
+}: {
+  entry: ClientTimelineEntry
+  model: ClientDetailSectionProps['model']
+}) {
+  return (
+    <YStack
+      width={32}
+      height={32}
+      items="center"
+      justify="center"
+      rounded={model.thumbRadius}
+      bg="$surfacePanel"
+      borderWidth={1}
+      borderColor="$borderSubtle"
+      shrink={0}
+    >
+      {entry.kind === 'appointment' ? (
+        <Scissors size={15} color="$accent" />
+      ) : (
+        <Palette size={15} color="$accent" />
+      )}
+    </YStack>
+  )
+}
+
+function TimelineMetaRail({
+  entry,
+  model,
+}: {
+  entry: ClientTimelineEntry
+  model: ClientDetailSectionProps['model']
+}) {
+  const railWidth = model.isGlass ? 86 : 78
+
+  return (
+    <YStack
+      width={railWidth}
+      shrink={0}
+      items="flex-end"
+      gap="$2"
+      pl="$2"
+      borderLeftWidth={1}
+      borderColor="$borderSubtle"
+    >
+      <XStack items="center" gap="$1.5">
+        <Text
+          fontSize={entry.kind === 'appointment' ? 13 : 10.5}
+          fontWeight={entry.kind === 'appointment' ? '700' : '600'}
+          color={entry.kind === 'appointment' ? '$color' : '$textSecondary'}
+          textTransform={entry.kind === 'appointment' ? undefined : 'uppercase'}
+          letterSpacing={entry.kind === 'appointment' ? undefined : 0.6}
+        >
+          {entry.kind === 'appointment' ? entry.priceLabel : entry.metaLabel}
+        </Text>
+        <ChevronRight size={16} color="$textMuted" />
+      </XStack>
+
+      {entry.kind === 'appointment' ? <TimelinePhotoMeta entry={entry} model={model} /> : null}
+    </YStack>
+  )
+}
+
+function TimelinePhotoMeta({
+  entry,
+  model,
+}: {
+  entry: Extract<ClientTimelineEntry, { kind: 'appointment' }>
+  model: ClientDetailSectionProps['model']
+}) {
+  const imageUri = entry.imageUrl ?? ''
+
+  if (!imageUri) {
+    if (!entry.photoLabel) return null
+    return (
+      <Text fontSize={11} color="$textMuted" numberOfLines={1}>
+        {entry.photoLabel}
+      </Text>
+    )
+  }
+
+  return (
+    <YStack items="flex-end" gap="$1.5">
+      <YStack
+        width={44}
+        height={44}
+        rounded={model.thumbRadius}
+        overflow="hidden"
+        borderWidth={1}
+        borderColor="$borderSubtle"
+      >
+        <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} />
+      </YStack>
+      {entry.photoCount > 1 ? (
+        <Text fontSize={11} color="$textMuted" numberOfLines={1}>
+          {entry.photoLabel}
+        </Text>
+      ) : null}
+    </YStack>
+  )
+}
 
 export function ClientTimelineSection({ model }: ClientDetailSectionProps) {
   if (!model.client) return null
@@ -82,61 +187,50 @@ export function ClientTimelineSection({ model }: ClientDetailSectionProps) {
                 <ClientDetailCard
                   model={model}
                   rounded={model.cardRadius}
-                  p="$4"
-                  gap="$3"
+                  px="$3"
+                  py="$3"
                   pressStyle={{ opacity: 0.85 }}
                 >
                   <XStack items="flex-start" justify="space-between" gap="$3">
-                    <XStack items="center" gap="$2.5" flex={1}>
-                      {entry.kind === 'appointment' ? (
-                        <Scissors size={15} color="$accent" />
-                      ) : (
-                        <Palette size={15} color="$accent" />
-                      )}
-                      <YStack flex={1} gap="$1">
+                    <XStack items="flex-start" gap="$3" flex={1}>
+                      <TimelineEntryGlyph entry={entry} model={model} />
+                      <YStack flex={1} gap="$1.5">
+                        {entry.kind === 'appointment' ? (
+                          <Text
+                            fontSize={10.5}
+                            color="$textMuted"
+                            textTransform="uppercase"
+                            letterSpacing={0.6}
+                            numberOfLines={1}
+                          >
+                            {entry.eventLabel}
+                          </Text>
+                        ) : null}
+                        <Text
+                          fontSize={11}
+                          color="$textSecondary"
+                          numberOfLines={2}
+                          lineHeight={14}
+                        >
+                          {model.formatAppointmentDate(entry.date)}
+                        </Text>
                         <Text fontSize={13} fontWeight="700">
                           {entry.title}
                         </Text>
-                        <Text fontSize={12} color="$textSecondary">
-                          {model.formatAppointmentDate(entry.date)}
-                        </Text>
+                        {entry.supportingLine ? (
+                          <Text fontSize={12} color="$textSecondary" numberOfLines={2}>
+                            {entry.supportingLine}
+                          </Text>
+                        ) : null}
+                        {entry.tertiaryLine ? (
+                          <Text fontSize={11.5} color="$textMuted" numberOfLines={2}>
+                            {entry.tertiaryLine}
+                          </Text>
+                        ) : null}
                       </YStack>
                     </XStack>
-                    <XStack items="center" gap="$2">
-                      {entry.kind === 'appointment' && entry.imageUrl ? (
-                        <YStack
-                          width={34}
-                          height={34}
-                          rounded={model.thumbRadius}
-                          overflow="hidden"
-                          borderWidth={1}
-                          borderColor="$borderSubtle"
-                        >
-                          <Image
-                            source={{ uri: entry.imageUrl }}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        </YStack>
-                      ) : null}
-                      <ChevronRight size={16} color="$textMuted" />
-                    </XStack>
+                    <TimelineMetaRail entry={entry} model={model} />
                   </XStack>
-
-                  <YStack gap="$1.5">
-                    <Text fontSize={12} fontWeight="600">
-                      {entry.detail}
-                    </Text>
-                    {entry.secondaryDetail ? (
-                      <Text fontSize={12} color="$textSecondary" numberOfLines={2}>
-                        {entry.secondaryDetail}
-                      </Text>
-                    ) : null}
-                    {entry.notePreview ? (
-                      <Text fontSize={12} color="$textMuted" numberOfLines={2}>
-                        {entry.notePreview}
-                      </Text>
-                    ) : null}
-                  </YStack>
                 </ClientDetailCard>
               </Link>
             )

@@ -1,6 +1,7 @@
 import { ScrollView, YStack } from 'tamagui'
 
 import { SectionDivider } from 'components/ui/controls'
+import { ThemedRefreshControl } from 'components/ui/ThemedRefreshControl'
 
 import { ClientColorChartSection } from './ClientColorChartSection'
 import { ClientContactSection } from './ClientContactSection'
@@ -19,7 +20,23 @@ export function ClientDetailContent({ model }: ClientDetailSectionProps) {
   if (!model.client) return null
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 40 } as never}>
+    <ScrollView
+      contentContainerStyle={{ paddingBottom: 40 } as never}
+      refreshControl={
+        <ThemedRefreshControl
+          refreshing={model.isRefreshing}
+          onRefresh={model.handleRefresh}
+          progressViewOffset={model.refreshIndicatorTop}
+          tintColor={model.refreshTintColor}
+          colors={[model.refreshTintColor]}
+        />
+      }
+      onScroll={model.handleRefreshScroll}
+      onScrollEndDrag={model.handleRefreshScrollRelease}
+      onMomentumScrollEnd={model.handleRefreshScrollRelease}
+      scrollEventThrottle={16}
+      alwaysBounceVertical
+    >
       <YStack px="$5" pt="$3" gap="$4">
         <ClientHeroSection model={model} />
         <ClientQuickActionsSection model={model} />

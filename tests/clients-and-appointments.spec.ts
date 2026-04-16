@@ -12,6 +12,8 @@ test('client detail route renders actions, timeline, and color chart data in moc
   await expect(page.getByText('Rebooking')).toBeVisible()
   await expect(page.getByText('Quick Actions')).toBeVisible()
   await expect(page.getByText('Client Timeline')).toBeVisible()
+  await expect(page.getByText('Also Glaze')).toBeVisible()
+  await expect(page.getByText('$265')).toBeVisible()
   await expect(page.getByText('Color chart updated')).toBeVisible()
   await expect(page.getByRole('link', { name: 'View Full Chart' }).first()).toBeVisible()
 })

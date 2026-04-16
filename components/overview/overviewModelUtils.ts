@@ -209,14 +209,18 @@ export function buildOverviewAttentionCards({
     rebookingByClient,
     clients,
   })
+  const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
+    `${count} ${count === 1 ? singular : plural}`
 
   return [
     {
-      id: 'dueThisWeek',
-      label: 'Due this week',
-      count: dueThisWeek.length,
-      emptyLabel: 'No clients are due within the next 7 days.',
-      previewItems: dueThisWeek.slice(0, 3).map((item) => ({
+      id: 'overdue',
+      label: 'Overdue',
+      count: overdue.length,
+      summary: `${pluralize(overdue.length, 'client')} past the suggested return window`,
+      priority: 'high',
+      emptyLabel: 'No clients are past their suggested return window.',
+      previewItems: overdue.slice(0, 3).map((item) => ({
         clientId: item.clientId,
         clientName: clientMap.get(item.clientId)?.name ?? 'Client',
         primaryLabel: item.drivingServiceName,
@@ -231,11 +235,13 @@ export function buildOverviewAttentionCards({
       })),
     },
     {
-      id: 'overdue',
-      label: 'Overdue',
-      count: overdue.length,
-      emptyLabel: 'No clients are past their suggested return window.',
-      previewItems: overdue.slice(0, 3).map((item) => ({
+      id: 'dueThisWeek',
+      label: 'Due this week',
+      count: dueThisWeek.length,
+      summary: `${pluralize(dueThisWeek.length, 'client')} due in the next 7 days`,
+      priority: 'medium',
+      emptyLabel: 'No clients are due within the next 7 days.',
+      previewItems: dueThisWeek.slice(0, 3).map((item) => ({
         clientId: item.clientId,
         clientName: clientMap.get(item.clientId)?.name ?? 'Client',
         primaryLabel: item.drivingServiceName,
@@ -253,6 +259,8 @@ export function buildOverviewAttentionCards({
       id: 'upcomingBirthdays',
       label: 'Upcoming birthdays',
       count: birthdays.length,
+      summary: `${pluralize(birthdays.length, 'birthday')} in the next 14 days`,
+      priority: 'low',
       emptyLabel: 'No client birthdays are coming up in the next 14 days.',
       previewItems: birthdays.slice(0, 3).map((item) => ({
         clientId: item.clientId,

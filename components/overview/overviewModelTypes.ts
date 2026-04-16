@@ -19,6 +19,8 @@ export type OverviewAttentionCard = {
   id: 'dueThisWeek' | 'overdue' | 'upcomingBirthdays'
   label: string
   count: number
+  summary: string
+  priority: 'high' | 'medium' | 'low'
   emptyLabel: string
   previewItems: OverviewAttentionPreviewItem[]
 }

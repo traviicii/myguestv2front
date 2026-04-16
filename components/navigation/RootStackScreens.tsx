@@ -36,7 +36,11 @@ export function getRootStackScreens({ pageBackground }: { pageBackground: string
       name="appointments/new"
       options={{ title: 'New Appointment Log', headerShown: false }}
     />,
-    <Stack.Screen key="recent-clients" name="recent-clients" options={{ title: 'Recent Clients' }} />,
+    <Stack.Screen
+      key="recent-clients"
+      name="recent-clients"
+      options={{ title: 'Recently Added Clients' }}
+    />,
     <Stack.Screen
       key="appointment-detail"
       name="appointment/[id]"

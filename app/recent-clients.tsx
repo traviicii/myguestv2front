@@ -43,10 +43,10 @@ export default function RecentClientsScreen() {
           <YStack px="$5" pt="$6" gap="$4">
             <YStack gap="$2">
               <Text fontFamily="$heading" fontWeight="600" fontSize={16} color="$color">
-                Recent Clients
+                Recently Added Clients
               </Text>
               <Text fontSize={12} color="$textSecondary">
-                Newest clients in your database.
+                The newest clients added to your database.
               </Text>
             </YStack>
           </YStack>

@@ -2,7 +2,7 @@ import { ActivityIndicator } from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import { Text, XStack, YStack } from 'tamagui'
 
-import { PrimaryButton, SecondaryButton } from 'components/ui/controls'
+import { PrimaryButton, SecondaryButton, SurfaceCard } from 'components/ui/controls'
 
 type SignInRequiredViewProps = {
   authError: string | null
@@ -125,9 +125,22 @@ export function SignInRequiredView({
         </Text>
       ) : null}
       {loginError || authError ? (
-        <Text fontSize={11} color="$red10" style={{ textAlign: 'center' }}>
-          {loginError || authError}
-        </Text>
+        <SurfaceCard
+          mode="alwaysCard"
+          tone="secondary"
+          width="100%"
+          maxW={320}
+          px="$3.5"
+          py="$3"
+          gap="$1.5"
+        >
+          <Text fontSize={12} fontWeight="700" color="$color11" style={{ textAlign: 'center' }}>
+            Sign-In Notice
+          </Text>
+          <Text fontSize={11} color="$textSecondary" style={{ textAlign: 'center' }}>
+            {loginError || authError}
+          </Text>
+        </SurfaceCard>
       ) : null}
     </YStack>
   )

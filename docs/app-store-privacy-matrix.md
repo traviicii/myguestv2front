@@ -1,6 +1,6 @@
 # App Store Privacy Matrix
 
-Last updated: 2026-03-24
+Last updated: 2026-04-15
 
 This document maps the current MyGuest codebase to the App Store privacy and
 App Review questions we are likely to answer in App Store Connect. It is a
@@ -19,10 +19,11 @@ Based on the current frontend codebase, MyGuest appears to collect or process:
 - Exported CSV data bundles
 - Account deletion requests
 
-Based on the current repo scan, there is no obvious third-party analytics SDK,
-ad SDK, or tracking SDK integrated in the app bundle today. That is an
-engineering inference from the checked-in code and dependencies, and should be
-re-verified before release.
+Based on the current repo scan, there is no direct analytics, crash-reporting,
+ad, or tracking SDK import/initialization in the checked-in frontend app code.
+The lockfile does contain transitive Firebase analytics packages, but that alone
+is not evidence that analytics is enabled in the shipped app. This is still an
+engineering inference and should be re-verified before release.
 
 ## Apple Guidance To Reconcile
 
@@ -51,7 +52,7 @@ re-verified before release.
 | Appointment photos | `expo-image-picker`, photo permissions, appointment image flows | Photos | Yes | No evidence | Declare optional photo collection if photos are uploaded or stored remotely |
 | Export My Data | `/exports/data` flow + ZIP share/download | Not a separate privacy category by itself | N/A | No | Mention in privacy policy and review notes as a user-control feature |
 | Delete Account | In-app delete flow | Not a separate privacy category by itself | N/A | No | Mention in review notes and verify it works end-to-end |
-| Analytics / tracking | No obvious analytics SDK in repo scan | Usage Data / Diagnostics / Tracking | Unknown | No repo evidence | If no analytics is added before launch, answer `not tracking` and do not declare analytics data types |
+| Analytics / tracking | No direct analytics or tracking integration found in app code; `package-lock.json` includes transitive Firebase analytics packages only | Usage Data / Diagnostics / Tracking | Unknown | No direct repo evidence | If no analytics is added before launch, answer `not tracking` and do not declare analytics data types |
 
 ## Practical Submission Notes
 

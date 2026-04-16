@@ -3,12 +3,14 @@
 import { useRouter } from 'expo-router'
 import { Text, XStack, YStack } from 'tamagui'
 import { Check, LayoutGrid, X } from '@tamagui/lucide-icons'
-import { Animated as RNAnimated, RefreshControl, ScrollView } from 'react-native'
+import { Animated as RNAnimated, ScrollView } from 'react-native'
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
+import { PullToRefreshOverlay } from 'components/ui/PullToRefreshOverlay'
 import { PrimaryButton,
   SectionDivider,
   SurfaceCard,
+  ThemedRefreshControl,
   ThemedHeadingText,
 } from 'components/ui/controls'
 import {
@@ -38,6 +40,14 @@ export default function TabOneScreen() {
   return (
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
+      <PullToRefreshOverlay
+        top={model.topInset + 4}
+        progress={model.refreshPullProgress}
+        refreshing={model.isRefreshing}
+        thresholdReached={model.isRefreshThresholdReached}
+        pullActive={model.isRefreshPullActive}
+        feedbackMessage={model.refreshFeedbackMessage}
+      />
       {model.showLayoutEditor ? (
         <YStack px="$5" pt={model.topInset} gap="$5">
           <YStack gap="$3">
@@ -62,16 +72,20 @@ export default function TabOneScreen() {
             paddingBottom: Math.max(24, model.tabBarHeight + model.insets.bottom + 12),
           }}
           refreshControl={
-            <RefreshControl
+            <ThemedRefreshControl
               refreshing={model.isRefreshing}
               onRefresh={model.handleRefresh}
               progressViewOffset={model.topInset}
             />
           }
+          onScroll={model.handleRefreshScroll}
+          onScrollEndDrag={model.handleRefreshScrollRelease}
+          onMomentumScrollEnd={model.handleRefreshScrollRelease}
+          scrollEventThrottle={16}
           scrollEnabled={!model.isQuickActionDragging}
           alwaysBounceVertical
         >
-          <YStack px="$5" pt={model.topInset} gap="$5">
+          <YStack px="$5" pt={model.topInset} gap={model.isCyberpunk ? '$4' : '$5'}>
             {model.isEmptyAccount ? (
               <SurfaceCard tone={model.isGlass ? 'secondary' : 'default'} p="$4" gap="$3">
                 <ThemedHeadingText fontWeight="700" fontSize={16}>

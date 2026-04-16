@@ -18,6 +18,7 @@ const EXIT_HIDE_DELAY = LINE_UNDRAW_DELAY + LINE_DURATION + 60
 type ExpandableEditPanelProps = {
   visible: boolean
   lineColor: string
+  lineRadius?: number
   cardProps?: YStackProps
   children: () => ReactNode
 }
@@ -25,6 +26,7 @@ type ExpandableEditPanelProps = {
 export const ExpandableEditPanel = ({
   visible,
   lineColor,
+  lineRadius = 999,
   cardProps,
   children,
 }: ExpandableEditPanelProps) => {
@@ -98,7 +100,7 @@ export const ExpandableEditPanel = ({
               {
                 height: 2,
                 backgroundColor: lineColor,
-                borderRadius: 999,
+                borderRadius: lineRadius,
               },
               lineStyle,
             ]}

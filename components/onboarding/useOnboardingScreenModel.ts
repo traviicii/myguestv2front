@@ -38,7 +38,7 @@ export function useOnboardingScreenModel() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { aesthetic } = useThemePrefs()
-  const { user } = useAuth()
+  const { signOutUser, user } = useAuth()
   const isGlass = aesthetic === 'glass'
   const { profile, setProfile, setOnboardingComplete } = useStudioStore()
   const { data: serviceOptions = [] } = useServices('true')
@@ -69,6 +69,7 @@ export function useOnboardingScreenModel() {
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
   const [newServiceName, setNewServiceName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const {
     closePickers,
     datePanel,
@@ -108,6 +109,15 @@ export function useOnboardingScreenModel() {
       phone: normalizePhoneForStorage(profileDraft.phone),
     })
     setStep(2)
+  }
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    try {
+      await signOutUser()
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
   const handleAddService = async () => {
@@ -217,9 +227,11 @@ export function useOnboardingScreenModel() {
     handleFinish,
     handleFinishWithoutAppointment,
     handleProfileNext,
+    handleSignOut,
     handleSaveNewService,
     insets,
     isSaving,
+    isSigningOut,
     newServiceName,
     pickerDate,
     profileDraft,

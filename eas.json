@@ -2,7 +2,9 @@
   "build": {
     "base": {
       "node": "20.19.0",
-      "cocoapods": "1.16.2"
+      "ios": {
+        "cocoapods": "1.16.2"
+      }
     },
     "development": {
       "extends": "base",
@@ -12,13 +14,15 @@
       "env": {
         "APP_VARIANT": "development",
         "EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN": "false"
-      }
+      },
+      "environment": "development"
     },
     "development-simulator": {
       "extends": "development",
       "ios": {
         "simulator": true
-      }
+      },
+      "environment": "development"
     },
     "preview": {
       "extends": "base",
@@ -27,7 +31,19 @@
       "env": {
         "APP_VARIANT": "preview",
         "EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN": "true"
-      }
+      },
+      "environment": "preview"
+    },
+    "preview-mock": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview-mock",
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN": "true",
+        "EXPO_PUBLIC_USE_MOCK_DATA": "true"
+      },
+      "environment": "preview"
     },
     "production": {
       "extends": "base",
@@ -35,7 +51,8 @@
       "env": {
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN": "true"
-      }
+      },
+      "environment": "production"
     }
   }
 }

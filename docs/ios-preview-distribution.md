@@ -90,11 +90,50 @@ Once `EXPO_EAS_PROJECT_ID` is configured and a preview build is installed, you
 can push non-native fixes without rebuilding the app:
 
 ```bash
-npm run eas:update:preview -- --message "Fix onboarding copy and export button state"
+npm run eas:update:preview:ios -- --message "Fix onboarding copy and export button state"
 ```
 
 Use this for JavaScript, styling, and image changes only. Native dependency,
 entitlement, permission, or config changes still require a new build.
+
+For the current MyGuest preview lane, prefer the iOS-specific update script so
+the live dogfooding build only receives the change intended for iPhone preview
+testing. After publishing, fully quit and reopen the preview app while online so
+it can fetch the new update. The broader `npm run eas:update:preview` script can
+still be used later if the preview channel intentionally expands beyond iPhone.
+
+## Apple Sign-In Troubleshooting
+
+If the preview app shows:
+
+- `The audience in ID Token [com.travispeck.myguest] does not match the expected audience`
+
+that means Apple returned a token for the app bundle ID, but Firebase is not
+currently accepting that audience for the Apple provider flow.
+
+Check these manual setup points in order:
+
+1. Firebase Console -> Project settings -> Your apps
+   - Confirm there is an iOS app registration for `com.travispeck.myguest`.
+   - If it is missing, add it before testing Apple sign-in again.
+2. Firebase Console -> Authentication -> Sign-in method -> Apple
+   - Confirm Apple is enabled.
+   - Confirm the configured Services ID, Team ID, Key ID, and uploaded `.p8`
+     key still match the active Apple Developer setup.
+3. Apple Developer -> Certificates, Identifiers & Profiles -> Identifiers
+   - Confirm the app identifier `com.travispeck.myguest` has the `Sign in with
+     Apple` capability enabled.
+   - Confirm the Services ID used by Firebase still exists and is attached to
+     the Firebase return URL:
+     `https://client-keeper-a2e91.firebaseapp.com/__/auth/handler`
+4. Retry sign-in in the installed preview app.
+
+Most Firebase/Apple console fixes apply immediately. You only need a new iPhone
+build when the bundle identifier, entitlements, or other native config changes.
+
+The current working auth checkpoint and remaining Apple/Google identity risks
+are tracked in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/apple-auth-checkpoint.md`.
 
 ## Production / TestFlight
 

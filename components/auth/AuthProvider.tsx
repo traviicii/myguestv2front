@@ -22,6 +22,7 @@ import {
   signInWithCredential,
   signInWithPopup,
   signOut,
+  updateProfile,
   type User,
 } from 'firebase/auth'
 import {
@@ -29,6 +30,7 @@ import {
   getMissingFirebaseConfigKeys,
   isFirebaseConfigured,
 } from './firebaseClient'
+import { formatAuthErrorMessage } from './authErrorMessages'
 import {
   hasStaticDevToken,
   setAuthTokenProvider,
@@ -51,6 +53,15 @@ type AuthContextValue = {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+function formatAppleFullName(
+  fullName: AppleAuthentication.AppleAuthenticationFullName | null | undefined
+) {
+  const givenName = fullName?.givenName?.trim()
+  const familyName = fullName?.familyName?.trim()
+  const parts = [givenName, familyName].filter(Boolean)
+  return parts.length ? parts.join(' ') : null
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -94,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthError(null)
       },
       (error) => {
-        setAuthError(error.message || 'Failed to read Firebase auth state.')
+        setAuthError(formatAuthErrorMessage(error) || 'Failed to read Firebase auth state.')
         setIsReady(true)
       }
     )
@@ -148,12 +159,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const rawNonce = Crypto.randomUUID()
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      )
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
         ],
-        nonce: rawNonce,
+        nonce: hashedNonce,
       })
 
       if (!credential.identityToken) {
@@ -168,6 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       await signInWithCredential(auth, firebaseCredential)
+      const displayName = formatAppleFullName(credential.fullName)
+      if (displayName && auth.currentUser && auth.currentUser.displayName !== displayName) {
+        await updateProfile(auth.currentUser, { displayName })
+      }
       await auth.currentUser?.getIdToken(true)
     } catch (error) {
       if (

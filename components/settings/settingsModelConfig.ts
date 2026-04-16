@@ -24,8 +24,8 @@ export const photoCoverageOptions: Option<PhotoCoverageRange>[] = [
 export const overviewSectionOptions: OverviewSectionOption[] = [
   {
     id: 'needsAttention',
-    label: 'Needs Attention',
-    help: 'Show rebooking and birthday reminders on Overview.',
+    label: 'Upcoming',
+    help: 'Show upcoming follow-up and birthday reminders on Overview.',
   },
   {
     id: 'quickActions',
@@ -44,8 +44,8 @@ export const overviewSectionOptions: OverviewSectionOption[] = [
   },
   {
     id: 'recentClients',
-    label: 'Recent Clients',
-    help: 'Show recently added or visited clients.',
+    label: 'Recently Added Clients',
+    help: 'Show the newest clients added to your database.',
   },
   {
     id: 'pinnedClients',

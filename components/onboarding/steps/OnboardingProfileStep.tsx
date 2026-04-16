@@ -1,6 +1,6 @@
 import { Text, YStack } from 'tamagui'
 
-import { PrimaryButton, TextField } from 'components/ui/controls'
+import { PrimaryButton, SecondaryButton, TextField } from 'components/ui/controls'
 import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { OnboardingSectionProps } from './sectionTypes'
@@ -19,6 +19,17 @@ export function OnboardingProfileStep({ model }: OnboardingSectionProps) {
           <Text fontSize={13} color="$textPrimary" fontWeight="600">
             {model.authEmail}
           </Text>
+          <YStack items="flex-start">
+            <SecondaryButton
+              disabled={model.isSigningOut}
+              opacity={model.isSigningOut ? 0.7 : 1}
+              onPress={() => {
+                void model.handleSignOut()
+              }}
+            >
+              {model.isSigningOut ? 'Signing out...' : 'Use a different account'}
+            </SecondaryButton>
+          </YStack>
         </YStack>
       ) : null}
       <TextField

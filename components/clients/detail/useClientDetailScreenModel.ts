@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { Linking } from 'react-native'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTheme } from 'tamagui'
 
 import { useThemePrefs } from 'components/ThemePrefs'
 import {
@@ -12,12 +13,15 @@ import {
   useServices,
 } from 'components/data/queries'
 import { useStudioStore } from 'components/state/studioStore'
+import { usePullToRefresh } from 'components/ui/usePullToRefresh'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { formatDateByStyle } from 'components/utils/date'
 import { buildRebookingRecommendationForClient } from 'components/utils/rebooking'
 
 import { buildClientTimelineEntries } from './timelineUtils'
 
 export function useClientDetailScreenModel() {
+  const theme = useTheme()
   const { aesthetic } = useThemePrefs()
   const isCyberpunk = aesthetic === 'cyberpunk'
   const isGlass = aesthetic === 'glass'
@@ -28,17 +32,28 @@ export function useClientDetailScreenModel() {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
   const resolvedClientId = typeof id === 'string' ? id : ''
-  const { data: clients = [], isLoading: clientsLoading } = useClients()
-  const { data: appointmentHistory = [] } = useAppointmentHistoryLite()
-  const { data: serviceCatalog = [] } = useServices('all')
-  const { data: colorAnalysisByClient = {} } = useColorAnalysisByClient()
+  const {
+    data: clients = [],
+    isLoading: clientsLoading,
+    refetch: refetchClients,
+  } = useClients()
+  const {
+    data: appointmentHistory = [],
+    refetch: refetchAppointments,
+  } = useAppointmentHistoryLite()
+  const { data: serviceCatalog = [], refetch: refetchServices } = useServices('all')
+  const {
+    data: colorAnalysisByClient = {},
+    refetch: refetchColorAnalysisByClient,
+  } = useColorAnalysisByClient()
   const { pinnedClientIds, togglePinnedClient, appSettings } = useStudioStore()
   const topInset = Math.max(insets.top + 8, 16)
 
   const client = clients.find((item) => item.id === resolvedClientId)
-  const { data: colorAnalysisForClient } = useColorAnalysisForClient(
+  const { data: colorAnalysisForClient, refetch: refetchColorAnalysisForClient } =
+    useColorAnalysisForClient(
     resolvedClientId || undefined
-  )
+    )
 
   const editHref = useMemo<Href>(
     () =>
@@ -82,6 +97,27 @@ export function useClientDetailScreenModel() {
     },
     [appSettings.dateDisplayFormat, appSettings.dateLongIncludeWeekday]
   )
+
+  const {
+    feedbackMessage: refreshFeedbackMessage,
+    handleRefresh,
+    handleScroll: handleRefreshScroll,
+    handleScrollRelease: handleRefreshScrollRelease,
+    isPullActive: isRefreshPullActive,
+    isRefreshing,
+    isThresholdReached: isRefreshThresholdReached,
+    pullProgress: refreshPullProgress,
+  } = usePullToRefresh({
+    onRefreshAction: async () => {
+      await Promise.all([
+        refetchClients(),
+        refetchAppointments(),
+        refetchServices(),
+        refetchColorAnalysisByClient(),
+        resolvedClientId ? refetchColorAnalysisForClient() : Promise.resolve(null),
+      ])
+    },
+  })
 
   const matchingHistory = useMemo(
     () =>
@@ -149,6 +185,8 @@ export function useClientDetailScreenModel() {
   const phoneUrl = sanitizedPhone ? `tel:${sanitizedPhone}` : ''
   const smsUrl = sanitizedPhone ? `sms:${sanitizedPhone}` : ''
   const emailUrl = client?.email ? `mailto:${client.email}` : ''
+  const refreshIndicatorTop = topInset + 44
+  const refreshTintColor = toNativeColor(theme.accent?.val, FALLBACK_COLORS.glassAccentLight)
 
   const handleBack = useCallback(() => {
     router.back()
@@ -208,6 +246,9 @@ export function useClientDetailScreenModel() {
     formatLastVisitLabel,
     handleBack,
     handleEdit,
+    handleRefresh,
+    handleRefreshScroll,
+    handleRefreshScrollRelease,
     handleTogglePinned,
     hasColorChartData,
     history,
@@ -216,9 +257,16 @@ export function useClientDetailScreenModel() {
     isGlass,
     isMissingClient,
     isPinned,
+    isRefreshPullActive,
+    isRefreshing,
+    isRefreshThresholdReached,
     newAppointmentHref,
     openExternal,
     phoneUrl,
+    refreshFeedbackMessage,
+    refreshIndicatorTop,
+    refreshPullProgress,
+    refreshTintColor,
     resolvedClientId,
     showStatus,
     smsUrl,

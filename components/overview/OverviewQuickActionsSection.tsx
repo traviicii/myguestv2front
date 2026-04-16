@@ -18,12 +18,6 @@ import Svg, { Polygon } from 'react-native-svg'
 
 import type { OverviewNavigableSectionProps, OverviewQuickActionCardProps } from './sectionTypes'
 
-const editPanelCardBorder = {
-  bg: '$surfaceCard',
-  borderWidth: 1,
-  borderColor: '$borderSubtle',
-} as const
-
 const CYBERPUNK_HEX_CARD_SIZE = 144
 const CYBERPUNK_HEX_POINTS = '35,1 105,1 139,61 105,121 35,121 1,61'
 
@@ -178,6 +172,7 @@ export function OverviewQuickActionsSection({
   model,
   onNavigate,
 }: OverviewNavigableSectionProps) {
+  const sectionGap = model.isCyberpunk ? '$2' : '$3'
   const cyberpunkQuickActionLayout = useMemo(
     () =>
       model.isCyberpunk
@@ -202,10 +197,30 @@ export function OverviewQuickActionsSection({
   const quickActionClusterHeight = cyberpunkQuickActionLayout
     ? Math.max(cyberpunkQuickActionLayout.containerHeight, model.quickActionItemSize)
     : Math.max(model.quickActionGridHeight, 160)
+  const editPanelCardBorder = {
+    bg: '$surfaceCard',
+    borderWidth: 1,
+    borderColor: '$borderSubtle',
+    rounded: model.controlRadius,
+    gap: model.isCyberpunk ? '$2' : '$3',
+  } as const
+  const rowProps = model.isCyberpunk
+    ? ({
+        px: '$2.5',
+        py: '$2',
+        minH: 44,
+        borderWidth: 1,
+        borderColor: '$borderSubtle',
+        bg: '$surfaceField',
+        rounded: model.controlRadius,
+      } as const)
+    : ({
+        py: '$1',
+      } as const)
 
   return (
-    <YStack>
-      <XStack items="center" justify="space-between" mb="$2">
+    <YStack gap={sectionGap}>
+      <XStack items="center" justify="space-between">
         <ThemedHeadingText fontWeight="700" fontSize={16}>
           Quick Actions
         </ThemedHeadingText>
@@ -216,12 +231,19 @@ export function OverviewQuickActionsSection({
       <ExpandableEditPanel
         visible={model.showQuickActionEditor}
         lineColor={model.lineColor}
+        lineRadius={model.isCyberpunk ? 0 : 999}
         cardProps={editPanelCardBorder}
       >
         {() => (
-          <>
+          <YStack gap={model.isCyberpunk ? '$2' : '$1.5'}>
             {model.orderedQuickActions.map((action) => (
-              <XStack key={action.id} items="center" justify="space-between">
+              <XStack
+                key={action.id}
+                items="center"
+                justify="space-between"
+                gap="$3"
+                {...rowProps}
+              >
                 <Text fontSize={12} color="$textSecondary">
                   {action.label}
                 </Text>
@@ -234,7 +256,7 @@ export function OverviewQuickActionsSection({
                 />
               </XStack>
             ))}
-          </>
+          </YStack>
         )}
       </ExpandableEditPanel>
       <RNAnimated.View
@@ -257,7 +279,6 @@ export function OverviewQuickActionsSection({
         </Text>
       </RNAnimated.View>
       <YStack
-        mt="$1"
         minH={160 + quickActionClusterInsetTop + quickActionClusterInsetBottom}
         justify="center"
         items="center"

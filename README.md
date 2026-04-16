@@ -6,6 +6,35 @@ This repo is the frontend source of truth. Pair it with
 `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back` for real API work,
 or run it in tracked mock mode for UI-focused development.
 
+For the launch-oriented lane strategy now that the paid Apple Developer account
+is active, use
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/mvp-development-pathways.md`
+as the operating guide.
+
+## Table Of Contents
+
+- [Supported Workflows](#supported-workflows)
+- [Quality Gate](#quality-gate)
+- [Local Toolchain](#local-toolchain)
+- [iOS Development Paths](#ios-development-paths)
+- [Simulator Development On Mac](#simulator-development-on-mac)
+- [iPhone Development](#iphone-development)
+- [iPhone Development Over Tunnel](#iphone-development-over-tunnel)
+- [Away From Your Mac](#away-from-your-mac)
+- [iOS Release Prep](#ios-release-prep)
+- [Troubleshooting iOS Dev Builds](#troubleshooting-ios-dev-builds)
+- [Other Commands](#other-commands)
+- [Project Map](#project-map)
+- [Stack](#stack)
+- [Disposable Local Artifacts](#disposable-local-artifacts)
+
+Key repo docs:
+
+- [`docs/README.md`](docs/README.md) for the frontend docs index
+- [`docs/mvp-development-pathways.md`](docs/mvp-development-pathways.md) for the cross-repo development and release lanes
+- [`docs/apple-auth-checkpoint.md`](docs/apple-auth-checkpoint.md) for the current Apple sign-in checkpoint and remaining auth risks
+- [`docs/ios-launch-readiness.md`](docs/ios-launch-readiness.md) for release-prep and App Store submission guidance
+
 ## Supported Workflows
 
 ### 1. Clean mock-mode development
@@ -144,7 +173,8 @@ npm run dev
 Use `npm run ios:device:clean` the first time you install the local phone build,
 after native dependency changes, after app config changes, or when the dev build
 expires. It regenerates the native iPhone project as `MyGuest Dev` and removes
-the local Sign in with Apple entitlement so Personal Team provisioning can work.
+the local Sign in with Apple entitlement so the standard local dev lane stays
+simple to sign and reinstall.
 
 After the app is installed, `npm run dev` is the main day-to-day command.
 
@@ -161,6 +191,17 @@ What to expect:
 - If LAN is flaky, switch to `npm run dev:tunnel`.
 - After the first successful install, `npm run ios:device` is usually enough for refreshes or re-installs.
 - `npm run ios:rebuild` still works as a legacy alias for `npm run ios:device`.
+
+If you want the closest local path to a shipping-capabilities build now that the
+paid Apple Developer account is active, use:
+
+```bash
+npm run ios:device:release-like:clean
+npm run dev
+```
+
+That keeps Sign in with Apple enabled in the local device build so auth and
+capabilities are closer to what preview/TestFlight will use.
 
 ## iPhone Development Over Tunnel
 
@@ -206,8 +247,22 @@ Important limits:
 - Preview/TestFlight builds need a hosted backend. If `EXPO_PUBLIC_API_BASE_URL` still points at `127.0.0.1`, the app will only work in mock mode away from your Mac.
 - Preview builds in this repo currently reuse the production bundle identifier for the simplest Apple/Google auth setup, so installing one replaces any existing MyGuest install on that iPhone.
 
+Once the preview app is already installed, this is the main JS-only path for
+pushing a live preview fix without rebuilding the binary:
+
+```bash
+npm run eas:update:preview:ios -- --message "Describe the JS-only preview fix"
+```
+
+Use that script for JavaScript, styling, copy, or image changes. After
+publishing, fully quit and reopen the preview app while online so it can pull
+the update. If you changed native dependencies, entitlements, app config,
+permissions, or environment wiring, build a new preview binary instead.
+
 The detailed setup and EAS Update workflow lives in
 `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-preview-distribution.md`.
+The higher-level lane strategy and environment separation guide lives in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/mvp-development-pathways.md`.
 
 ## iOS Release Prep
 
@@ -228,7 +283,7 @@ credentials or submission answers in the local-only
 - **Build fails because Personal Team does not support Sign in with Apple**
   - Use `npm run ios:device:clean` for the local phone development build.
   - That command now regenerates the `MyGuest Dev` native project and strips the local Apple Sign In entitlement automatically.
-  - Once your paid Apple Developer membership is active, switch back to the paid setup with `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=true npm run ios:device:clean`.
+  - If you want the closest local release-style auth path, switch to `npm run ios:device:release-like:clean`.
 - **App won’t launch: “profile not trusted / invalid code signature”**
   - On the phone: Settings → Privacy & Security → Developer Mode.
   - Settings → General → VPN & Device Management → trust your Apple ID.
@@ -270,6 +325,8 @@ credentials or submission answers in the local-only
 - `npm run ios:device:clean` regenerates the local iPhone dev project and is the safest first-run phone install path.
 - `npm run ios:rebuild` remains an alias for `npm run ios:device`.
 - `npm run eas:build:ios:preview` creates an installable iPhone preview build that works away from your Mac.
+- `npm run eas:update:preview:ios -- --message "..."` pushes a JS-only update to the installed iPhone preview build.
+- `npm run eas:update:preview -- --message "..."` remains available for broader preview-channel publishes if we later want that behavior across multiple preview targets.
 - `npm run eas:build:ios:production` creates the production/TestFlight build lane.
 - `npm run android` runs the Android native build.
 - `npm run web` starts the web target locally.
@@ -280,6 +337,8 @@ credentials or submission answers in the local-only
 ## Project Map
 
 - `app/` - routes and route-level UI
+- `docs/README.md` - index of tracked frontend operating docs
+- `docs/archive/` - completed or historical notes that are no longer live guidance
 - `components/data/models.ts` - tracked domain models shared by API, mock data, and hooks
 - `components/data/mock/` - tracked mock fixtures
 - `components/data/source.ts` - runtime boundary for `mock` vs `api`

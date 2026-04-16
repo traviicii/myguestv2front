@@ -6,6 +6,7 @@ import Constants from 'expo-constants'
 import { PRIVACY_POLICY_URL, SUPPORT_URL } from 'components/data/config'
 
 import { useAuth } from './AuthProvider'
+import { formatAuthErrorMessage } from './authErrorMessages'
 import {
   getGoogleAuthRequest,
   getMissingGoogleClientIds,
@@ -71,9 +72,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     signInWithGoogleIdToken(idToken)
       .catch((error) => {
         if (!isMounted) return
-        setLoginError(
-          error instanceof Error ? error.message : 'Unable to sign in right now.'
-        )
+        setLoginError(formatAuthErrorMessage(error))
       })
       .finally(() => {
         if (!isMounted) return
@@ -116,9 +115,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       }
       await promptAsync()
     } catch (error) {
-      setLoginError(
-        error instanceof Error ? error.message : 'Unable to sign in right now.'
-      )
+      setLoginError(formatAuthErrorMessage(error))
     } finally {
       setIsSigningIn(false)
     }
@@ -130,9 +127,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     try {
       await signInWithApple()
     } catch (error) {
-      setLoginError(
-        error instanceof Error ? error.message : 'Unable to sign in right now.'
-      )
+      setLoginError(formatAuthErrorMessage(error))
     } finally {
       setIsSigningIn(false)
     }

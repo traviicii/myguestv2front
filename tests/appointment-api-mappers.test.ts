@@ -56,7 +56,7 @@ test('appointment api mapper builds appointment history with sorted services and
     serviceLabels: ['Single Process', 'Gloss'],
     price: 125,
     notes: 'formula note',
-    images: ['https://example.com/cover.jpg', 'private/key-2'],
+    images: ['https://example.com/cover.jpg'],
     imageRefs: [
       {
         storageProvider: 'firebase',

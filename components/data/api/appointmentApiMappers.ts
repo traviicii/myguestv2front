@@ -1,5 +1,6 @@
 import type { AppointmentHistory, AppointmentImageRef } from '../models'
 
+import { getRenderableImageUri } from 'components/utils/formulaImages'
 import { normalizeServiceName } from 'components/utils/services'
 
 import type { ApiFormula } from './appointmentApiTypes'
@@ -23,9 +24,7 @@ function toAppointmentImageRefs(formula: ApiFormula): AppointmentImageRef[] {
 
 export function toAppointmentModel(formula: ApiFormula): AppointmentHistory {
   const imageRefs = toAppointmentImageRefs(formula)
-  const images = imageRefs
-    .map((image) => image.publicUrl ?? image.objectKey ?? '')
-    .filter(Boolean)
+  const images = imageRefs.map(getRenderableImageUri).filter(Boolean)
   const serviceRows = [...(formula.services ?? [])].sort((a, b) => a.position - b.position)
   const serviceLabels = serviceRows
     .map((item) => normalizeServiceName(item.name || item.label_snapshot || ''))

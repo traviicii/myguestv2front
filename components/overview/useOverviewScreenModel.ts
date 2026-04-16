@@ -162,7 +162,16 @@ export function useOverviewScreenModel() {
 
   const lineColor = toNativeColor(theme.borderColor?.val, FALLBACK_COLORS.borderSubtle)
 
-  const { handleRefresh, isRefreshing } = useOverviewRefresh({
+  const {
+    feedbackMessage: refreshFeedbackMessage,
+    handleRefresh,
+    handleScroll: handleRefreshScroll,
+    handleScrollRelease: handleRefreshScrollRelease,
+    isPullActive: isRefreshPullActive,
+    isRefreshing,
+    isThresholdReached: isRefreshThresholdReached,
+    pullProgress: refreshPullProgress,
+  } = useOverviewRefresh({
     refetchAppointments,
     refetchClients,
     refetchOverviewMetrics,
@@ -183,6 +192,8 @@ export function useOverviewScreenModel() {
     handleCancelLayout,
     handleQuickActionReorder,
     handleRefresh,
+    handleRefreshScroll,
+    handleRefreshScrollRelease,
     handleSaveLayout,
     iconBadgeRadius,
     iconOpacity,
@@ -193,7 +204,9 @@ export function useOverviewScreenModel() {
     isGlass,
     isFocused,
     isQuickActionDragging,
+    isRefreshPullActive,
     isRefreshing,
+    isRefreshThresholdReached,
     layoutAnim,
     layoutDraft,
     leftTranslate,
@@ -208,6 +221,8 @@ export function useOverviewScreenModel() {
     quickActionItemSize,
     recentClients,
     recentHistory,
+    refreshFeedbackMessage,
+    refreshPullProgress,
     resolveLastVisit,
     rightTranslate,
     sectionCardRadius,

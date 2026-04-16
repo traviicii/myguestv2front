@@ -7,11 +7,13 @@ import { PreviewCard, ThemedHeadingText } from 'components/ui/controls'
 import type { OverviewSectionProps } from './sectionTypes'
 
 export function OverviewPinnedClientsSection({ model }: OverviewSectionProps) {
+  const sectionGap = model.isCyberpunk ? '$2' : '$3'
+
   return (
-    <YStack gap="$3">
+    <YStack gap={sectionGap}>
       <XStack items="center" justify="space-between">
         <ThemedHeadingText fontWeight="700" fontSize={16}>
-          Pinned Clients
+          Pinned
         </ThemedHeadingText>
       </XStack>
       {model.pinnedClients.length ? (
