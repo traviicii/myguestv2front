@@ -1,11 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import {
-  getThemeName,
-  type ThemeMode,
-  useThemePrefs,
-} from 'components/ThemePrefs'
+import { getThemeName, type ThemeMode, useThemePrefs } from 'components/ThemePrefs'
 
 import {
   buildThemePickerLabel,
@@ -17,57 +13,17 @@ import {
 export function useThemePickerScreenModel() {
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
-  const bottomInset = Math.max(insets.bottom + 20, 24)
-  const {
-    aesthetic,
-    mode,
-    modePreference,
-    palette,
-  } = useThemePrefs()
-  const [draftTheme, setDraftTheme] = useState<Omit<ThemeDraft, 'modePreference'> & {
-    mode: ThemeMode
-  }>({
-    aesthetic,
-    mode,
-    palette,
-  })
-  const [applyState, setApplyState] = useState<'idle' | 'applied'>('idle')
-  const [modeTouched, setModeTouched] = useState(false)
+  const bottomInset = Math.max(insets.bottom + 24, 28)
   const [customizeOpen, setCustomizeOpen] = useState(false)
-  const applyStateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (applyStateTimer.current) {
-        clearTimeout(applyStateTimer.current)
-      }
-    }
-  }, [])
+  const aesthetic = useThemePrefs((state) => state.aesthetic)
+  const mode = useThemePrefs((state) => state.mode)
+  const modePreference = useThemePrefs((state) => state.modePreference)
+  const palette = useThemePrefs((state) => state.palette)
+  const systemMode = useThemePrefs((state) => state.systemMode)
 
-  useEffect(() => {
-    setDraftTheme({
-      aesthetic,
-      mode,
-      palette,
-    })
-    setModeTouched(false)
-    setCustomizeOpen(false)
-  }, [aesthetic, mode, palette])
-
-  const previewThemeSelection = useMemo(
-    () => ({
-      aesthetic: draftTheme.aesthetic,
-      mode: draftTheme.mode,
-      palette: draftTheme.palette,
-    }),
-    [draftTheme.aesthetic, draftTheme.mode, draftTheme.palette]
-  )
-  const previewThemeName = getThemeName(
-    draftTheme.palette,
-    draftTheme.aesthetic,
-    draftTheme.mode
-  )
-  const controlsThemeSelection = useMemo(
+  const currentThemeName = getThemeName(palette, aesthetic, mode)
+  const currentThemeSelection = useMemo(
     () => ({
       aesthetic,
       mode,
@@ -75,104 +31,78 @@ export function useThemePickerScreenModel() {
     }),
     [aesthetic, mode, palette]
   )
-  const controlsThemeName = getThemeName(palette, aesthetic, mode)
-  const hasPendingThemeChanges =
-    draftTheme.aesthetic !== aesthetic ||
-    draftTheme.palette !== palette ||
-    (modeTouched && (modePreference === 'system' || draftTheme.mode !== mode))
-
-  useEffect(() => {
-    if (hasPendingThemeChanges) {
-      setApplyState('idle')
-    }
-  }, [hasPendingThemeChanges])
-  const savedThemeLabel = buildThemePickerLabel(
+  const currentThemeLabel = buildThemePickerLabel(
     {
       aesthetic,
       palette,
     },
     mode
   )
-  const draftThemeLabel = buildThemePickerLabel(
-    {
-      aesthetic: draftTheme.aesthetic,
-      palette: draftTheme.palette,
-    },
-    draftTheme.mode
-  )
+
   const presetOptions = useMemo(() => buildThemePresetOptions(), [])
-  const selectedPresetId =
-    findThemePreset(draftTheme.aesthetic, draftTheme.palette, draftTheme.mode)?.id ?? null
-  const savedPresetId = findThemePreset(aesthetic, palette, mode)?.id ?? null
-  const isCustomDraft = selectedPresetId === null
+  const currentPresetId = findThemePreset(aesthetic, palette, mode)?.id ?? null
 
-  const handleApplyTheme = () => {
-    if (!hasPendingThemeChanges) return
-
-    const nextModePreference = modeTouched ? draftTheme.mode : modePreference
+  const setLiveTheme = ({
+    nextAesthetic,
+    nextMode,
+    nextModePreference,
+    nextPalette,
+  }: {
+    nextAesthetic?: ThemeDraft['aesthetic']
+    nextMode?: ThemeMode
+    nextModePreference?: 'system' | ThemeMode
+    nextPalette?: ThemeDraft['palette']
+  }) => {
     useThemePrefs.setState((state) => {
-      const nextMode = nextModePreference === 'system' ? state.systemMode : nextModePreference
+      const resolvedModePreference = nextModePreference ?? state.modePreference
+      const resolvedMode =
+        nextMode ?? (resolvedModePreference === 'system' ? state.systemMode : resolvedModePreference)
+      const resolvedPalette = nextPalette ?? state.palette
+      const resolvedAesthetic = nextAesthetic ?? state.aesthetic
+
       return {
-        aesthetic: draftTheme.aesthetic,
-        palette: draftTheme.palette,
-        modePreference: nextModePreference,
-        mode: nextMode,
-        themeName: getThemeName(draftTheme.palette, draftTheme.aesthetic, nextMode),
+        aesthetic: resolvedAesthetic,
+        mode: resolvedMode,
+        modePreference: resolvedModePreference,
+        palette: resolvedPalette,
+        themeName: getThemeName(resolvedPalette, resolvedAesthetic, resolvedMode),
       }
     })
-    setApplyState('applied')
-    if (applyStateTimer.current) {
-      clearTimeout(applyStateTimer.current)
-    }
-    applyStateTimer.current = setTimeout(() => {
-      setApplyState('idle')
-      applyStateTimer.current = null
-    }, 2200)
-    setCustomizeOpen(false)
-  }
-
-  const handleResetThemeDraft = () => {
-    setDraftTheme({
-      aesthetic,
-      mode,
-      palette,
-    })
-    setModeTouched(false)
-    setCustomizeOpen(false)
-  }
-
-  const handleSelectAesthetic = (nextAesthetic: ThemeDraft['aesthetic']) => {
-    setDraftTheme((prev) => ({
-      ...prev,
-      aesthetic: nextAesthetic,
-    }))
-  }
-
-  const handleSelectPalette = (nextPalette: ThemeDraft['palette']) => {
-    setDraftTheme((prev) => ({
-      ...prev,
-      palette: nextPalette,
-    }))
   }
 
   const handleSelectPreset = (presetId: string) => {
     const preset = presetOptions.find((option) => option.id === presetId)
     if (!preset) return
 
-    setDraftTheme({
-      aesthetic: preset.aesthetic,
-      mode: preset.mode,
-      palette: preset.palette,
+    setLiveTheme({
+      nextAesthetic: preset.aesthetic,
+      nextMode: preset.mode,
+      nextModePreference: preset.mode,
+      nextPalette: preset.palette,
     })
-    setModeTouched(modePreference === 'system' ? true : preset.mode !== mode)
   }
 
   const handleToggleMode = (nextMode: ThemeMode) => {
-    setDraftTheme((prev) => ({
-      ...prev,
-      mode: nextMode,
-    }))
-    setModeTouched(modePreference === 'system' ? true : nextMode !== mode)
+    setLiveTheme({
+      nextMode,
+      nextModePreference: nextMode,
+    })
+  }
+
+  const handleSelectAesthetic = (nextAesthetic: ThemeDraft['aesthetic']) => {
+    setLiveTheme({
+      nextAesthetic,
+      nextModePreference: modePreference,
+      nextMode: modePreference === 'system' ? systemMode : undefined,
+    })
+  }
+
+  const handleSelectPalette = (nextPalette: ThemeDraft['palette']) => {
+    setLiveTheme({
+      nextPalette,
+      nextModePreference: modePreference,
+      nextMode: modePreference === 'system' ? systemMode : undefined,
+    })
   }
 
   const handleOpenCustomize = () => {
@@ -184,29 +114,22 @@ export function useThemePickerScreenModel() {
   }
 
   return {
+    aesthetic,
     bottomInset,
-    applyState,
-    controlsThemeName,
-    controlsThemeSelection,
+    currentPresetId,
+    currentThemeLabel,
+    currentThemeName,
+    currentThemeSelection,
     customizeOpen,
-    draftTheme,
-    draftThemeLabel,
-    handleApplyTheme,
     handleCloseCustomize,
     handleOpenCustomize,
-    handleResetThemeDraft,
     handleSelectAesthetic,
     handleSelectPalette,
     handleSelectPreset,
     handleToggleMode,
-    hasPendingThemeChanges,
-    isCustomDraft,
+    mode,
+    palette,
     presetOptions,
-    previewThemeName,
-    previewThemeSelection,
-    savedThemeLabel,
-    savedPresetId,
-    selectedPresetId,
     topInset,
   }
 }

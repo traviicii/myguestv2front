@@ -177,14 +177,6 @@ export function useEditAppointmentScreenModel() {
 
   const clearSelectedServices = () => setSelectedServiceIds([])
 
-  const applySuggestedPrice = () => {
-    if (suggestedPriceCents === null) return
-    setForm((prev) => ({
-      ...prev,
-      price: formatPriceFromCents(suggestedPriceCents),
-    }))
-  }
-
   const handleSave = async () => {
     setAttemptedSave(true)
     if (!hasRequired || !isDirty) {
@@ -267,7 +259,6 @@ export function useEditAppointmentScreenModel() {
 
   return {
     appointment,
-    applySuggestedPrice,
     canSave,
     cardMode,
     cardTone,

@@ -1,3 +1,4 @@
+import { Check } from '@tamagui/lucide-icons'
 import { Text, Theme, XStack, YStack } from 'tamagui'
 
 import {
@@ -6,176 +7,103 @@ import {
   type ThemeMode,
   type ThemePalette,
 } from 'components/ThemePrefs'
-import { SurfaceCard, ThemedEyebrowText, ThemedHeadingText } from 'components/ui/controls'
+import {
+  PrimaryButton,
+  SecondaryButton,
+  SurfaceCard,
+  ThemedEyebrowText,
+  ThemedHeadingText,
+} from 'components/ui/controls'
 import { useAestheticProfile } from 'components/ui/controlShared'
 
-const AESTHETIC_LABELS: Record<ThemeAesthetic, string> = {
-  modern: 'Modern',
-  cyberpunk: 'Cyberpunk',
-  glass: 'Glass',
-}
-
-function ThemePresetMiniAction() {
+function ThemePresetSelectedMarker({ testID }: { testID: string }) {
   const profile = useAestheticProfile()
 
   return (
     <YStack
+      testID={testID}
+      width={22}
+      height={22}
+      rounded={profile.chipRadius}
       items="center"
       justify="center"
-      height={30}
-      px="$2"
-      rounded={profile.controlRadius}
-      bg="$buttonPrimaryBg"
+      bg="$accent"
       borderWidth={1}
-      borderColor="$buttonPrimaryBorder"
+      borderColor="$accent"
+      accessibilityLabel="Selected preset"
     >
-      <Text fontSize={11} fontWeight="700" color="$buttonPrimaryFg">
-        New client
-      </Text>
+      <Check size={12} color="$accentContrast" />
     </YStack>
   )
 }
 
-function ThemePresetMiniMetric() {
+function ThemePresetClientRow() {
   const profile = useAestheticProfile()
 
   return (
     <YStack
-      rounded={Math.max(profile.panelRadius - 4, profile.controlRadius)}
-      bg="$surfacePanel"
-      borderWidth={1}
-      borderColor="$surfacePanelBorder"
-      p="$2"
-      gap="$1"
-    >
-      <Text fontSize={10} color="$textSecondary">
-        Overview
-      </Text>
-      <XStack items="flex-end" justify="space-between" gap="$2">
-        <YStack gap="$0.5">
-          <Text fontSize={10} color="$textMuted">
-            Active clients
-          </Text>
-          <Text fontSize={18} fontWeight="700" color="$textPrimary">
-            24
-          </Text>
-        </YStack>
-        <YStack
-          px="$1.5"
-          py={4}
-          rounded={profile.chipRadius}
-          bg="$surfaceChipActive"
-          borderWidth={1}
-          borderColor="$borderAccent"
-        >
-          <Text fontSize={10} fontWeight="700" color="$accent">
-            +3
-          </Text>
-        </YStack>
-      </XStack>
-    </YStack>
-  )
-}
-
-function ThemePresetMiniClientRow() {
-  const profile = useAestheticProfile()
-
-  return (
-    <YStack
-      rounded={Math.max(profile.cardRadius - 6, profile.controlRadius)}
+      rounded={Math.max(profile.cardRadius - 8, profile.controlRadius)}
       bg="$surfaceCardRaised"
       borderWidth={1}
       borderColor="$surfaceCardBorder"
-      p="$2"
-      gap="$0.75"
+      p="$2.5"
+      gap="$1"
     >
-      <XStack items="center" justify="space-between" gap="$2">
-        <YStack flex={1} minW={0} gap="$0.5">
-          <Text numberOfLines={1} fontSize={11} fontWeight="600" color="$textPrimary">
-            Avery Stone
-          </Text>
-          <Text numberOfLines={1} fontSize={10} color="$textSecondary">
-            Balayage • Mar 21
-          </Text>
-        </YStack>
-        <YStack
-          width={8}
-          height={8}
-          rounded={profile.controlRadius === 0 ? 0 : 999}
-          bg="$accent"
-        />
-      </XStack>
+      <Text numberOfLines={1} fontSize={11} fontWeight="700" color="$textPrimary">
+        Alexis Asoshnick
+      </Text>
+      <Text numberOfLines={1} fontSize={10} color="$textSecondary">
+        Cut • Last visit Mar 24
+      </Text>
     </YStack>
   )
 }
 
-function ThemePresetTileContent({
-  active,
-  aesthetic,
-  isLive,
-  label,
-  mode,
+function ThemePresetSelectionButton({
+  current,
+  testID,
 }: {
-  active: boolean
-  aesthetic: ThemeAesthetic
-  isLive: boolean
-  label: string
-  mode: ThemeMode
+  current: boolean
+  testID: string
 }) {
-  const profile = useAestheticProfile()
-  const statusLabel = active && !isLive ? 'Preview' : isLive ? 'Live' : null
+  const ButtonComponent = current ? PrimaryButton : SecondaryButton
 
   return (
-    <YStack gap="$2">
-      <YStack gap="$0.75">
-        <ThemedEyebrowText>{AESTHETIC_LABELS[aesthetic]}</ThemedEyebrowText>
-        <YStack minW={0} gap="$0.5">
-          <ThemedHeadingText fontSize={15} fontWeight="700" numberOfLines={2}>
-            {label}
-          </ThemedHeadingText>
-        </YStack>
-      </YStack>
-
-      <XStack items="center" justify="space-between" gap="$2">
-        <Text fontSize={10} color="$textMuted" letterSpacing={0.3}>
-          {mode === 'dark' ? 'Dark mode' : 'Light mode'}
-        </Text>
-        {statusLabel ? (
-          <YStack
-            px="$1.5"
-            py={4}
-            rounded={profile.chipRadius}
-            bg="$surfaceChipActive"
-            borderWidth={1}
-            borderColor="$borderAccent"
-          >
-            <Text fontSize={10} fontWeight="700" color="$accent">
-              {statusLabel}
-            </Text>
-          </YStack>
-        ) : null}
-      </XStack>
-
-      <YStack
-        rounded={profile.previewRadius}
-        bg="$surfacePage"
-        borderWidth={1}
-        borderColor="$surfacePanelBorder"
-        p="$2"
-        gap="$1.5"
+    <XStack>
+      <ButtonComponent
+        testID={testID}
+        minW={112}
+        height={32}
+        px="$3"
+        icon={current ? <Check size={14} /> : undefined}
+        onPress={() => {}}
+        pointerEvents="none"
       >
-        <ThemePresetMiniMetric />
-        <ThemePresetMiniClientRow />
-        <ThemePresetMiniAction />
-      </YStack>
+        {current ? 'Selected' : 'Select'}
+      </ButtonComponent>
+    </XStack>
+  )
+}
+
+function ThemePresetFragment({
+  current,
+  testID,
+}: {
+  current: boolean
+  testID: string
+}) {
+  return (
+    <YStack width={156} maxW="100%" gap="$1.5">
+      <ThemedEyebrowText>Pinned</ThemedEyebrowText>
+      <ThemePresetClientRow />
+      <ThemePresetSelectionButton current={current} testID={testID} />
     </YStack>
   )
 }
 
 export function ThemePresetTile({
-  active,
+  current,
   aesthetic,
-  isLive,
   label,
   mode,
   onPress,
@@ -183,9 +111,8 @@ export function ThemePresetTile({
   testID,
   themeName,
 }: {
-  active: boolean
+  current: boolean
   aesthetic: ThemeAesthetic
-  isLive: boolean
   label: string
   mode: ThemeMode
   onPress: () => void
@@ -204,30 +131,48 @@ export function ThemePresetTile({
       <Theme name={themeName as never}>
         <SurfaceCard
           testID={testID}
-          width={158}
-          minW={158}
-          maxW={158}
-          flex={0}
+          width="100%"
           mode="panel"
           tone="default"
           p="$2.5"
           gap="$2"
-          borderColor={active ? '$borderAccent' : '$surfacePanelBorder'}
-          borderWidth={active ? 2 : 1}
+          borderColor={current ? '$borderAccent' : '$surfacePanelBorder'}
+          borderWidth={current ? 2 : 1}
           cursor="pointer"
           accessibilityRole="button"
-          accessibilityState={{ selected: active }}
-          accessibilityLabel={`${label} ${mode} theme preset`}
+          accessibilityState={{ selected: current }}
+          accessibilityLabel={`${label} preset`}
           onPress={onPress}
-          pressStyle={{ opacity: 0.94 }}
+          pressStyle={{ opacity: 0.96, scale: 0.995 }}
         >
-          <ThemePresetTileContent
-            active={active}
-            aesthetic={aesthetic}
-            isLive={isLive}
-            label={label}
-            mode={mode}
-          />
+          <XStack items="center" gap="$2.5">
+            <YStack flex={1} minW={0} justify="center" py="$1">
+              <XStack items="flex-start" justify="space-between" gap="$2">
+                <ThemedHeadingText
+                  flex={1}
+                  minW={0}
+                  fontSize={16}
+                  fontWeight="700"
+                  numberOfLines={2}
+                >
+                  {label}
+                </ThemedHeadingText>
+                {current ? (
+                  <ThemePresetSelectedMarker testID={`${testID}-selected-marker`} />
+                ) : null}
+              </XStack>
+            </YStack>
+
+            <YStack
+              shrink={0}
+              pl="$2.5"
+              py="$0.5"
+              borderLeftWidth={1}
+              borderLeftColor={current ? '$borderAccent' : '$surfacePanelBorder'}
+            >
+              <ThemePresetFragment current={current} testID={`${testID}-cta`} />
+            </YStack>
+          </XStack>
         </SurfaceCard>
       </Theme>
     </ThemeSelectionOverrideProvider>

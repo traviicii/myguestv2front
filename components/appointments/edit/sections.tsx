@@ -93,17 +93,11 @@ export function AppointmentDetailsSection({ model }: EditAppointmentSectionProps
           onChangeText={(text) => model.setForm((prev) => ({ ...prev, price: text }))}
         />
         {model.suggestedPriceCents !== null ? (
-          <XStack items="center" justify="space-between" gap="$2">
+          <XStack items="center" gap="$2">
             <Text fontSize={11} color="$textSecondary">
               Suggested from services: $
               {model.formatPriceFromCents(model.suggestedPriceCents)}
             </Text>
-            {model.form.price.trim() !==
-            model.formatPriceFromCents(model.suggestedPriceCents) ? (
-              <SecondaryButton size="$2" px="$2" onPress={model.applySuggestedPrice}>
-                Apply Suggested
-              </SecondaryButton>
-            ) : null}
           </XStack>
         ) : null}
       </YStack>

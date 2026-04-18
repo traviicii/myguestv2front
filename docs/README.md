@@ -29,6 +29,9 @@ Keep these files aligned with the current codebase, scripts, and release lanes.
 - `apple-auth-checkpoint.md`
   Current checkpoint for the working iPhone Apple sign-in path, known auth
   risks, and the next account-linking test matrix.
+- `account-linking-test-matrix.md`
+  Manual Apple/Google identity QA matrix, including current expected behavior
+  and the MVP exit criteria for provider-linking safety.
 - `ios-release-qa-checklist.md`
   Manual iPhone release-candidate QA pass.
 - `app-store-privacy-matrix.md`

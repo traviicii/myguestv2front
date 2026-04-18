@@ -17,10 +17,11 @@ as the operating guide.
 - [Quality Gate](#quality-gate)
 - [Local Toolchain](#local-toolchain)
 - [iOS Development Paths](#ios-development-paths)
-- [Simulator Development On Mac](#simulator-development-on-mac)
-- [iPhone Development](#iphone-development)
-- [iPhone Development Over Tunnel](#iphone-development-over-tunnel)
-- [Away From Your Mac](#away-from-your-mac)
+- [Two-Terminal Rule](#two-terminal-rule)
+- [Simulator Dev Loop](#simulator-dev-loop)
+- [Local iPhone Dev Loop](#local-iphone-dev-loop)
+- [Tunnel iPhone Dev Loop](#tunnel-iphone-dev-loop)
+- [Standalone Preview Builds](#standalone-preview-builds)
 - [iOS Release Prep](#ios-release-prep)
 - [Troubleshooting iOS Dev Builds](#troubleshooting-ios-dev-builds)
 - [Other Commands](#other-commands)
@@ -142,91 +143,167 @@ npm run ios:device
 
 This repo supports four main iOS paths:
 
-- **Simulator on Mac**: fastest day-to-day loop for UI and navigation work.
-- **Physical iPhone on same Wi-Fi**: best path for camera, gestures, auth, and real-device checks while your Mac is nearby.
-- **Physical iPhone over tunnel**: fallback when LAN discovery is flaky or you are off the local network.
-- **Away from your Mac**: installable preview/TestFlight path that does not need Metro or your laptop running.
+- **Simulator Dev Loop**: fastest day-to-day path for UI, navigation, and state
+  work on this Mac.
+- **Local iPhone Dev Loop**: best path for same-Wi-Fi device testing,
+  gestures, camera/photo flows, and real-device feel while your Mac is nearby.
+- **Tunnel iPhone Dev Loop**: fallback when LAN discovery is flaky or you are
+  temporarily off the local network.
+- **Standalone Preview Builds**: installable preview/TestFlight-style builds
+  that do not require Metro or your Mac to stay running.
 
-## Simulator Development On Mac
+## Two-Terminal Rule
+
+For the first three paths, use two terminals:
+
+- **Terminal 1** runs Metro with `npm run dev:sim`, `npm run dev`, or
+  `npm run dev:tunnel`.
+- **Terminal 2** installs or refreshes the native app with `npm run ios:sim`,
+  `npm run ios:device`, or the corresponding `:clean` variant.
+
+That tandem setup matters because the native iOS scripts build with
+`--no-bundler`. They expect a Metro server to already be available by the time
+the dev client opens.
+
+If you already have MyGuest Metro running on `8081`, reuse it instead of
+starting a second server. Starting another `dev:*` command while the same
+project is already bound to `8081` can cause Expo to prompt for another port,
+and our wrapper intentionally exits instead of guessing.
+
+## Simulator Dev Loop
+
+Best fit:
+
+- fastest UI iteration
+- navigation and state changes
+- styling and layout work
+- mock-mode product shaping
+
+Commands:
 
 ```bash
-npm run ios
+# Terminal 1
 npm run dev:sim
+
+# Terminal 2
+npm run ios:sim
 ```
 
-Use the simulator loop for most day-to-day UI, navigation, and state work.
+What each command does:
 
-What to expect:
+- `npm run dev:sim` starts Metro on `localhost`, which is the cleanest path for
+  the iOS Simulator on the same Mac.
+- `npm run ios:sim` builds, installs, and opens `MyGuest Dev` in the simulator
+  without starting Metro itself.
 
-- `npm run ios` installs or refreshes the local development build in the iOS Simulator.
-- `npm run dev:sim` keeps Metro on `localhost`, which avoids Wi-Fi and QR-code issues entirely.
-- Open `MyGuest Dev` in the simulator after Metro starts.
-- Re-run `npm run ios:sim:clean` only after native dependency changes or app config changes.
+Notes:
 
-## iPhone Development
+- This is the default day-to-day development loop for frontend work.
+- If `MyGuest Dev` is already installed and Metro is already running, you may
+  only need to reopen the app instead of reinstalling it.
+- Use `npm run ios` as a short alias for `npm run ios:sim`.
+- Use `npm run ios:sim:clean` only after native dependency or app-config
+  changes.
+
+## Local iPhone Dev Loop
+
+Best fit:
+
+- same-Wi-Fi iPhone testing
+- camera and photo-library validation
+- gesture and animation feel
+- auth and permission checks on a real device
+
+Commands:
+
+```bash
+# Terminal 1
+npm run dev
+
+# Terminal 2
+npm run ios:device
+```
+
+First install or native refresh:
 
 ```bash
 npm run ios:device:clean
-npm run dev
 ```
 
-Use `npm run ios:device:clean` the first time you install the local phone build,
-after native dependency changes, after app config changes, or when the dev build
-expires. It regenerates the native iPhone project as `MyGuest Dev` and removes
-the local Sign in with Apple entitlement so the standard local dev lane stays
-simple to sign and reinstall.
+Release-like variant:
 
-After the app is installed, `npm run dev` is the main day-to-day command.
+```bash
+npm run ios:device:release-like
+npm run ios:device:release-like:clean
+```
 
-What to expect:
+What each command does:
 
-- Keep the `npm run dev` terminal open while you work.
+- `npm run dev` starts Metro over LAN for a same-Wi-Fi iPhone.
+- `npm run ios:device` installs or refreshes `MyGuest Dev` on the connected
+  iPhone without starting Metro.
+- `npm run ios:device:clean` regenerates the native project and is the safest
+  first-install or post-native-change path.
+- `npm run ios:device:release-like` keeps Sign in with Apple enabled so the
+  local build behaves closer to preview/TestFlight auth posture.
+
+Notes:
+
+- Keep the `npm run dev` terminal open while the app is in use.
 - Make sure your Mac and iPhone are on the same Wi-Fi.
-- Open `MyGuest Dev` on your iPhone.
+- Open `MyGuest Dev` directly on the phone after install. Do not rely on the QR
+  code as the main workflow.
+- If the app does not auto-detect Metro, tap `Enter URL manually` and paste the
+  exact `Metro waiting on ...` URL from the terminal.
 - If this is the first local install, trust your Apple ID profile on the phone:
   `Settings > Privacy & Security > Developer Mode`, then
   `Settings > General > VPN & Device Management`.
-- If the dev server does not auto-appear in the app, tap `Enter URL manually` and paste the exact `Metro waiting on ...` URL from the terminal.
-- Do not rely on the QR code as the main local-iPhone workflow. Opening `MyGuest Dev` directly is more reliable once the dev build is installed.
-- If LAN is flaky, switch to `npm run dev:tunnel`.
-- After the first successful install, `npm run ios:device` is usually enough for refreshes or re-installs.
-- `npm run ios:rebuild` still works as a legacy alias for `npm run ios:device`.
+- `npm run ios:rebuild` remains a legacy alias for `npm run ios:device`.
 
-If you want the closest local path to a shipping-capabilities build now that the
-paid Apple Developer account is active, use:
+## Tunnel iPhone Dev Loop
 
-```bash
-npm run ios:device:release-like:clean
-npm run dev
-```
+Best fit:
 
-That keeps Sign in with Apple enabled in the local device build so auth and
-capabilities are closer to what preview/TestFlight will use.
+- off-network device testing while your Mac stays on
+- flaky or blocked LAN discovery
+- quick remote-ish dev-client sessions without making a standalone build
 
-## iPhone Development Over Tunnel
+Commands:
 
 ```bash
+# Terminal 1
 npm run dev:tunnel
+
+# Terminal 2
+npm run ios:device
 ```
 
-Use this when:
+What each command does:
 
-- your Mac and iPhone are not on the same Wi-Fi
-- LAN discovery is unreliable
-- you need a quick off-network dev-client session while your Mac stays running
+- `npm run dev:tunnel` starts Metro using Expo's tunnel host instead of LAN.
+- `npm run ios:device` installs or refreshes the same `MyGuest Dev` app on the
+  phone when needed.
 
-What to expect:
+Notes:
 
+- You still need the local dev build installed on the phone. Tunnel mode changes
+  how Metro is reached; it does not replace the dev client.
 - Keep the `npm run dev:tunnel` terminal open.
-- Open `MyGuest Dev` on the phone directly.
-- If the app does not auto-detect the server, use `Enter URL manually` with the Expo URL shown in the terminal.
-- The QR code is optional here too; it only helps after the dev build is already installed.
+- If the app does not auto-detect the server, use `Enter URL manually` with the
+  Expo URL shown in the terminal.
+- The QR code is optional here too; it only helps after the dev build is
+  already installed.
 - Tunnel mode still depends on your Mac staying awake with Metro running.
 
-## Away From Your Mac
+## Standalone Preview Builds
 
-For dogfooding or showing the app when your computer is off or nowhere nearby,
-use an EAS preview build instead of a dev server.
+Best fit:
+
+- dogfooding away from your laptop
+- sharing builds with a small tester group
+- validating a standalone binary instead of a live Metro session
+
+Commands:
 
 ```bash
 npm run eas:login
@@ -234,30 +311,34 @@ npm run eas:device:create
 npm run eas:build:ios:preview
 ```
 
-What this gives you:
-
-- An installable iPhone build that launches without Metro or your Mac running.
-- A shareable build link for your phone or other registered test devices.
-- A cleaner path for real-world testing on cellular, travel Wi-Fi, or away from your desk.
-- The right path once your paid Apple Developer membership is fully active and you want Apple Sign In enabled end to end.
-
-Important limits:
-
-- iOS internal distribution still needs a paid Apple Developer account and a registered device UDID.
-- Preview/TestFlight builds need a hosted backend. If `EXPO_PUBLIC_API_BASE_URL` still points at `127.0.0.1`, the app will only work in mock mode away from your Mac.
-- Preview builds in this repo currently reuse the production bundle identifier for the simplest Apple/Google auth setup, so installing one replaces any existing MyGuest install on that iPhone.
-
-Once the preview app is already installed, this is the main JS-only path for
-pushing a live preview fix without rebuilding the binary:
+Optional JS-only follow-up after the preview app is installed:
 
 ```bash
 npm run eas:update:preview:ios -- --message "Describe the JS-only preview fix"
 ```
 
-Use that script for JavaScript, styling, copy, or image changes. After
-publishing, fully quit and reopen the preview app while online so it can pull
-the update. If you changed native dependencies, entitlements, app config,
-permissions, or environment wiring, build a new preview binary instead.
+What each command does:
+
+- `npm run eas:login` signs this machine into Expo/EAS.
+- `npm run eas:device:create` registers the iPhone for ad hoc preview installs.
+- `npm run eas:build:ios:preview` creates an installable preview binary that
+  works without Metro.
+- `npm run eas:update:preview:ios` pushes a JS-only update to the installed
+  preview build without rebuilding native code.
+
+Notes:
+
+- This is the right path when you want a build that works while your Mac is off
+  or nowhere nearby.
+- Preview/TestFlight builds need a hosted backend. If
+  `EXPO_PUBLIC_API_BASE_URL` still points at `127.0.0.1`, the app will only
+  work in mock mode away from your Mac.
+- Preview builds in this repo currently reuse the production bundle identifier
+  for the simplest Apple/Google auth setup, so installing one replaces any
+  existing MyGuest install on that iPhone.
+- Use the preview OTA script only for JavaScript, styling, copy, or image
+  changes. Native dependency, entitlement, permission, app-config, or
+  environment changes still require a new preview build.
 
 The detailed setup and EAS Update workflow lives in
 `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/ios-preview-distribution.md`.

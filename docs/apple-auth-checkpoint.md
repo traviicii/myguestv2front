@@ -27,6 +27,11 @@ frontend MVP path.
   is broken if preview Apple sign-in is still working.
 - Do not churn Apple keys during active preview validation unless the live
   iPhone Apple sign-in flow actually breaks.
+- Apple account switching and `Share My Email` / `Hide My Email` re-selection
+  are controlled by Apple's device-level authorization state, not by an
+  in-app account chooser. Use the reset steps in
+  `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/account-linking-test-matrix.md`
+  when re-running first-time Apple authorization cases.
 
 ## Highest-Priority Remaining Risk
 
@@ -51,3 +56,6 @@ frontend MVP path.
    existing account.
 3. Revisit the optional Apple code-flow/key-rotation cleanup once the linking
    plan is in place and we are not destabilizing the live preview lane.
+
+The concrete manual QA pass for those identity cases now lives in
+`/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/account-linking-test-matrix.md`.

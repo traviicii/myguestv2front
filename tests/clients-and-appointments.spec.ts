@@ -79,7 +79,7 @@ test('control route renders style, summary, and account controls in mock mode', 
 
   await page.getByRole('link', { name: 'Open Theme Picker' }).click()
   await expect(page).toHaveURL(/\/theme-preferences$/)
-  await expect(page.getByText(/^live · /i)).toBeVisible()
+  await expect(page.getByText(/^current theme$/i)).toBeVisible()
   await expect(page.getByText(/^customize$/i)).toBeVisible()
   await page.goBack()
   await expect(page).toHaveURL(/\/profile$/)

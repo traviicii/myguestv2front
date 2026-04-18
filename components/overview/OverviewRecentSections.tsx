@@ -1,4 +1,3 @@
-import { Link } from 'expo-router'
 import { ArrowRight, CalendarDays } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
@@ -12,6 +11,36 @@ import { formatDateByStyle } from 'components/utils/date'
 import { getServiceLabel } from 'components/utils/services'
 
 import type { OverviewNavigableSectionProps } from './sectionTypes'
+
+function OverviewSectionAction({
+  label,
+  onPress,
+  controlRadius,
+}: {
+  label: string
+  onPress: () => void
+  controlRadius: number
+}) {
+  return (
+    <XStack
+      items="center"
+      gap="$1"
+      px="$2"
+      py="$1"
+      mx="$-2"
+      rounded={controlRadius}
+      cursor="pointer"
+      onPress={onPress}
+      pressStyle={{ opacity: 0.78, bg: '$surfaceChipActive' }}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Text fontSize={12} color="$accent">
+        {label}
+      </Text>
+      <ArrowRight size={14} color="$accent" />
+    </XStack>
+  )
+}
 
 export function OverviewRecentAppointmentsSection({
   model,
@@ -27,14 +56,11 @@ export function OverviewRecentAppointmentsSection({
         <ThemedHeadingText fontWeight="700" fontSize={16}>
           Recent Appointments
         </ThemedHeadingText>
-        <Link href="/appointments" asChild>
-          <XStack items="center" gap="$1">
-            <Text fontSize={12} color="$accent">
-              Full history
-            </Text>
-            <ArrowRight size={14} color="$accent" />
-          </XStack>
-        </Link>
+        <OverviewSectionAction
+          label="Full history"
+          controlRadius={model.controlRadius}
+          onPress={() => onNavigate('/appointments')}
+        />
       </XStack>
       {hasAppointments ? (
         <YStack gap="$3">
@@ -42,47 +68,45 @@ export function OverviewRecentAppointmentsSection({
             const clientName = model.clientMap.get(entry.clientId)?.name ?? 'Client'
             return (
               <YStack key={entry.id}>
-                <Link href={`/appointment/${entry.id}`} asChild>
-                  <PreviewCard p="$4">
-                    <XStack items="center" justify="space-between" gap="$3">
-                      <XStack items="center" gap="$3">
-                        <XStack
-                          bg="$accentSoft"
-                          rounded={model.iconBadgeRadius}
-                          p="$2.5"
-                          items="center"
-                          justify="center"
-                        >
-                          <CalendarDays size={18} color="$accent" />
-                        </XStack>
-                        <YStack gap="$1">
-                          <Text fontSize={14} fontWeight="600">
+                <PreviewCard p="$4" onPress={() => onNavigate(`/appointment/${entry.id}`)}>
+                  <XStack items="center" justify="space-between" gap="$3">
+                    <XStack items="center" gap="$3">
+                      <XStack
+                        bg="$accentSoft"
+                        rounded={model.iconBadgeRadius}
+                        p="$2.5"
+                        items="center"
+                        justify="center"
+                      >
+                        <CalendarDays size={18} color="$accent" />
+                      </XStack>
+                      <YStack gap="$1">
+                        <Text fontSize={14} fontWeight="600">
+                          {clientName}
+                        </Text>
+                        <XStack items="center" gap="$2">
+                          <Text fontSize={12} color="$textSecondary">
                             {getServiceLabel(entry.services, entry.notes)}
                           </Text>
-                          <XStack items="center" gap="$2">
-                            <Text fontSize={12} color="$textSecondary">
-                              {clientName}
-                            </Text>
-                            <Text fontSize={11} color="$textSecondary">
-                              {formatDateByStyle(
-                                entry.date,
-                                model.appSettings.dateDisplayFormat,
-                                {
-                                  todayLabel: true,
-                                  includeWeekday:
-                                    model.appSettings.dateLongIncludeWeekday,
-                                }
-                              )}
-                            </Text>
-                          </XStack>
-                        </YStack>
-                      </XStack>
-                      <Text fontSize={12} color="$textMuted">
-                        ${entry.price}
-                      </Text>
+                          <Text fontSize={11} color="$textSecondary">
+                            {formatDateByStyle(
+                              entry.date,
+                              model.appSettings.dateDisplayFormat,
+                              {
+                                todayLabel: true,
+                                includeWeekday:
+                                  model.appSettings.dateLongIncludeWeekday,
+                              }
+                            )}
+                          </Text>
+                        </XStack>
+                      </YStack>
                     </XStack>
-                  </PreviewCard>
-                </Link>
+                    <Text fontSize={12} color="$textMuted">
+                      ${entry.price}
+                    </Text>
+                  </XStack>
+                </PreviewCard>
               </YStack>
             )
           })}
@@ -117,36 +141,31 @@ export function OverviewRecentClientsSection({
         <ThemedHeadingText fontWeight="700" fontSize={16}>
           Recently Added
         </ThemedHeadingText>
-        <Link href="/recent-clients" asChild>
-          <XStack items="center" gap="$1">
-            <Text fontSize={12} color="$accent">
-              View all
-            </Text>
-            <ArrowRight size={14} color="$accent" />
-          </XStack>
-        </Link>
+        <OverviewSectionAction
+          label="View all"
+          controlRadius={model.controlRadius}
+          onPress={() => onNavigate('/recent-clients')}
+        />
       </XStack>
       {model.recentClients.length ? (
         <YStack gap="$3">
           {model.recentClients.map((client) => (
             <YStack key={client.id}>
-              <Link href={`/client/${client.id}`} asChild>
-                <PreviewCard p="$4">
-                  <XStack items="center" justify="space-between" gap="$3">
-                    <YStack>
-                      <Text fontSize={14} fontWeight="600">
-                        {client.name}
-                      </Text>
-                      <Text fontSize={12} color="$textSecondary">
-                        {client.type} • Last visit{' '}
-                        {model.formatLastVisitLabel(
-                          model.resolveLastVisit(client.id, client.lastVisit)
-                        )}
-                      </Text>
-                    </YStack>
-                  </XStack>
-                </PreviewCard>
-              </Link>
+              <PreviewCard p="$4" onPress={() => onNavigate(`/client/${client.id}`)}>
+                <XStack items="center" justify="space-between" gap="$3">
+                  <YStack>
+                    <Text fontSize={14} fontWeight="600">
+                      {client.name}
+                    </Text>
+                    <Text fontSize={12} color="$textSecondary">
+                      {client.type} • Last visit{' '}
+                      {model.formatLastVisitLabel(
+                        model.resolveLastVisit(client.id, client.lastVisit)
+                      )}
+                    </Text>
+                  </YStack>
+                </XStack>
+              </PreviewCard>
             </YStack>
           ))}
         </YStack>
