@@ -56,7 +56,12 @@ export function getRootStackScreens({ pageBackground }: { pageBackground: string
       name="theme-preferences"
       options={{ title: 'Theme Preferences', headerShown: false }}
     />,
-    <Stack.Screen key="settings" name="settings" options={{ title: 'All Controls', headerShown: false }} />,
+    <Stack.Screen key="settings" name="settings/index" options={{ title: 'Settings', headerShown: false }} />,
+    <Stack.Screen
+      key="settings-section"
+      name="settings/[section]"
+      options={{ title: 'Settings', headerShown: false }}
+    />,
     <Stack.Screen
       key="account-delete"
       name="account-delete"

@@ -99,14 +99,13 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
           Data & Privacy
         </ThemedHeadingText>
         <Text fontSize={12} color="$textSecondary">
-          Review what MyGuest stores, how exports work, how deletion works, and where to get
-          support.
+          Manage exports, privacy information, support, and account deletion.
         </Text>
       </YStack>
 
       <SurfaceCard tone={model.cardTone} p="$4" gap="$2.5">
         <Text fontSize={13} fontWeight="700" color="$textPrimary">
-          Your data, explained clearly
+          Your data
         </Text>
         <Text fontSize={11} color="$textSecondary">
           {model.privacySummary}
@@ -132,10 +131,10 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
           title="Privacy Policy"
           body={
             model.hasPrivacyPolicyUrl
-              ? 'Read the current privacy policy that applies to this build.'
-              : 'Open the in-app privacy policy while the public URL is still being finalized.'
+              ? 'Read the privacy policy for this version of MyGuest.'
+              : 'Read the in-app privacy policy.'
           }
-          actionLabel={model.hasPrivacyPolicyUrl ? 'Open Hosted Privacy Policy' : 'Read In-App Privacy Policy'}
+          actionLabel={model.hasPrivacyPolicyUrl ? 'Open Privacy Policy' : 'Read Privacy Policy'}
           icon={<Shield size={16} color="$accent" />}
           onPress={() => {
             void model.handleOpenPrivacyPolicy()
@@ -146,10 +145,10 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
           title="Support"
           body={
             model.hasSupportUrl
-              ? 'Open support if you need help with sign-in, exports, or your account.'
-              : 'Open the in-app support center while the public URL is still being finalized.'
+              ? 'Get help with sign-in, exports, or account access.'
+              : 'Open the in-app support center.'
           }
-          actionLabel={model.hasSupportUrl ? 'Open Hosted Support' : 'Open In-App Support Center'}
+          actionLabel={model.hasSupportUrl ? 'Open Support' : 'Open Support Center'}
           icon={<LifeBuoy size={16} color="$accent" />}
           onPress={() => {
             void model.handleOpenSupport()
@@ -171,11 +170,11 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
 
       <SurfaceCard tone={model.cardTone} p="$4" gap="$3">
         <Text fontSize={13} fontWeight="700" color="$textPrimary">
-          Need to leave MyGuest?
+          Delete account
         </Text>
         <Text fontSize={11} color="$textSecondary">
-          Export your records first if you want a copy. Deleting your account removes hosted
-          data and appointment images permanently.
+          Export your records first if you want a copy. Deletion permanently removes hosted data
+          and appointment images.
         </Text>
         <Link href="/account-delete" asChild>
           <SecondaryButton icon={<Trash2 size={16} />}>Review Delete Account</SecondaryButton>
@@ -184,7 +183,7 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
 
       <SurfaceCard tone="secondary" p="$4" gap="$1">
         <Text fontSize={12} fontWeight="700" color="$textPrimary">
-          Release details
+          App version
         </Text>
         <Text fontSize={11} color="$textSecondary">
           {model.releaseLabel}

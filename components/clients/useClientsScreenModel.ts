@@ -26,13 +26,20 @@ export function useClientsScreenModel() {
   const searchText = useClientsStore((state) => state.searchText)
   const debouncedSearchText = useDebouncedValue(searchText, 200)
   const statusFilter = useClientsStore((state) => state.statusFilter)
+  const tagFilter = useClientsStore((state) => state.tagFilter)
   const typeFilter = useClientsStore((state) => state.typeFilter)
+  const visitFilter = useClientsStore((state) => state.visitFilter)
   const showFilters = useClientsStore((state) => state.showFilters)
   const setSearchText = useClientsStore((state) => state.setSearchText)
   const setStatusFilter = useClientsStore((state) => state.setStatusFilter)
+  const setTagFilter = useClientsStore((state) => state.setTagFilter)
   const setTypeFilter = useClientsStore((state) => state.setTypeFilter)
+  const setVisitFilter = useClientsStore((state) => state.setVisitFilter)
+  const openFilters = useClientsStore((state) => state.openFilters)
+  const closeFilters = useClientsStore((state) => state.closeFilters)
   const toggleFilters = useClientsStore((state) => state.toggleFilters)
   const resetFilters = useClientsStore((state) => state.resetFilters)
+  const resetFilterSelections = useClientsStore((state) => state.resetFilterSelections)
   const searchInputRef = useRef<any>(null)
 
   const {
@@ -103,6 +110,17 @@ export function useClientsScreenModel() {
 
   const isActive = (clientId: string) => activeClientIds.has(clientId)
 
+  const availableTags = useMemo(() => {
+    return Array.from(
+      new Set(
+        clients
+          .map((client) => client.tag.trim())
+          .filter((tag) => tag.length > 0)
+          .filter((tag) => !['Cut', 'Color', 'Cut & Color'].includes(tag))
+      )
+    ).sort((a, b) => a.localeCompare(b))
+  }, [clients])
+
   const filteredClients = useMemo(() => {
     const effectiveSearch = searchText.trim() ? debouncedSearchText : searchText
     const normalizedSearch = effectiveSearch.trim().toLowerCase()
@@ -110,8 +128,12 @@ export function useClientsScreenModel() {
     return clients
       .filter((client) => {
         const activeStatus = activeClientIds.has(client.id) ? 'Active' : 'Inactive'
+        const visitDate = parseVisitDate(derivedLastVisitByClient[client.id] ?? client.lastVisit)
         if (statusFilter !== 'All' && activeStatus !== statusFilter) return false
+        if (visitFilter === 'Needs First Visit' && visitDate !== null) return false
+        if (visitFilter === 'Returning' && visitDate === null) return false
         if (typeFilter !== 'All' && client.type !== typeFilter) return false
+        if (tagFilter !== 'All' && client.tag.trim() !== tagFilter) return false
 
         if (!normalizedSearch) return true
         const haystack = [
@@ -128,10 +150,25 @@ export function useClientsScreenModel() {
         return haystack.includes(normalizedSearch)
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [activeClientIds, clients, debouncedSearchText, searchText, statusFilter, typeFilter])
+  }, [
+    activeClientIds,
+    clients,
+    debouncedSearchText,
+    derivedLastVisitByClient,
+    searchText,
+    statusFilter,
+    tagFilter,
+    typeFilter,
+    visitFilter,
+  ])
 
   const hasClients = clients.length > 0
   const hasFilteredClients = filteredClients.length > 0
+  const activeFilterCount =
+    Number(statusFilter !== 'All') +
+    Number(typeFilter !== 'All') +
+    Number(visitFilter !== 'All') +
+    Number(tagFilter !== 'All')
 
   const {
     feedbackMessage: refreshFeedbackMessage,
@@ -157,8 +194,11 @@ export function useClientsScreenModel() {
   }
 
   return {
+    activeFilterCount,
     aesthetic,
+    availableTags,
     chipRadius,
+    closeFilterSheet: closeFilters,
     controlRadius,
     filteredClients,
     formatLastVisitLabel,
@@ -167,7 +207,9 @@ export function useClientsScreenModel() {
     handleRefreshScroll,
     handleRefreshScrollRelease,
     hasClients,
+    hasActiveFilters: activeFilterCount > 0,
     hasFilteredClients,
+    filterSheetOpen: showFilters,
     insets,
     isActive,
     isGlass,
@@ -179,18 +221,24 @@ export function useClientsScreenModel() {
     refreshFeedbackMessage,
     refreshPullProgress,
     resetFilters,
+    resetFilterSelections,
     resolveLastVisit,
     searchInputRef,
     searchText,
+    openFilterSheet: openFilters,
     setSearchText,
     setStatusFilter,
+    setTagFilter,
     setTypeFilter,
+    setVisitFilter,
     showFilters,
     showStatus,
     statusFilter,
+    tagFilter,
     toggleFilters,
     topInset,
     typeFilter,
+    visitFilter,
   }
 }
 

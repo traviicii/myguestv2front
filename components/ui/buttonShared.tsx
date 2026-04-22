@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Text, useTheme } from 'tamagui'
 
 import { useResolvedThemeSelection } from '../ThemePrefs'
-import { toNativeColor } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { getGlassLayerColors } from './glassStyle'
 import { asStringChildren, getFontFamilyStyle, useAestheticProfile } from './controlShared'
 
@@ -59,8 +59,8 @@ export function useGlassButtonLayerColors(layer: 'primary' | 'secondary') {
   const isGlassLight = aesthetic === 'glass' && mode === 'light'
   const layerColors = isGlassLight
     ? getGlassLayerColors('light', {
-        accent: toNativeColor(theme.backdropAccent?.val, '#8FC3FF'),
-        start: toNativeColor(theme.backdropStart?.val, '#CFE2FF'),
+        accent: toNativeColor(theme.backdropAccent?.val, FALLBACK_COLORS.glassAccentLight),
+        start: toNativeColor(theme.backdropStart?.val, FALLBACK_COLORS.glassStartLight),
       })
     : null
 
@@ -88,9 +88,9 @@ export function GlassButtonLayer({
       pointerEvents="none"
       colors={
         colors ?? ([
-          'rgba(255, 255, 255, 0.35)',
-          'rgba(255, 255, 255, 0.05)',
-          'rgba(255, 255, 255, 0.2)',
+          FALLBACK_COLORS.glassHighlightStrong,
+          FALLBACK_COLORS.glassHighlightSoft,
+          FALLBACK_COLORS.glassHighlightMid,
         ] as const)
       }
       start={start}

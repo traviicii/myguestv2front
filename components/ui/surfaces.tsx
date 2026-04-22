@@ -247,6 +247,7 @@ export function OptionChip({
       pressStyle={{
         opacity: 0.9,
         bg: active ? '$surfaceChipActive' : '$surfacePreview',
+        scale: 0.992,
       }}
       {...props}
     />

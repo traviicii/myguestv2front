@@ -5,6 +5,7 @@ import {
   CurrencyField,
   FieldLabel,
   PrimaryButton,
+  SurfaceCard,
   TextField,
 } from 'components/ui/controls'
 import { normalizeServiceName } from 'components/utils/services'
@@ -13,14 +14,14 @@ import type { SettingsSectionProps } from '../sectionTypes'
 
 export function AddServiceSection({ model }: SettingsSectionProps) {
   return (
-    <YStack gap="$3">
+    <SurfaceCard mode="section" tone="secondary" p="$3.5" gap="$3">
       <YStack gap="$1">
-        <FieldLabel>Add a service</FieldLabel>
+        <FieldLabel>Add service</FieldLabel>
         <Text fontSize={11} color="$textSecondary">
-          New services show up in appointment logs right away. Default price is
-          optional.
+          Add a service to appointment logs. Price and return timing are optional.
         </Text>
       </YStack>
+
       <YStack gap="$1">
         <FieldLabel>Service name</FieldLabel>
         <TextField
@@ -37,36 +38,37 @@ export function AddServiceSection({ model }: SettingsSectionProps) {
           returnKeyType="done"
         />
       </YStack>
-      <XStack items="center" gap="$2">
-        <YStack flex={1} gap="$0.5">
+
+      <XStack items="flex-start" gap="$3">
+        <YStack flex={1} gap="$1">
           <FieldLabel>Default price</FieldLabel>
+          <CurrencyField
+            containerProps={{ width: '100%' }}
+            placeholder="0.00"
+            keyboardType="decimal-pad"
+            value={model.servicePriceDraft}
+            onChangeText={model.setServicePriceDraft}
+          />
           <Text fontSize={11} color="$textSecondary">
             Optional
           </Text>
         </YStack>
-        <CurrencyField
-          containerProps={{ width: 120 }}
-          placeholder="0.00"
-          keyboardType="decimal-pad"
-          value={model.servicePriceDraft}
-          onChangeText={model.setServicePriceDraft}
-        />
-      </XStack>
-      <XStack items="center" gap="$2">
-        <YStack flex={1} gap="$0.5">
-          <FieldLabel>Recommended return</FieldLabel>
+
+        <YStack width={128} gap="$1">
+          <FieldLabel>Return every</FieldLabel>
+          <TextField
+            width="100%"
+            placeholder="6"
+            keyboardType="number-pad"
+            value={model.serviceReturnWeeksDraft}
+            onChangeText={model.setServiceReturnWeeksDraft}
+          />
           <Text fontSize={11} color="$textSecondary">
-            Optional weeks between visits
+            Weeks
           </Text>
         </YStack>
-        <TextField
-          width={120}
-          placeholder="6"
-          keyboardType="number-pad"
-          value={model.serviceReturnWeeksDraft}
-          onChangeText={model.setServiceReturnWeeksDraft}
-        />
       </XStack>
+
       <PrimaryButton
         icon={<Plus size={14} />}
         disabled={!model.canAddService || model.isCreatingService}
@@ -77,6 +79,6 @@ export function AddServiceSection({ model }: SettingsSectionProps) {
       >
         {model.isCreatingService ? 'Adding...' : 'Add service'}
       </PrimaryButton>
-    </YStack>
+    </SurfaceCard>
   )
 }

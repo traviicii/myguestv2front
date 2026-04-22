@@ -9,8 +9,11 @@ import { AppointmentServicePickerPanel } from 'components/appointments/shared/Ap
 import {
   CurrencyField,
   FieldLabel,
+  InsetGroup,
+  InsetSectionFooter,
+  InsetSectionHeader,
   PrimaryButton,
-  SurfaceCard,
+  SectionDivider,
   TextAreaField,
   ThemedEyebrowText,
   ThemedHeadingText,
@@ -35,97 +38,113 @@ export function NewAppointmentHeader({ model }: NewAppointmentSectionProps) {
 
 export function NewAppointmentDetailsSection({ model }: NewAppointmentSectionProps) {
   return (
-    <SurfaceCard p="$4" gap="$2.5" tone={model.cardTone} mode={model.cardMode}>
-      <YStack
-        gap="$2"
-        onLayout={(event) => {
-          model.requiredY.current.date = event.nativeEvent.layout.y
-        }}
-      >
-        <FieldLabel>Date</FieldLabel>
-        <AppointmentDatePickerField
-          datePanel={model.datePanel}
-          displayValue={model.form.date}
-          onDateChange={model.handleDateChange}
-          onFieldPress={model.handleDateFieldPress}
-          pickerDate={model.pickerDate}
-          pulseKey={model.pulseKey}
-          showDateError={model.showDateError}
-          showDatePicker={model.showDatePicker}
-        />
-      </YStack>
-
-      <YStack gap="$2">
-        <FieldLabel>Services</FieldLabel>
-        <YStack position="relative">
-          <Pressable
-            onPress={(event) => {
-              event.stopPropagation?.()
-              model.handleServiceFieldPress()
-            }}
-          >
-            <XStack
-              height={44}
-              px="$3"
-              rounded="$4"
-              borderWidth={1}
-              borderColor={model.showServicePicker ? '$accent' : '$borderSubtle'}
-              bg="$background"
-              items="center"
-              justify="space-between"
-            >
-              <Text
-                fontSize={14}
-                color={model.selectedServices.length ? '$color' : '$textSecondary'}
-              >
-                {model.selectedServiceSummary}
-              </Text>
-              <ChevronDown size={16} color="$textSecondary" />
-            </XStack>
-          </Pressable>
-        </YStack>
-        <AppointmentServicePickerPanel
-          servicePanel={model.servicePanel}
-          services={model.pickerServices}
-          allServices={model.serviceCatalog}
-          selectedServiceIds={model.selectedServiceIds}
-          onClear={model.clearSelectedServices}
-          onSelectService={model.selectService}
-          onToggleService={model.toggleServiceSelection}
-          trapPress
-        />
-      </YStack>
-
-      <YStack gap="$2">
-        <FieldLabel>Price</FieldLabel>
-        <CurrencyField
-          placeholder="0.00"
-          value={model.form.price}
-          inputAccessoryViewID={model.keyboardAccessoryId}
-          onFocus={model.closePickers}
-          onChangeText={(text) => {
-            model.setPriceEdited(true)
-            model.setForm((prev) => ({ ...prev, price: text }))
+    <YStack gap="$3.5">
+      <InsetSectionHeader
+        title="Details"
+        subtitle="Capture the date, services, price, and formula notes in one grouped flow."
+      />
+      <InsetGroup tone={model.cardTone}>
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.requiredY.current.date = event.nativeEvent.layout.y
           }}
-        />
-        {model.suggestedPriceCents !== null ? (
-          <Text fontSize={11} color="$textSecondary">
-            Suggested from services: ${model.formatPriceFromCents(model.suggestedPriceCents)}
-          </Text>
-        ) : null}
-      </YStack>
+        >
+          <FieldLabel>Date</FieldLabel>
+          <AppointmentDatePickerField
+            datePanel={model.datePanel}
+            displayValue={model.form.date}
+            onDateChange={model.handleDateChange}
+            onFieldPress={model.handleDateFieldPress}
+            onPickerDismiss={model.closeDatePicker}
+            pickerDate={model.pickerDate}
+            pulseKey={model.pulseKey}
+            sheetTitle="Appointment Date"
+            showDateError={model.showDateError}
+            showDatePicker={model.showDatePicker}
+          />
+        </YStack>
 
-      <YStack gap="$2">
-        <FieldLabel>Formula / Notes</FieldLabel>
-        <TextAreaField
-          placeholder="Color formula, technique, notes..."
-          value={model.form.notes}
-          inputAccessoryViewID={model.keyboardAccessoryId}
-          onFocus={model.closePickers}
-          onChangeText={(text) => model.setForm((prev) => ({ ...prev, notes: text }))}
-        />
-      </YStack>
-    </SurfaceCard>
+        <SectionDivider />
+
+        <YStack px="$4" py="$3" gap="$2">
+          <FieldLabel>Services</FieldLabel>
+          <YStack position="relative">
+            <Pressable
+              onPress={(event) => {
+                event.stopPropagation?.()
+                model.handleServiceFieldPress()
+              }}
+            >
+              <XStack
+                height={44}
+                px="$3"
+                rounded="$4"
+                borderWidth={1}
+                borderColor={model.showServicePicker ? '$accent' : '$borderSubtle'}
+                bg="$surfaceField"
+                items="center"
+                justify="space-between"
+              >
+                <Text
+                  fontSize={14}
+                  color={model.selectedServices.length ? '$color' : '$textSecondary'}
+                >
+                  {model.selectedServiceSummary}
+                </Text>
+                <ChevronDown size={16} color="$textSecondary" />
+              </XStack>
+            </Pressable>
+          </YStack>
+          <AppointmentServicePickerPanel
+            servicePanel={model.servicePanel}
+            services={model.pickerServices}
+            allServices={model.serviceCatalog}
+            selectedServiceIds={model.selectedServiceIds}
+            onDismiss={model.closeServicePicker}
+            onClear={model.clearSelectedServices}
+            onSelectService={model.selectService}
+            onToggleService={model.toggleServiceSelection}
+          />
+        </YStack>
+
+        <SectionDivider />
+
+        <YStack px="$4" py="$3" gap="$2">
+          <FieldLabel>Price</FieldLabel>
+          <CurrencyField
+            placeholder="0.00"
+            value={model.form.price}
+            inputAccessoryViewID={model.keyboardAccessoryId}
+            onFocus={model.closePickers}
+            onChangeText={(text) => {
+              model.setPriceEdited(true)
+              model.setForm((prev) => ({ ...prev, price: text }))
+            }}
+          />
+          {model.suggestedPriceCents !== null ? (
+            <InsetSectionFooter>
+              Suggested from services: ${model.formatPriceFromCents(model.suggestedPriceCents)}
+            </InsetSectionFooter>
+          ) : null}
+        </YStack>
+
+        <SectionDivider />
+
+        <YStack px="$4" py="$3" gap="$2">
+          <FieldLabel>Formula / Notes</FieldLabel>
+          <TextAreaField
+            placeholder="Color formula, technique, notes..."
+            value={model.form.notes}
+            inputAccessoryViewID={model.keyboardAccessoryId}
+            onFocus={model.closePickers}
+            onChangeText={(text) => model.setForm((prev) => ({ ...prev, notes: text }))}
+          />
+        </YStack>
+      </InsetGroup>
+    </YStack>
   )
 }
 

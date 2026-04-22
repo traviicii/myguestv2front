@@ -1,5 +1,6 @@
 import type { ThemeAesthetic } from 'components/ThemePrefs'
 import type { ServiceOption } from 'components/data/api/services'
+import type { AppSettings } from 'components/state/studioStore'
 
 import type {
   SettingsCardTone,
@@ -28,19 +29,19 @@ export function buildDisplayRows(appSettings: SettingsDisplayCounts): SettingsDi
     {
       id: 'overviewRecentAppointmentsCount',
       label: 'Recent appointments',
-      help: 'How many recent appointment logs are shown on the Overview screen.',
+      help: 'Number of appointment logs shown before Full History.',
       value: appSettings.overviewRecentAppointmentsCount,
     },
     {
       id: 'overviewRecentClientsCount',
-      label: 'Recent clients',
-      help: 'How many recent clients are shown on the Overview screen.',
+      label: 'Recently added',
+      help: 'Number of newly added clients shown before View All.',
       value: appSettings.overviewRecentClientsCount,
     },
     {
       id: 'clientDetailsAppointmentLogsCount',
       label: 'Client timeline preview',
-      help: 'How many recent timeline moments are previewed on each client details screen.',
+      help: 'Number of timeline entries shown before opening the full client history.',
       value: appSettings.clientDetailsAppointmentLogsCount,
     },
   ]
@@ -48,6 +49,38 @@ export function buildDisplayRows(appSettings: SettingsDisplayCounts): SettingsDi
 
 export function clampPreviewCount(currentValue: number, delta: number) {
   return Math.min(12, Math.max(1, currentValue + delta))
+}
+
+export function buildClientDisplaySummary(appSettings: AppSettings) {
+  if (!appSettings.clientsShowStatus) {
+    return 'Status labels off'
+  }
+
+  return `${appSettings.activeStatusMonths} month active window`
+}
+
+export function buildOverviewInsightsSummary(params: {
+  appSettings: AppSettings
+  visibleSectionsCount: number
+}) {
+  return `${params.visibleSectionsCount} sections · ${params.appSettings.overviewRecentAppointmentsCount}/${params.appSettings.overviewRecentClientsCount}/${params.appSettings.clientDetailsAppointmentLogsCount} previews`
+}
+
+export function buildServicesLogsSummary(params: {
+  activeServicesCount: number
+  inactiveServicesCount: number
+}) {
+  return `${params.activeServicesCount} active · ${params.inactiveServicesCount} archived`
+}
+
+export function buildDatesFormattingSummary(appSettings: AppSettings) {
+  if (appSettings.dateDisplayFormat === 'short') {
+    return 'MM/DD/YYYY'
+  }
+
+  return appSettings.dateLongIncludeWeekday
+    ? 'Long format with weekday'
+    : 'Long format'
 }
 
 export function removeDraftEntry(drafts: Record<number, string>, serviceId: number) {

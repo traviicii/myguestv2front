@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { ClientType } from 'components/data/models'
 import { useClients, useDeleteClient, useUpdateClient } from 'components/data/queries'
 import { useThemePrefs } from 'components/ThemePrefs'
+import { successHaptic, warningHaptic } from 'components/utils/haptics'
 import { formatPhoneForInput } from 'components/utils/phone'
 
 const normalizeType = (value: string, fallback: ClientType) => {
@@ -113,12 +114,14 @@ export function useEditClientScreenModel() {
     setAttemptedSave(true)
     if (!hasRequired || !isDirty) {
       if (!hasRequired && typeof requiredY.current.name === 'number') {
+        void warningHaptic()
         scrollRef.current?.scrollTo({
           y: Math.max(0, requiredY.current.name - 12),
           animated: true,
         })
         pulseNameError(350)
       } else if (!hasRequired) {
+        void warningHaptic()
         pulseNameError(0)
       }
       return
@@ -141,6 +144,7 @@ export function useEditClientScreenModel() {
         clientType: normalizeType(form.type, client.type),
         notes: form.notes,
       })
+      void successHaptic()
       router.back()
     } catch (error) {
       Alert.alert(
@@ -166,7 +170,9 @@ export function useEditClientScreenModel() {
           onPress: () => {
             void (async () => {
               try {
+                void warningHaptic()
                 await deleteClient.mutateAsync(client.id)
+                void successHaptic()
                 router.replace('/(tabs)/clients')
               } catch (error) {
                 Alert.alert(

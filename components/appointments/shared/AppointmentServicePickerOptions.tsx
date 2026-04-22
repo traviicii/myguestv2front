@@ -1,6 +1,8 @@
 import { Check } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
+import { selectionHaptic } from 'components/utils/haptics'
+
 type AppointmentServiceOption = {
   id: number
   name: string
@@ -32,7 +34,11 @@ export function AppointmentServicePickerOptions({
         bg={!selectedServiceIds.length ? '$accentMuted' : '$background'}
         borderWidth={1}
         borderColor={!selectedServiceIds.length ? '$accentSoft' : '$borderSubtle'}
-        onPress={onClear}
+        onPress={() => {
+          void selectionHaptic()
+          onClear()
+        }}
+        pressStyle={{ opacity: 0.94, scale: 0.995 }}
       >
         <Text
           fontSize={13}
@@ -56,8 +62,10 @@ export function AppointmentServicePickerOptions({
             borderWidth={1}
             borderColor={isActive ? '$accentSoft' : '$borderSubtle'}
             onPress={() => {
+              void selectionHaptic()
               onToggleService(service.id)
             }}
+            pressStyle={{ opacity: 0.94, scale: 0.995 }}
           >
             <Text fontSize={13} color={isActive ? '$accent' : '$color'}>
               {service.name}

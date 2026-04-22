@@ -172,8 +172,8 @@ export default function DeleteAccountScreen() {
                 Before you continue
               </Text>
               <Text fontSize={12} color="$textSecondary">
-                If you want a copy of your records, go back and use Export My Data in
-                Settings first. Exports include CSV files only and do not include
+                If you want a copy of your records, use Export My Data in Data & Privacy
+                first. Exports include CSV files only and do not include
                 appointment images.
               </Text>
               <SecondaryButton onPress={() => router.push('/data-privacy')}>

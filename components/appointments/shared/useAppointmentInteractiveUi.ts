@@ -15,6 +15,7 @@ export function useAppointmentInteractiveUi() {
     setShowServicePicker(false)
   }
 
+  const closeDatePicker = () => setShowDatePicker(false)
   const closeServicePicker = () => setShowServicePicker(false)
 
   const dismissInteractiveUI = () => {
@@ -40,6 +41,7 @@ export function useAppointmentInteractiveUi() {
 
   return {
     closePickers,
+    closeDatePicker,
     closeServicePicker,
     datePanel,
     dismissInteractiveUI,

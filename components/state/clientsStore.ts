@@ -4,15 +4,23 @@ import { zustandStorage } from './storage'
 
 type StatusFilter = 'All' | 'Active' | 'Inactive'
 type TypeFilter = 'All' | 'Cut' | 'Color' | 'Cut & Color'
+type VisitFilter = 'All' | 'Needs First Visit' | 'Returning'
 
 type ClientsStore = {
   searchText: string
   statusFilter: StatusFilter
+  tagFilter: string
   typeFilter: TypeFilter
+  visitFilter: VisitFilter
   showFilters: boolean
+  closeFilters: () => void
+  openFilters: () => void
+  resetFilterSelections: () => void
   setSearchText: (text: string) => void
   setStatusFilter: (status: StatusFilter) => void
+  setTagFilter: (tag: string) => void
   setTypeFilter: (type: TypeFilter) => void
+  setVisitFilter: (visit: VisitFilter) => void
   toggleFilters: () => void
   resetFilters: () => void
 }
@@ -24,17 +32,33 @@ export const useClientsStore = create<ClientsStore>()(
     (set) => ({
       searchText: '',
       statusFilter: 'All',
+      tagFilter: 'All',
       typeFilter: 'All',
+      visitFilter: 'All',
       showFilters: false,
+      closeFilters: () => set({ showFilters: false }),
+      openFilters: () => set({ showFilters: true }),
+      resetFilterSelections: () =>
+        set((state) => ({
+          showFilters: state.showFilters,
+          statusFilter: 'All',
+          tagFilter: 'All',
+          typeFilter: 'All',
+          visitFilter: 'All',
+        })),
       setSearchText: (text) => set({ searchText: text }),
       setStatusFilter: (status) => set({ statusFilter: status }),
+      setTagFilter: (tag) => set({ tagFilter: tag }),
       setTypeFilter: (type) => set({ typeFilter: type }),
+      setVisitFilter: (visit) => set({ visitFilter: visit }),
       toggleFilters: () => set((state) => ({ showFilters: !state.showFilters })),
       resetFilters: () =>
         set({
           searchText: '',
           statusFilter: 'All',
+          tagFilter: 'All',
           typeFilter: 'All',
+          visitFilter: 'All',
           showFilters: false,
         }),
     }),
@@ -44,7 +68,9 @@ export const useClientsStore = create<ClientsStore>()(
       partialize: (state) => ({
         searchText: state.searchText,
         statusFilter: state.statusFilter,
+        tagFilter: state.tagFilter,
         typeFilter: state.typeFilter,
+        visitFilter: state.visitFilter,
       }),
     }
   )

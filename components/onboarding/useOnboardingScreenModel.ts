@@ -72,6 +72,7 @@ export function useOnboardingScreenModel() {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const {
     closePickers,
+    closeDatePicker,
     datePanel,
     dismissInteractiveUI,
     handleDateFieldPress,
@@ -169,9 +170,6 @@ export function useOnboardingScreenModel() {
     }
     if (!selectedDate) return
     setAppointmentDraft((prev) => ({ ...prev, date: formatDateFromPicker(selectedDate) }))
-    if (Platform.OS !== 'android') {
-      setShowDatePicker(false)
-    }
   }
 
   const handleFinish = async () => {
@@ -216,6 +214,7 @@ export function useOnboardingScreenModel() {
     canGoBack,
     clientDraft,
     closePickers,
+    closeDatePicker,
     createdClientId,
     datePanel,
     dismissInteractiveUI,

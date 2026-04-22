@@ -63,12 +63,12 @@ function QuickActionCard({
 
   if (model.isCyberpunk) {
     const hexFill = isPrimary
-      ? toNativeColor(theme.buttonPrimaryBg?.val, '#202B20')
-      : toNativeColor(theme.surfaceCard?.val, '#121212')
+      ? toNativeColor(theme.buttonPrimaryBg?.val, FALLBACK_COLORS.cyberPrimaryBg)
+      : toNativeColor(theme.surfaceCard?.val, FALLBACK_COLORS.cyberSurfaceCard)
     const hexStroke = isPrimary
-      ? toNativeColor(theme.accent?.val, '#D7FF5C')
+      ? toNativeColor(theme.accent?.val, FALLBACK_COLORS.cyberAccent)
       : isSecondary
-        ? toNativeColor(theme.accent?.val, '#D7FF5C')
+        ? toNativeColor(theme.accent?.val, FALLBACK_COLORS.cyberAccent)
         : toNativeColor(theme.borderColor?.val, FALLBACK_COLORS.borderSubtle)
     return (
       <YStack

@@ -4,14 +4,13 @@ import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import {
   ErrorPulseBorder,
   FieldLabel,
+  InsetGroup,
+  InsetSectionHeader,
   PrimaryButton,
   SecondaryButton,
-  SectionDivider,
-  SurfaceCard,
   TextAreaField,
   TextField,
   ThemedHeadingText,
-  cardSurfaceProps,
 } from 'components/ui/controls'
 import { ClientTypeOptions } from 'components/clients/shared/ClientTypeOptions'
 import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
@@ -20,26 +19,6 @@ import type { EditClientScreenModel } from './useEditClientScreenModel'
 
 type EditClientSectionProps = {
   model: EditClientScreenModel
-}
-
-function EditClientCard({
-  model,
-  children,
-  ...props
-}: EditClientSectionProps & React.ComponentProps<typeof YStack>) {
-  if (model.isGlass) {
-    return (
-      <SurfaceCard mode="alwaysCard" tone="secondary" p="$4" gap="$3" {...props}>
-        {children}
-      </SurfaceCard>
-    )
-  }
-
-  return (
-    <YStack {...cardSurfaceProps} rounded="$5" p="$4" gap="$3" {...props}>
-      {children}
-    </YStack>
-  )
 }
 
 export function EditClientTopBar({ model }: EditClientSectionProps) {
@@ -69,74 +48,111 @@ function EditClientHeader() {
   )
 }
 
+function EditClientNameSection({ model }: EditClientSectionProps) {
+  return (
+    <YStack gap="$3.5">
+      <InsetSectionHeader
+        title="Name"
+        subtitle="Keep the client name clean so search and lists stay readable."
+      />
+      <InsetGroup>
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleNameLayout(event.nativeEvent.layout.y)
+          }}
+        >
+          <FieldLabel>Name</FieldLabel>
+          <YStack position="relative">
+            <TextField
+              value={model.form.name}
+              inputAccessoryViewID={model.keyboardAccessoryId}
+              onChangeText={(text) => model.updateField('name', text)}
+              borderColor={model.showNameError ? '$red10' : '$borderSubtle'}
+            />
+            <ErrorPulseBorder active={model.showNameError} pulseKey={model.pulseKey} />
+          </YStack>
+          {model.showNameError ? (
+            <Text fontSize={11} color="$red10">
+              Name is required.
+            </Text>
+          ) : null}
+        </YStack>
+      </InsetGroup>
+    </YStack>
+  )
+}
+
+function EditClientContactSection({ model }: EditClientSectionProps) {
+  return (
+    <YStack gap="$3.5">
+      <InsetSectionHeader
+        title="Contact"
+        subtitle="Refine contact details without the form feeling heavy."
+      />
+      <InsetGroup>
+        <YStack px="$4" py="$3" gap="$2">
+          <FieldLabel>Email</FieldLabel>
+          <TextField
+            value={model.form.email}
+            inputAccessoryViewID={model.keyboardAccessoryId}
+            onChangeText={(text) => model.updateField('email', text)}
+          />
+        </YStack>
+        <YStack px="$4" py="$3" gap="$2" borderTopWidth={1} borderTopColor="$divider">
+          <FieldLabel>Phone</FieldLabel>
+          <TextField
+            placeholder={PHONE_INPUT_PLACEHOLDER}
+            keyboardType="phone-pad"
+            value={model.form.phone}
+            inputAccessoryViewID={model.keyboardAccessoryId}
+            onChangeText={(text) => model.updateField('phone', formatPhoneForInput(text))}
+          />
+        </YStack>
+      </InsetGroup>
+    </YStack>
+  )
+}
+
 function EditClientDetailsSection({ model }: EditClientSectionProps) {
   return (
-    <EditClientCard model={model}>
-      <YStack
-        gap="$2"
-        onLayout={(event) => {
-          model.handleNameLayout(event.nativeEvent.layout.y)
-        }}
-      >
-        <FieldLabel>Name</FieldLabel>
-        <YStack position="relative">
-          <TextField
-            value={model.form.name}
-            inputAccessoryViewID={model.keyboardAccessoryId}
-            onChangeText={(text) => model.updateField('name', text)}
-            borderColor={model.showNameError ? '$red10' : '$borderSubtle'}
+    <YStack gap="$3.5">
+      <InsetSectionHeader
+        title="Details"
+        subtitle="Adjust the client type to keep reporting and filters aligned."
+      />
+      <InsetGroup p="$4">
+        <YStack gap="$2.5">
+          <FieldLabel>Client Type</FieldLabel>
+          <ClientTypeOptions
+            selectedType={model.form.type}
+            onSelect={(type) => model.updateField('type', type)}
           />
-          <ErrorPulseBorder active={model.showNameError} pulseKey={model.pulseKey} />
         </YStack>
-        {model.showNameError ? (
-          <Text fontSize={11} color="$red10">
-            Name is required.
-          </Text>
-        ) : null}
-      </YStack>
-      <YStack gap="$2">
-        <FieldLabel>Email</FieldLabel>
-        <TextField
-          value={model.form.email}
-          inputAccessoryViewID={model.keyboardAccessoryId}
-          onChangeText={(text) => model.updateField('email', text)}
-        />
-      </YStack>
-      <YStack gap="$2">
-        <FieldLabel>Phone</FieldLabel>
-        <TextField
-          placeholder={PHONE_INPUT_PLACEHOLDER}
-          keyboardType="phone-pad"
-          value={model.form.phone}
-          inputAccessoryViewID={model.keyboardAccessoryId}
-          onChangeText={(text) => model.updateField('phone', formatPhoneForInput(text))}
-        />
-      </YStack>
-      <YStack gap="$2">
-        <FieldLabel>Client Type</FieldLabel>
-        <ClientTypeOptions
-          selectedType={model.form.type}
-          onSelect={(type) => model.updateField('type', type)}
-        />
-      </YStack>
-    </EditClientCard>
+      </InsetGroup>
+    </YStack>
   )
 }
 
 function EditClientNotesSection({ model }: EditClientSectionProps) {
   return (
-    <YStack gap="$3">
-      <ThemedHeadingText fontWeight="600" fontSize={14}>
-        Notes
-      </ThemedHeadingText>
-      <EditClientCard model={model} gap="$0">
-        <TextAreaField
-          value={model.form.notes}
-          inputAccessoryViewID={model.keyboardAccessoryId}
-          onChangeText={(text) => model.updateField('notes', text)}
-          placeholder="Client preferences, color history, personal notes..."
-        />
-      </EditClientCard>
+    <YStack gap="$3.5">
+      <InsetSectionHeader
+        title="Notes"
+        subtitle="Capture personal preferences, color history, and reminders in one place."
+      />
+      <InsetGroup>
+        <YStack px="$4" py="$3">
+          <TextAreaField
+            value={model.form.notes}
+            inputAccessoryViewID={model.keyboardAccessoryId}
+            onChangeText={(text) => model.updateField('notes', text)}
+            placeholder="Client preferences, color history, personal notes..."
+          />
+        </YStack>
+      </InsetGroup>
     </YStack>
   )
 }
@@ -192,7 +208,8 @@ export function EditClientContent({ model }: EditClientSectionProps) {
     >
       <YStack px="$5" pt="$6" gap="$4">
         <EditClientHeader />
-        <SectionDivider />
+        <EditClientNameSection model={model} />
+        <EditClientContactSection model={model} />
         <EditClientDetailsSection model={model} />
         <EditClientNotesSection model={model} />
         <EditClientActions model={model} />

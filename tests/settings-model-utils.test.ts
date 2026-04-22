@@ -50,19 +50,19 @@ test('settings helpers build display rows and resolve card tones', () => {
     {
       id: 'overviewRecentAppointmentsCount',
       label: 'Recent appointments',
-      help: 'How many recent appointment logs are shown on the Overview screen.',
+      help: 'Number of appointment logs shown before Full History.',
       value: 6,
     },
     {
       id: 'overviewRecentClientsCount',
-      label: 'Recent clients',
-      help: 'How many recent clients are shown on the Overview screen.',
+      label: 'Recently added',
+      help: 'Number of newly added clients shown before View All.',
       value: 3,
     },
     {
       id: 'clientDetailsAppointmentLogsCount',
       label: 'Client timeline preview',
-      help: 'How many recent timeline moments are previewed on each client details screen.',
+      help: 'Number of timeline entries shown before opening the full client history.',
       value: 4,
     },
   ])

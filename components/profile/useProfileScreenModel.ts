@@ -116,8 +116,10 @@ export function useProfileScreenModel() {
   const showPhone = Boolean(displayPhone)
 
   const clientStatusSummary = !appSettings.clientsShowStatus
-    ? 'Status labels are hidden on client cards and detail screens.'
-    : `Clients are marked active when they visited within ${appSettings.activeStatusMonths} months. ${appSettings.clientsShowStatusList ? 'Client list labels are on.' : 'Client list labels are off.'} ${appSettings.clientsShowStatusDetails ? 'Client detail labels are on.' : 'Client detail labels are off.'}`
+    ? 'Activity labels are off'
+    : `${appSettings.activeStatusMonths}-month active window · ${
+        appSettings.clientsShowStatusList ? 'List on' : 'List off'
+      } · ${appSettings.clientsShowStatusDetails ? 'Profiles on' : 'Profiles off'}`
 
   const visibleSectionLabels = Object.entries(appSettings.overviewSections)
     .filter(([, enabled]) => enabled)
@@ -125,9 +127,19 @@ export function useProfileScreenModel() {
 
   const metricLabels = selectedMetrics.map((id) => METRIC_LABELS[id] ?? id)
 
-  const overviewSummary = `${visibleSectionLabels.length} sections visible · ${metricLabels.length} metrics active · ${appSettings.overviewRecentAppointmentsCount}/${appSettings.overviewRecentClientsCount}/${appSettings.clientDetailsAppointmentLogsCount} preview counts`
+  const overviewSummary = `${visibleSectionLabels.length} sections · ${
+    metricLabels.length
+  } metrics · ${appSettings.overviewRecentAppointmentsCount}/${
+    appSettings.overviewRecentClientsCount
+  }/${appSettings.clientDetailsAppointmentLogsCount} previews`
 
-  const servicesSummary = `${activeServices.length} active services · Dates show ${formatDateSummary(appSettings.dateDisplayFormat, appSettings.dateLongIncludeWeekday)}`
+  const servicesSummary = `${activeServices.length} active ${
+    activeServices.length === 1 ? 'service' : 'services'
+  } for appointment logs`
+  const datesSummary = formatDateSummary(
+    appSettings.dateDisplayFormat,
+    appSettings.dateLongIncludeWeekday
+  )
 
   const handleSaveProfile = () => {
     if (!isProfileDirty) return
@@ -166,6 +178,7 @@ export function useProfileScreenModel() {
     displayEmail,
     displayName,
     displayPhone,
+    datesSummary,
     draftProfile,
     handleCancelProfile,
     handleSaveProfile,

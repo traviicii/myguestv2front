@@ -8,6 +8,7 @@ import { parseDateForPicker } from 'components/appointments/shared/datePicker'
 import { useCreateClient } from 'components/data/queries'
 import { useExpandablePanel } from 'components/ui/useExpandablePanel'
 import { formatDateMMDDYYYY } from 'components/utils/date'
+import { successHaptic, warningHaptic } from 'components/utils/haptics'
 
 import {
   buildNewClientInitialForm,
@@ -136,10 +137,6 @@ export function useNewClientFormModel() {
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
       const day = String(selectedDate.getDate()).padStart(2, '0')
       setForm((prev) => ({ ...prev, birthday: `${year}-${month}-${day}` }))
-
-      if (Platform.OS !== 'android') {
-        setShowBirthdayPicker(false)
-      }
     },
     []
   )
@@ -210,6 +207,7 @@ export function useNewClientFormModel() {
   const handleSave = async () => {
     setAttemptedSave(true)
     if (!hasRequired) {
+      void warningHaptic()
       const targetY = !form.firstName.trim() ? requiredY.current.firstName : requiredY.current.lastName
       const scrollTarget = getNewClientRequiredScrollTarget(targetY)
       if (scrollTarget !== null) {
@@ -233,6 +231,7 @@ export function useNewClientFormModel() {
         notes: form.notes,
       })
 
+      void successHaptic()
       router.replace('/(tabs)/clients')
     } catch (error) {
       const message =

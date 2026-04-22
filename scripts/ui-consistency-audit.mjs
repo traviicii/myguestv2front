@@ -16,6 +16,9 @@ const forbiddenControlPrimitives = new Set([
 
 const controlPrimitiveAllowList = new Set([
   normalizePath(path.join(rootDir, 'components/ui/controls.tsx')),
+  normalizePath(path.join(rootDir, 'components/ui/buttons.tsx')),
+  normalizePath(path.join(rootDir, 'components/ui/controlShared.tsx')),
+  normalizePath(path.join(rootDir, 'components/ui/fields.tsx')),
   normalizePath(path.join(rootDir, 'components/CurrentToast.tsx')),
 ])
 
@@ -23,6 +26,7 @@ const hardColorAllowList = new Set(
   [
     'app/+html.tsx',
     'components/AmbientBackdrop.tsx',
+    'components/ambientBackdropUtils.ts',
     'components/ui/glassStyle.ts',
     'components/ui/controls.tsx',
     'components/utils/color.ts',

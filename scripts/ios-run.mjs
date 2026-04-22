@@ -3,12 +3,19 @@ import { createRequire } from 'node:module'
 import { readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { buildManualUrls } from './devUrlUtils.mjs'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
 const projectRoot = path.resolve(scriptDir, '..')
 const iosDir = path.join(projectRoot, 'ios')
 const xcodeBuildLogPath = path.join(projectRoot, '.expo', 'xcodebuild.log')
+const expoPrebuildCachePath = path.join(
+  projectRoot,
+  '.expo',
+  'prebuild',
+  'cached-packages.json'
+)
 const supportedNodeMajor = 20
 const baseExpoConfig = require(path.join(projectRoot, 'app.config.base.js'))
 
@@ -55,6 +62,7 @@ const env = {
     process.env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN ?? 'false',
 }
 const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
+const lanManualUrls = target === 'device' ? buildManualUrls({ host: 'lan', scheme: 'myguest' }) : null
 
 warnIfNodeVersionLooksOff()
 
@@ -79,6 +87,12 @@ const resolveNativeProjectDisplayName = (baseName) => {
 const resolveNativeProjectName = (baseName) =>
   sanitizeNativeProjectName(resolveNativeProjectDisplayName(baseName))
 const resolveBaseAppName = () => baseExpoConfig.name ?? 'App'
+const resolveNativeProjectFilePath = () =>
+  path.join(
+    iosDir,
+    `${resolveNativeProjectName(resolveBaseAppName())}.xcodeproj`,
+    'project.pbxproj'
+  )
 
 const pruneStaleWorkspaces = async () => {
   const baseAppName = resolveBaseAppName()
@@ -148,6 +162,40 @@ const stripAppleSignInEntitlement = async () => {
   console.log(`Removed Sign in with Apple entitlement from ${path.relative(projectRoot, entitlementsPath)}`)
 }
 
+const repairExpoPrebuildCacheFile = async () => {
+  let contents
+  try {
+    contents = await readFile(expoPrebuildCachePath, 'utf8')
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return
+    }
+    throw error
+  }
+
+  const trimmedContents = contents.trim()
+
+  // Expo treats this file as derived local state. If it gets truncated or left
+  // half-written, `expo run:ios` bails before it even reaches the native build.
+  // Deleting the bad cache is safe because Expo will regenerate it on demand.
+  if (trimmedContents.length === 0) {
+    await rm(expoPrebuildCachePath, { force: true })
+    console.log(
+      `Removed empty Expo prebuild cache at ${path.relative(projectRoot, expoPrebuildCachePath)} so Expo can regenerate it.`
+    )
+    return
+  }
+
+  try {
+    JSON.parse(trimmedContents)
+  } catch {
+    await rm(expoPrebuildCachePath, { force: true })
+    console.log(
+      `Removed invalid Expo prebuild cache at ${path.relative(projectRoot, expoPrebuildCachePath)} so Expo can regenerate it.`
+    )
+  }
+}
+
 const run = (command, commandArgs) =>
   new Promise((resolve, reject) => {
     const child = spawn(command, commandArgs, {
@@ -191,6 +239,57 @@ const runAndCapture = (command, commandArgs) =>
       reject(new Error(`${command} ${commandArgs.join(' ')} exited with code ${code ?? 1}\n${stderr}`))
     })
   })
+
+const syncDevelopmentTeamOverride = async () => {
+  if (target !== 'device') {
+    return
+  }
+
+  const preferredTeamId =
+    env.IOS_DEVELOPMENT_TEAM?.trim() || env.APPLE_DEVELOPMENT_TEAM?.trim()
+
+  if (!preferredTeamId) {
+    return
+  }
+
+  const projectFilePath = resolveNativeProjectFilePath()
+
+  let projectFile
+  try {
+    projectFile = await readFile(projectFilePath, 'utf8')
+  } catch {
+    return
+  }
+
+  const configuredTeamIds = Array.from(
+    new Set(
+      Array.from(
+        projectFile.matchAll(/(?:DevelopmentTeam|DEVELOPMENT_TEAM) = "([A-Z0-9]+)";/g)
+      ).map((match) => match[1])
+    )
+  )
+
+  if (configuredTeamIds.length === 1 && configuredTeamIds[0] === preferredTeamId) {
+    return
+  }
+
+  const nextProjectFile = projectFile
+    .replace(/DevelopmentTeam = "[A-Z0-9]+";/g, `DevelopmentTeam = "${preferredTeamId}";`)
+    .replace(/DEVELOPMENT_TEAM = "[A-Z0-9]+";/g, `DEVELOPMENT_TEAM = "${preferredTeamId}";`)
+
+  if (nextProjectFile === projectFile) {
+    return
+  }
+
+  await writeFile(projectFilePath, nextProjectFile)
+
+  const previousTeamLabel =
+    configuredTeamIds.length > 0 ? configuredTeamIds.join(', ') : 'no configured team'
+
+  console.log(
+    `Applied local iPhone signing team override from ${previousTeamLabel} to ${preferredTeamId} in ${path.relative(projectRoot, projectFilePath)}.`
+  )
+}
 
 const resolveRequestedDeviceName = async () => {
   const requestedDeviceName = process.env.IOS_DEVICE_NAME?.trim()
@@ -285,6 +384,13 @@ if (target === 'simulator') {
   console.log('Use `npm run dev:sim` for the fastest localhost Metro loop on this Mac.')
 } else {
   console.log('Use `npm run dev` for LAN or `npm run dev:tunnel` when the phone is off-network.')
+  console.log('Unlock your iPhone before the final app launch handoff. A locked phone can make Expo look stuck at "Connecting to..." after a successful build.')
+  if (lanManualUrls) {
+    console.log('If `MyGuest Dev` says no development servers were found while using `npm run dev`, these are the LAN fallback URLs:')
+    console.log(`  Metro: ${lanManualUrls.metroBase}`)
+    console.log(`  Dev client: ${lanManualUrls.devClientUrl}`)
+  }
+  console.log('If you are using `npm run dev:tunnel`, use the tunnel URL from that terminal instead of the LAN fallback above.')
 }
 if (!appleSignInEnabled) {
   console.log(
@@ -296,8 +402,10 @@ if (clean) {
   await run('npx', ['expo', 'prebuild', '--clean'])
 }
 
+await repairExpoPrebuildCacheFile()
 await stripAppleSignInEntitlement()
 await pruneStaleWorkspaces()
+await syncDevelopmentTeamOverride()
 const expoRunArgs = ['expo', 'run:ios']
 
 if (target === 'device') {

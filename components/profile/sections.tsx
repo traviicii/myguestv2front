@@ -1,14 +1,12 @@
 import type { ReactNode } from 'react'
-import { Link, type Href } from 'expo-router'
+import { useRouter } from 'expo-router'
 import {
-  ArrowRight,
   BarChart3,
+  CalendarDays,
   Lock,
   LogOut,
   Paintbrush,
   Scissors,
-  Settings2,
-  Trash2,
   User,
   Users,
 } from '@tamagui/lucide-icons'
@@ -16,6 +14,10 @@ import { Text, XStack, YStack, ScrollView } from 'tamagui'
 
 import {
   GhostButton,
+  InsetGroup,
+  InsetRow,
+  InsetSectionFooter,
+  InsetSectionHeader,
   PrimaryButton,
   SecondaryButton,
   SectionDivider,
@@ -23,6 +25,7 @@ import {
   TextField,
   ThemedHeadingText,
 } from 'components/ui/controls'
+import { impactLightHaptic } from 'components/utils/haptics'
 import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { ProfileSectionProps } from './sectionTypes'
@@ -44,55 +47,86 @@ function SummaryIcon({ children }: { children: ReactNode }) {
   )
 }
 
-function SummaryRow({
-  title,
-  body,
-  href,
-  icon,
-  cta,
-  tone,
-}: {
-  title: string
-  body: string
-  href: Href
-  icon: React.ReactNode
-  cta: string
-  tone: 'default' | 'secondary'
-}) {
-  return (
-    <SurfaceCard tone={tone} p="$4" gap="$2.5">
-      <XStack gap="$3" items="flex-start">
-        <SummaryIcon>{icon}</SummaryIcon>
-        <YStack flex={1} gap="$1.5">
-          <ThemedHeadingText fontWeight="700" fontSize={15}>
-            {title}
-          </ThemedHeadingText>
-          <Text fontSize={12} color="$textSecondary">
-            {body}
-          </Text>
-        </YStack>
-      </XStack>
-      <Link href={href} asChild>
-        <SecondaryButton iconAfter={<ArrowRight size={16} />}>{cta}</SecondaryButton>
-      </Link>
-    </SurfaceCard>
-  )
-}
+function PreferencesSection({ model }: ProfileSectionProps) {
+  const router = useRouter()
 
-function ThemePreferencesRow({ model }: ProfileSectionProps) {
+  const rows = [
+    {
+      id: 'theme-preferences',
+      title: 'Theme Preferences',
+      subtitle: `${model.currentThemeLabel} · Choose a preset or customize the look.`,
+      icon: <Paintbrush size={16} color="$accent" />,
+      onPress: () => router.push('/theme-preferences'),
+    },
+    {
+      id: 'client-display',
+      title: 'Client Display',
+      subtitle: model.clientStatusSummary,
+      icon: <Users size={16} color="$accent" />,
+      onPress: () => router.push('/settings/client-display'),
+    },
+    {
+      id: 'overview-insights',
+      title: 'Overview & Insights',
+      subtitle: model.overviewSummary,
+      icon: <BarChart3 size={16} color="$accent" />,
+      onPress: () => router.push('/settings/overview-insights'),
+    },
+    {
+      id: 'services-logs',
+      title: 'Services & Appointment Logs',
+      subtitle: model.servicesSummary,
+      icon: <Scissors size={16} color="$accent" />,
+      onPress: () => router.push('/settings/services-logs'),
+    },
+    {
+      id: 'dates-formatting',
+      title: 'Dates & Formatting',
+      subtitle: model.datesSummary,
+      icon: <CalendarDays size={16} color="$accent" />,
+      onPress: () => router.push('/settings/dates-formatting'),
+    },
+    {
+      id: 'data-privacy',
+      title: 'Data & Privacy',
+      subtitle: 'Export records, review privacy details, get support, or manage deletion.',
+      icon: <Lock size={16} color="$accent" />,
+      onPress: () => router.push('/data-privacy'),
+    },
+  ]
+
   return (
-    <SummaryRow
-      tone={model.cardTone}
-      title="Theme Preferences"
-      body={`${model.currentThemeLabel} · Try curated presets, flip light or dark, and apply the vibe that feels right.`}
-      cta="Open Theme Picker"
-      href="/theme-preferences"
-      icon={<Paintbrush size={16} color="$accent" />}
-    />
+    <YStack gap="$2.5">
+      <InsetSectionHeader
+        title="App settings"
+        subtitle="Update how MyGuest looks, tracks clients, summarizes work, and formats records."
+      />
+      <InsetGroup tone={model.cardTone}>
+        {rows.map((row, index) => (
+          <InsetRow
+            key={row.id}
+            testID={`control-row-${row.id}`}
+            title={row.title}
+            subtitle={row.subtitle}
+            icon={row.icon}
+            showSeparator={index < rows.length - 1}
+            onPress={() => {
+              void impactLightHaptic()
+              row.onPress()
+            }}
+          />
+        ))}
+      </InsetGroup>
+      <InsetSectionFooter>
+        Account deletion is managed from Data & Privacy.
+      </InsetSectionFooter>
+    </YStack>
   )
 }
 
 function AccountSection({ model }: ProfileSectionProps) {
+  const router = useRouter()
+
   return (
     <SurfaceCard p="$4" gap="$3" tone={model.cardTone}>
       <XStack items="center" justify="space-between" gap="$3">
@@ -105,7 +139,7 @@ function AccountSection({ model }: ProfileSectionProps) {
               Account
             </ThemedHeadingText>
             <Text fontSize={12} color="$textSecondary">
-              Keep your identity details accurate and your account secure.
+              Update your profile details and manage your sign-in session.
             </Text>
           </YStack>
         </XStack>
@@ -199,7 +233,7 @@ function AccountSection({ model }: ProfileSectionProps) {
           <Text fontSize={12} color="$textSecondary">
             {model.displayEmail
               ? `Signed in as ${model.displayEmail}`
-              : 'Connect an authenticated account to lock in your email identity.'}
+              : 'Sign in to connect an account email.'}
           </Text>
         </YStack>
 
@@ -222,17 +256,20 @@ function AccountSection({ model }: ProfileSectionProps) {
       <YStack gap="$2">
         <YStack gap="$1">
           <Text fontSize={11} color="$textSecondary">
-            Danger zone
+            Data & privacy
           </Text>
           <Text fontSize={12} color="$textSecondary">
-            Permanently remove your account and associated app access.
+            Manage exports, privacy information, support, and account deletion.
           </Text>
         </YStack>
-        <Link href="/account-delete" asChild>
-          <SecondaryButton icon={<Trash2 size={16} />}>
-            Delete Account
-          </SecondaryButton>
-        </Link>
+        <SecondaryButton
+          onPress={() => {
+            void impactLightHaptic()
+            router.push('/data-privacy')
+          }}
+        >
+          Open Data & Privacy
+        </SecondaryButton>
       </YStack>
     </SurfaceCard>
   )
@@ -247,69 +284,12 @@ export function ProfileContent({ model }: ProfileSectionProps) {
             Control Center
           </ThemedHeadingText>
           <Text fontSize={12} color="$textSecondary">
-            Shape how MyGuest works for you — appearance, client visibility, insight rules,
-            service tools, and account access.
+            Manage appearance, client display, Overview settings, appointment defaults,
+            date formats, and account access.
           </Text>
         </YStack>
 
-        <Link href="/settings" asChild>
-          <SurfaceCard p="$4" gap="$2" tone={model.cardTone} pressStyle={{ opacity: 0.92 }}>
-            <XStack items="center" justify="space-between" gap="$3">
-              <XStack items="center" gap="$3" flex={1}>
-                <SummaryIcon>
-                  <Settings2 size={16} color="$accent" />
-                </SummaryIcon>
-                <YStack flex={1} gap="$1">
-                  <ThemedHeadingText fontWeight="700" fontSize={15}>
-                    All Controls
-                  </ThemedHeadingText>
-                  <Text fontSize={12} color="$textSecondary">
-                    Open the full control surface for deeper customization.
-                  </Text>
-                </YStack>
-              </XStack>
-              <ArrowRight size={18} color="$textSecondary" />
-            </XStack>
-          </SurfaceCard>
-        </Link>
-
-        <ThemePreferencesRow model={model} />
-
-        <SummaryRow
-          tone={model.cardTone}
-          title="Clients & Status"
-          body={model.clientStatusSummary}
-          cta="Open Client Display"
-          href={{ pathname: '/settings', params: { focus: 'client-display' } }}
-          icon={<Users size={16} color="$accent" />}
-        />
-
-        <SummaryRow
-          tone={model.cardTone}
-          title="Overview & Insights"
-          body={model.overviewSummary}
-          cta="Open Overview Controls"
-          href={{ pathname: '/settings', params: { focus: 'overview-insights' } }}
-          icon={<BarChart3 size={16} color="$accent" />}
-        />
-
-        <SummaryRow
-          tone={model.cardTone}
-          title="Services & Appointment Logs"
-          body={model.servicesSummary}
-          cta="Open Service Controls"
-          href={{ pathname: '/settings', params: { focus: 'services-logs' } }}
-          icon={<Scissors size={16} color="$accent" />}
-        />
-
-        <SummaryRow
-          tone={model.cardTone}
-          title="Data & Privacy"
-          body="See what MyGuest stores, open privacy or support links, export CSV records, and manage account deletion from one place."
-          cta="Open Data & Privacy"
-          href="/data-privacy"
-          icon={<Lock size={16} color="$accent" />}
-        />
+        <PreferencesSection model={model} />
 
         <AccountSection model={model} />
       </YStack>

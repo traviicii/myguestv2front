@@ -25,31 +25,31 @@ export const overviewSectionOptions: OverviewSectionOption[] = [
   {
     id: 'needsAttention',
     label: 'Upcoming',
-    help: 'Show upcoming follow-up and birthday reminders on Overview.',
+    help: 'Show follow-up timing and upcoming birthdays on Overview.',
   },
   {
     id: 'quickActions',
     label: 'Quick Actions',
-    help: 'Show the quick action buttons at the top of Overview.',
+    help: 'Show shortcut actions at the top of Overview.',
   },
   {
     id: 'metrics',
     label: 'Metrics',
-    help: 'Show the metrics tiles section.',
+    help: 'Show performance metrics on Overview.',
   },
   {
     id: 'recentAppointments',
     label: 'Recent Appointments',
-    help: 'Show the most recent appointment logs.',
+    help: 'Show the latest appointment logs.',
   },
   {
     id: 'recentClients',
-    label: 'Recently Added Clients',
-    help: 'Show the newest clients added to your database.',
+    label: 'Recently Added',
+    help: 'Show the newest client records.',
   },
   {
     id: 'pinnedClients',
-    label: 'Pinned Clients',
-    help: 'Show your pinned client list on Overview.',
+    label: 'Pinned',
+    help: 'Show pinned client records on Overview.',
   },
 ]

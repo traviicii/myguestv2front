@@ -40,7 +40,7 @@ export function ClientsEmptyState({ model, onNewClient }: ClientsEmptyStateProps
         <Text fontSize={12} color="$textSecondary" style={{ textAlign: 'center' }}>
           No clients match your search or filters.
         </Text>
-        <PrimaryButton onPress={model.resetFilters}>Clear filters</PrimaryButton>
+        <PrimaryButton onPress={model.resetFilters}>Clear search & filters</PrimaryButton>
       </EmptyStateCard>
     )
   }

@@ -21,6 +21,7 @@ import {
   ThemedHeadingText,
   ThemedSwitch,
 } from 'components/ui/controls'
+import { FALLBACK_COLORS } from 'components/utils/color'
 
 function ModeToggleRow({
   mode,
@@ -244,6 +245,6 @@ export default function ThemePreferencesScreen() {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10, 15, 24, 0.34)',
+    backgroundColor: FALLBACK_COLORS.modalOverlaySoft,
   },
 })

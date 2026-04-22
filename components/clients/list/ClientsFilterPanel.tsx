@@ -1,19 +1,54 @@
 import { Search, X } from '@tamagui/lucide-icons'
-import { XStack, YStack } from 'tamagui'
+import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
-import { ExpandableEditPanel } from 'components/ui/ExpandableEditPanel'
 import {
+  GhostButton,
+  IOSBottomSheet,
+  InsetGroup,
+  InsetSectionFooter,
+  InsetSectionHeader,
   OptionChip,
   OptionChipLabel,
-  SectionDivider,
+  PreviewCard,
   TextField,
   cardSurfaceProps,
 } from 'components/ui/controls'
+import { selectionHaptic } from 'components/utils/haptics'
 
 import type { ClientsSectionProps } from './sectionTypes'
 
 const STATUS_FILTERS = ['All', 'Active', 'Inactive'] as const
+const VISIT_FILTERS = ['All', 'Needs First Visit', 'Returning'] as const
 const TYPE_FILTERS = ['All', 'Cut', 'Color', 'Cut & Color'] as const
+
+function FilterChipGroup<T extends string>({
+  activeValue,
+  options,
+  onSelect,
+}: {
+  activeValue: T
+  onSelect: (value: T) => void
+  options: readonly T[]
+}) {
+  return (
+    <InsetGroup>
+      <XStack px="$4" py="$4" gap="$2" flexWrap="wrap">
+        {options.map((option) => (
+          <OptionChip
+            key={option}
+            active={activeValue === option}
+            onPress={() => {
+              void selectionHaptic()
+              onSelect(option)
+            }}
+          >
+            <OptionChipLabel active={activeValue === option}>{option}</OptionChipLabel>
+          </OptionChip>
+        ))}
+      </XStack>
+    </InsetGroup>
+  )
+}
 
 export function ClientsSearchBar({ model }: ClientsSectionProps) {
   return (
@@ -62,64 +97,98 @@ export function ClientsSearchBar({ model }: ClientsSectionProps) {
 
 export function ClientsFilterPanel({ model }: ClientsSectionProps) {
   return (
-    <ExpandableEditPanel
-      visible={model.showFilters && model.hasClients}
-      lineColor={model.lineColor}
-      cardProps={{
-        ...cardSurfaceProps,
-        rounded: model.chipRadius,
-        p: '$3',
-        gap: '$3',
-        shadowColor: 'transparent',
-        shadowOpacity: 0,
-        shadowRadius: 0,
-        shadowOffset: { width: 0, height: 0 },
-        elevation: 0,
-      }}
+    <IOSBottomSheet
+      open={model.filterSheetOpen && model.hasClients}
+      onClose={model.closeFilterSheet}
+      title="Filters"
+      testID="clients-filter-sheet"
+      leadingAction={
+        <GhostButton
+          testID="clients-filter-reset"
+          onPress={() => {
+            void selectionHaptic()
+            model.resetFilterSelections()
+          }}
+        >
+          Reset
+        </GhostButton>
+      }
     >
-      {() => (
-        <>
-          <YStack gap="$3">
-            <XStack gap="$2" flexWrap="wrap">
-              {STATUS_FILTERS.map((status) => (
-                <OptionChip
-                  key={status}
-                  active={model.statusFilter === status}
-                  rounded={model.chipRadius}
-                  onPress={() => model.setStatusFilter(status)}
-                >
-                  <OptionChipLabel active={model.statusFilter === status}>
-                    {status}
-                  </OptionChipLabel>
-                </OptionChip>
-              ))}
-            </XStack>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <YStack gap="$4" pb="$1">
+          <PreviewCard mode="section" tone="secondary" p="$3.5" gap="$1.5">
+            <Text fontSize={13} fontWeight="700" color="$textPrimary">
+              Refine your client list
+            </Text>
+            <Text fontSize={11} color="$textSecondary">
+              Filter by activity, visit history, service type, and saved labels. Changes apply as soon as you tap.
+            </Text>
+            <Text fontSize={11} color="$accent">
+              {model.activeFilterCount === 0
+                ? 'No filters active'
+                : `${model.activeFilterCount} filter${model.activeFilterCount === 1 ? '' : 's'} active`}
+            </Text>
+          </PreviewCard>
 
-            <XStack gap="$2" flexWrap="wrap">
-              {TYPE_FILTERS.map((type) => (
-                <OptionChip
-                  key={type}
-                  active={model.typeFilter === type}
-                  rounded={model.chipRadius}
-                  onPress={() => model.setTypeFilter(type)}
-                >
-                  <OptionChipLabel active={model.typeFilter === type}>
-                    {type}
-                  </OptionChipLabel>
-                </OptionChip>
-              ))}
-            </XStack>
+          <YStack gap="$2.5">
+            <InsetSectionHeader
+              title="Status"
+              subtitle="Filter clients by whether they are currently considered active."
+            />
+            <FilterChipGroup
+              activeValue={model.statusFilter}
+              options={STATUS_FILTERS}
+              onSelect={model.setStatusFilter}
+            />
           </YStack>
-        </>
-      )}
-    </ExpandableEditPanel>
+
+          <YStack gap="$2.5">
+            <InsetSectionHeader
+              title="Visit History"
+              subtitle="Separate brand-new clients from returning guests."
+            />
+            <FilterChipGroup
+              activeValue={model.visitFilter}
+              options={VISIT_FILTERS}
+              onSelect={model.setVisitFilter}
+            />
+          </YStack>
+
+          <YStack gap="$2.5">
+            <InsetSectionHeader
+              title="Client Type"
+              subtitle="Narrow the list by the client service category you track."
+            />
+            <FilterChipGroup
+              activeValue={model.typeFilter}
+              options={TYPE_FILTERS}
+              onSelect={model.setTypeFilter}
+            />
+          </YStack>
+
+          {model.availableTags.length > 0 ? (
+            <YStack gap="$2.5">
+              <InsetSectionHeader
+                title="Saved Labels"
+                subtitle="Quickly pull up tagged clients like VIPs or new consultations."
+              />
+              <FilterChipGroup
+                activeValue={model.tagFilter}
+                options={['All', ...model.availableTags]}
+                onSelect={model.setTagFilter}
+              />
+            </YStack>
+          ) : null}
+
+          <InsetSectionFooter>
+            Reset clears only the sheet filters. Your search text stays in place until you clear it from the search bar.
+          </InsetSectionFooter>
+        </YStack>
+      </ScrollView>
+    </IOSBottomSheet>
   )
 }
 
 export function ClientsSectionFooter() {
-  return (
-    <YStack pt="$1" pb="$2.5">
-      <SectionDivider />
-    </YStack>
-  )
+  return null
 }

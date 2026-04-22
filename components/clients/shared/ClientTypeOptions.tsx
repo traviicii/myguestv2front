@@ -2,6 +2,7 @@ import { XStack } from 'tamagui'
 
 import type { ClientType } from 'components/data/models'
 import { OptionChip, OptionChipLabel } from 'components/ui/controls'
+import { selectionHaptic } from 'components/utils/haptics'
 
 export const CLIENT_TYPE_OPTIONS: ClientType[] = ['Cut', 'Color', 'Cut & Color']
 
@@ -17,7 +18,14 @@ export function ClientTypeOptions({
   return (
     <XStack gap="$2" flexWrap="wrap">
       {CLIENT_TYPE_OPTIONS.map((type) => (
-        <OptionChip key={type} active={selectedType === type} onPress={() => onSelect(type)}>
+        <OptionChip
+          key={type}
+          active={selectedType === type}
+          onPress={() => {
+            void selectionHaptic()
+            onSelect(type)
+          }}
+        >
           <OptionChipLabel active={selectedType === type}>{type}</OptionChipLabel>
         </OptionChip>
       ))}

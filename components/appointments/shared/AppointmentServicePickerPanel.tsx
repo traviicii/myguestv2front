@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Pressable } from 'react-native'
 import { Plus } from '@tamagui/lucide-icons'
-import Animated from 'react-native-reanimated'
 import { Text, XStack, YStack } from 'tamagui'
 
 import { useCreateService, useReactivateService } from 'components/data/queries'
@@ -9,29 +7,25 @@ import type { ServiceOption } from 'components/data/api/services'
 import {
   FieldLabel,
   GhostButton,
+  IOSBottomSheet,
   PrimaryButton,
   SecondaryButton,
-  SurfaceCard,
   TextField,
 } from 'components/ui/controls'
-import { FALLBACK_COLORS } from 'components/utils/color'
 import { normalizeServiceName } from 'components/utils/services'
 
 import { AppointmentServicePickerOptions } from './AppointmentServicePickerOptions'
 import type { AppointmentInteractiveUiState } from './useAppointmentInteractiveUi'
 
 type AppointmentServicePickerPanelProps = {
-  cardMode?: 'section' | 'panel' | 'alwaysCard'
-  cardTone?: 'default' | 'secondary' | 'tabGlass'
-  isGlass?: boolean
   servicePanel: AppointmentInteractiveUiState['servicePanel']
   services: ServiceOption[]
   allServices: ServiceOption[]
   selectedServiceIds: number[]
+  onDismiss: () => void
   onClear: () => void
   onSelectService: (serviceId: number) => void
   onToggleService: (serviceId: number) => void
-  trapPress?: boolean
 }
 
 type InlineServiceCreateProps = Pick<
@@ -167,7 +161,7 @@ function InlineServiceCreate({
 
 type AppointmentServicePickerCardProps = Omit<
   AppointmentServicePickerPanelProps,
-  'servicePanel' | 'trapPress'
+  'onDismiss' | 'servicePanel'
 > & {
   autoFocusComposer?: boolean
   composerDraft: string
@@ -179,13 +173,10 @@ type AppointmentServicePickerCardProps = Omit<
 }
 
 function AppointmentServicePickerCard({
-  cardMode,
-  cardTone,
   autoFocusComposer = false,
   composerDraft,
   composerError,
   isComposerExpanded,
-  isGlass = false,
   allServices,
   services,
   selectedServiceIds,
@@ -197,7 +188,7 @@ function AppointmentServicePickerCard({
   onToggleService,
 }: AppointmentServicePickerCardProps) {
   const content = (
-    <>
+    <YStack gap="$3">
       <AppointmentServicePickerOptions
         services={services}
         selectedServiceIds={selectedServiceIds}
@@ -215,47 +206,21 @@ function AppointmentServicePickerCard({
         onExpand={onComposerExpand}
         onSelectService={onSelectService}
       />
-    </>
-  )
-
-  if (isGlass) {
-    return (
-      <SurfaceCard mode={cardMode ?? 'alwaysCard'} tone={cardTone ?? 'secondary'} p="$2" gap="$0">
-        {content}
-      </SurfaceCard>
-    )
-  }
-
-  return (
-    <YStack
-      rounded="$4"
-      borderWidth={1}
-      borderColor="$borderSubtle"
-      p="$2"
-      bg="$background"
-      shadowColor={FALLBACK_COLORS.shadowSoft}
-      shadowRadius={14}
-      shadowOpacity={1}
-      shadowOffset={{ width: 0, height: 6 }}
-      elevation={2}
-    >
-      {content}
     </YStack>
   )
+
+  return <YStack>{content}</YStack>
 }
 
 export function AppointmentServicePickerPanel({
-  cardMode,
-  cardTone,
-  isGlass,
   servicePanel,
   allServices,
   services,
   selectedServiceIds,
+  onDismiss,
   onClear,
   onSelectService,
   onToggleService,
-  trapPress = false,
 }: AppointmentServicePickerPanelProps) {
   const [isComposerExpanded, setIsComposerExpanded] = useState(false)
   const [composerDraft, setComposerDraft] = useState('')
@@ -283,89 +248,31 @@ export function AppointmentServicePickerPanel({
     setIsComposerExpanded(true)
   }
 
-  const card = (
-    <AppointmentServicePickerCard
-      cardMode={cardMode}
-      cardTone={cardTone}
-      autoFocusComposer={false}
-      composerDraft={composerDraft}
-      composerError={composerError}
-      isComposerExpanded={isComposerExpanded}
-      isGlass={isGlass}
-      allServices={allServices}
-      services={services}
-      selectedServiceIds={selectedServiceIds}
-      onClear={onClear}
-      onComposerCancel={handleComposerCancel}
-      onComposerChangeDraft={handleComposerChangeDraft}
-      onComposerExpand={handleComposerExpand}
-      onSelectService={onSelectService}
-      onToggleService={onToggleService}
-    />
-  )
-
   return (
-    <YStack position="relative">
-      <YStack
-        position="absolute"
-        l={0}
-        r={0}
-        t={0}
-        opacity={0}
-        pointerEvents="none"
-        onLayout={(event) => {
-          servicePanel.setMeasured(event.nativeEvent.layout.height)
-        }}
-      >
-        {card}
-      </YStack>
-      <Animated.View style={[{ overflow: 'hidden' }, servicePanel.animatedStyle]}>
-        {trapPress ? (
-          <Pressable
-            onPress={(event) => {
-              event.stopPropagation?.()
-            }}
-          >
-            <AppointmentServicePickerCard
-              cardMode={cardMode}
-              cardTone={cardTone}
-              autoFocusComposer={true}
-              composerDraft={composerDraft}
-              composerError={composerError}
-              isComposerExpanded={isComposerExpanded}
-              isGlass={isGlass}
-              allServices={allServices}
-              services={services}
-              selectedServiceIds={selectedServiceIds}
-              onClear={onClear}
-              onComposerCancel={handleComposerCancel}
-              onComposerChangeDraft={handleComposerChangeDraft}
-              onComposerExpand={handleComposerExpand}
-              onSelectService={onSelectService}
-              onToggleService={onToggleService}
-            />
-          </Pressable>
-        ) : (
-          <AppointmentServicePickerCard
-            cardMode={cardMode}
-            cardTone={cardTone}
-            autoFocusComposer={true}
-            composerDraft={composerDraft}
-            composerError={composerError}
-            isComposerExpanded={isComposerExpanded}
-            isGlass={isGlass}
-            allServices={allServices}
-            services={services}
-            selectedServiceIds={selectedServiceIds}
-            onClear={onClear}
-            onComposerCancel={handleComposerCancel}
-            onComposerChangeDraft={handleComposerChangeDraft}
-            onComposerExpand={handleComposerExpand}
-            onSelectService={onSelectService}
-            onToggleService={onToggleService}
-          />
-        )}
-      </Animated.View>
-    </YStack>
+    <IOSBottomSheet
+      open={servicePanel.showPanel}
+      onClose={() => {
+        handleComposerCancel()
+        onDismiss()
+      }}
+      title="Services"
+      testID="appointment-service-picker-sheet"
+    >
+      <AppointmentServicePickerCard
+        autoFocusComposer={true}
+        composerDraft={composerDraft}
+        composerError={composerError}
+        isComposerExpanded={isComposerExpanded}
+        allServices={allServices}
+        services={services}
+        selectedServiceIds={selectedServiceIds}
+        onClear={onClear}
+        onComposerCancel={handleComposerCancel}
+        onComposerChangeDraft={handleComposerChangeDraft}
+        onComposerExpand={handleComposerExpand}
+        onSelectService={onSelectService}
+        onToggleService={onToggleService}
+      />
+    </IOSBottomSheet>
   )
 }

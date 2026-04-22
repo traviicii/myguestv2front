@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useToastController } from '@tamagui/toast'
 
 import { useThemePrefs } from 'components/ThemePrefs'
+import { useAuth } from 'components/auth/AuthProvider'
 import { PRIVACY_POLICY_URL, SUPPORT_URL } from 'components/data/config'
 import { useExportMyData } from 'components/data/queries'
 import { privacyHighlights, privacySummary } from 'components/privacy/content'
@@ -18,6 +19,10 @@ import {
   photoCoverageOptions,
 } from './settingsModelConfig'
 import {
+  buildClientDisplaySummary,
+  buildDatesFormattingSummary,
+  buildOverviewInsightsSummary,
+  buildServicesLogsSummary,
   buildDisplayRows,
   clampPreviewCount,
   getSettingsCardTone,
@@ -31,6 +36,7 @@ export function useSettingsScreenModel() {
   const toast = useToastController()
   const topInset = Math.max(insets.top + 8, 16)
   const { aesthetic } = useThemePrefs()
+  const { user } = useAuth()
   const cardTone = getSettingsCardTone(aesthetic)
   const { appSettings, setAppSettings } = useStudioStore()
 
@@ -57,6 +63,21 @@ export function useSettingsScreenModel() {
       [key]: clampPreviewCount(appSettings[key], delta),
     })
   }
+
+  const visibleSectionsCount = Object.values(appSettings.overviewSections).filter(Boolean).length
+  const clientDisplaySummary = buildClientDisplaySummary(appSettings)
+  const overviewInsightsSummary = buildOverviewInsightsSummary({
+    appSettings,
+    visibleSectionsCount,
+  })
+  const servicesLogsSummary = buildServicesLogsSummary({
+    activeServicesCount: serviceManagement.activeServices.length,
+    inactiveServicesCount: serviceManagement.inactiveServices.length,
+  })
+  const datesFormattingSummary = buildDatesFormattingSummary(appSettings)
+  const accountPrivacySummary = user?.email?.trim()
+    ? `Signed in as ${user.email.trim()}`
+    : 'Support, privacy, exports, and account actions'
 
   const openConfiguredUrl = async ({
     fallbackHref,
@@ -117,9 +138,12 @@ export function useSettingsScreenModel() {
     ...serviceManagement,
     appSettings,
     appointmentDateOptions,
+    clientDisplaySummary,
     avgTicketOptions,
+    datesFormattingSummary,
     cardTone,
     displayRows,
+    accountPrivacySummary,
     handleExportMyData,
     handleOpenPrivacyPolicy,
     handleOpenSupport,
@@ -128,10 +152,12 @@ export function useSettingsScreenModel() {
     isExportingData: exportMyData.isPending,
     privacySummary: `${privacySummary} Data export is CSV-only; images stay attached to appointments in the app.`,
     overviewSectionOptions,
+    overviewInsightsSummary,
     photoCoverageOptions,
     privacyHighlights,
     setAppSettings,
     showInfo: showSettingsInfo,
+    servicesLogsSummary,
     topInset,
     updatePreviewCount,
   }

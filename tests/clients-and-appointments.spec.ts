@@ -1,4 +1,14 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+async function openSheet(page: Page, testId: string) {
+  await expect(page.getByTestId(testId)).toBeVisible()
+}
+
+async function dismissSheet(page: Page, testId: string) {
+  const sheet = page.getByTestId(testId)
+  await sheet.getByText('Done', { exact: true }).click({ force: true })
+  await expect(sheet).toHaveCount(0)
+}
 
 test('client detail route renders actions, timeline, and color chart data in mock mode', async ({
   page,
@@ -26,7 +36,7 @@ test('client edit route loads existing client values in mock mode', async ({ pag
 
   await expect(page.getByText('Edit Client')).toBeVisible()
   await expect(page.getByRole('textbox').first()).toHaveValue('Avery Stone')
-  await expect(page.getByText('Client Type')).toBeVisible()
+  await expect(page.getByText('Client Type', { exact: true })).toBeVisible()
   await expect(page.getByText('Delete Client')).toBeVisible()
 })
 
@@ -69,15 +79,16 @@ test('control route renders style, summary, and account controls in mock mode', 
   await expect(page).toHaveURL(/\/profile$/)
 
   await expect(page.getByText(/^control center$/i)).toBeVisible()
-  await expect(page.getByText(/^theme preferences$/i)).toBeVisible()
-  await expect(page.getByText(/open theme picker/i)).toBeVisible()
-  await expect(page.getByText(/^all controls$/i)).toBeVisible()
-  await expect(page.getByText(/^clients & status$/i)).toBeVisible()
-  await expect(page.getByText(/^overview & insights$/i)).toBeVisible()
-  await expect(page.getByText(/^services & appointment logs$/i)).toBeVisible()
+  await expect(page.getByTestId('control-row-theme-preferences')).toBeVisible()
+  await expect(page.getByTestId('control-row-client-display')).toBeVisible()
+  await expect(page.getByTestId('control-row-overview-insights')).toBeVisible()
+  await expect(page.getByTestId('control-row-services-logs')).toBeVisible()
+  await expect(page.getByTestId('control-row-dates-formatting')).toBeVisible()
+  await expect(page.getByTestId('control-row-data-privacy')).toBeVisible()
   await expect(page.getByText(/^account$/i)).toBeVisible()
+  await expect(page.getByText('Delete Account')).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Open Theme Picker' }).click()
+  await page.getByTestId('control-row-theme-preferences').click()
   await expect(page).toHaveURL(/\/theme-preferences$/)
   await expect(page.getByText(/^current theme$/i)).toBeVisible()
   await expect(page.getByText(/^customize$/i)).toBeVisible()
@@ -87,6 +98,26 @@ test('control route renders style, summary, and account controls in mock mode', 
   await page.getByText('Edit').last().click()
   await expect(page.getByRole('textbox', { name: /^name$/i })).toBeVisible()
   await expect(page.getByPlaceholder('(555) 555-5555')).toBeVisible()
+})
+
+test('settings route opens grouped detail sheets and honors focus params in mock mode', async ({
+  page,
+}) => {
+  await page.goto('/settings', { waitUntil: 'networkidle' })
+
+  await expect(page.getByTestId('settings-row-client-display')).toBeVisible()
+  await expect(page.getByTestId('settings-row-overview-insights')).toBeVisible()
+  await expect(page.getByTestId('settings-row-services-logs')).toBeVisible()
+  await expect(page.getByTestId('settings-row-dates-formatting')).toBeVisible()
+  await expect(page.getByTestId('settings-row-account-privacy')).toBeVisible()
+
+  await page.getByTestId('settings-row-services-logs').click()
+  await expect(page).toHaveURL(/\/settings\/services-logs$/)
+  await expect(page.getByTestId('settings-screen-services-logs')).toBeVisible()
+
+  await page.goto('/settings?focus=client-display', { waitUntil: 'networkidle' })
+  await expect(page).toHaveURL(/\/settings\/client-display(?:\?.*)?$/)
+  await expect(page.getByTestId('settings-screen-client-display')).toBeVisible()
 })
 
 test('color chart edit route renders grouped fields in mock mode', async ({ page }) => {
@@ -117,14 +148,18 @@ test('clients screen search and filters narrow results in mock mode', async ({ p
   await expect(page.getByText('Marco Vale')).toBeVisible()
   await expect(page.getByText('Avery Stone')).toHaveCount(0)
 
-  await page.getByText('Filters').click()
+  await page.getByTestId('clients-filter-button').click()
+  await openSheet(page, 'clients-filter-sheet')
   await page.getByText('Inactive', { exact: true }).last().click()
 
+  await expect(page.getByTestId('clients-filter-sheet')).toBeVisible()
   await expect(page.getByText('No clients match your search or filters.')).toBeVisible()
 
-  await page.getByText('Clear filters').click()
+  await page.getByTestId('clients-filter-reset').click()
+  await expect(page.getByTestId('clients-filter-sheet')).toBeVisible()
   await expect(page.getByText('Marco Vale')).toBeVisible()
-  await expect(searchInput).toHaveValue('')
+  await expect(searchInput).toHaveValue('Marco')
+  await dismissSheet(page, 'clients-filter-sheet')
 })
 
 test('appointment client picker route filters clients and opens a client log flow in mock mode', async ({
@@ -152,18 +187,24 @@ test('new appointment route opens pickers and lets you choose services in mock m
 
   await expect(page.getByText('NEW APPOINTMENT LOG', { exact: true })).toBeVisible()
   await expect(page.getByText('Avery Stone', { exact: true }).last()).toBeVisible()
-  await expect(page.getByText(/^\d{2}\/\d{2}\/\d{4}$/).first()).toBeVisible()
+  const dateValue = page.getByText(/^\d{2}\/\d{2}\/\d{4}$/).first()
+  await expect(dateValue).toBeVisible()
+
+  await dateValue.click()
+  await openSheet(page, 'appointment-date-picker-sheet')
+  await dismissSheet(page, 'appointment-date-picker-sheet')
 
   await page.getByText('Select services').click()
+  await openSheet(page, 'appointment-service-picker-sheet')
   await expect(page.getByText('Clear all').last()).toBeVisible()
 
   await page.getByText('Cut', { exact: true }).last().click()
-  await page.getByText('NEW APPOINTMENT LOG', { exact: true }).click()
+  await dismissSheet(page, 'appointment-service-picker-sheet')
 
   await expect(page.getByText('Select services')).toHaveCount(0)
 })
 
-test('edit appointment route opens date picker and supports clearing selected services', async ({
+test('edit appointment route uses sheets for pickers and supports clearing selected services', async ({
   page,
 }) => {
   await page.goto('/appointments', { waitUntil: 'networkidle' })
@@ -175,12 +216,19 @@ test('edit appointment route opens date picker and supports clearing selected se
 
   await expect(page.getByText('EDIT APPOINTMENT LOG', { exact: true })).toBeVisible()
   await expect(page.getByText('Avery Stone', { exact: true }).last()).toBeVisible()
-  await expect(page.getByText('03/07/2026', { exact: true }).last()).toBeVisible()
+  const dateValue = page.getByText('03/07/2026', { exact: true }).last()
+  await expect(dateValue).toBeVisible()
 
   await page.getByText('Cut & Color +1').click()
+  await openSheet(page, 'appointment-service-picker-sheet')
   await expect(page.getByText('Clear all').last()).toBeVisible()
   await page.getByText('Clear all').last().click()
-  await page.getByText('EDIT APPOINTMENT LOG', { exact: true }).click()
+  await expect(page.getByTestId('appointment-service-picker-sheet')).toBeVisible()
+  await dismissSheet(page, 'appointment-service-picker-sheet')
 
   await expect(page.getByText('Select services')).toBeVisible()
+
+  await dateValue.click()
+  await openSheet(page, 'appointment-date-picker-sheet')
+  await dismissSheet(page, 'appointment-date-picker-sheet')
 })

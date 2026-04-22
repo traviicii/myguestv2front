@@ -24,8 +24,10 @@ export function OnboardingAppointmentStep({ model }: OnboardingSectionProps) {
         displayValue={model.appointmentDraft.date}
         onDateChange={model.handleDateChange}
         onFieldPress={model.handleDateFieldPress}
+        onPickerDismiss={model.closeDatePicker}
         pickerDate={model.pickerDate}
         pulseKey={0}
+        sheetTitle="Appointment Date"
         showDateError={false}
         showDatePicker={model.showDatePicker}
       />

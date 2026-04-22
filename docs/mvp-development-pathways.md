@@ -1,6 +1,6 @@
 # MVP Development Pathways
 
-Last updated: 2026-04-09
+Last updated: 2026-04-22
 
 This is the working operating guide for how we should build, validate, and
 release MyGuest as we move toward MVP launch.
@@ -45,8 +45,8 @@ Commands:
 
 ```bash
 cd /Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front
-npm run ios:sim
 npm run dev:sim
+npm run ios:sim
 ```
 
 Prefer this lane when:
@@ -74,8 +74,8 @@ Commands:
 
 ```bash
 cd /Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front
-npm run ios:device:release-like:clean
 npm run dev
+npm run ios:device:release-like:clean
 ```
 
 Why this lane matters now:
@@ -88,8 +88,15 @@ Use the lighter reinstall path after the first clean install:
 
 ```bash
 cd /Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front
-npm run ios:device:release-like
 npm run dev
+npm run ios:device:release-like
+```
+
+If Metro starts printing Watchman recrawl warnings in either local lane, run:
+
+```bash
+cd /Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front
+npm run dev:watchman:reset
 ```
 
 ### 3. Preview dogfooding

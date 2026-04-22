@@ -1,4 +1,5 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { buildManualUrls } from './devUrlUtils.mjs'
 
 const args = new Set(process.argv.slice(2))
 const supportedNodeMajor = 20
@@ -55,6 +56,19 @@ const env = {
 }
 const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
 
+const copyToClipboard = (value) => {
+  if (!value || process.platform !== 'darwin') {
+    return false
+  }
+
+  const result = spawnSync('pbcopy', [], {
+    input: value,
+    stdio: ['pipe', 'ignore', 'ignore'],
+  })
+
+  return !result.error && result.status === 0
+}
+
 warnIfNodeVersionLooksOff()
 
 if (clear) {
@@ -88,6 +102,19 @@ console.log(
   'If Expo says no development build is installed, run `npm run ios` for the simulator or `npm run ios:device` for a phone first.'
 )
 console.log('Rebuild native apps only when native dependencies, app config, or signing change.')
+
+const manualUrls = buildManualUrls({ host, scheme: 'myguest' })
+if (manualUrls) {
+  console.log('Manual fallback URLs:')
+  console.log(`  Metro: ${manualUrls.metroBase}`)
+  console.log(`  Dev client: ${manualUrls.devClientUrl}`)
+  console.log('If the app says no development servers were found, unlock the phone and try the dev-client URL first.')
+  if (host === 'lan' && copyToClipboard(manualUrls.devClientUrl)) {
+    console.log('Copied the LAN dev-client URL to your clipboard.')
+  }
+} else if (host === 'tunnel') {
+  console.log('Tunnel fallback URL will come from Expo after the tunnel finishes connecting.')
+}
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 

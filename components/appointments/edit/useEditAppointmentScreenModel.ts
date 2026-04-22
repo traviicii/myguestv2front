@@ -29,6 +29,7 @@ import {
   useUpdateAppointmentLog,
 } from 'components/data/queries'
 import { useAppointmentInteractiveUi } from 'components/appointments/shared/useAppointmentInteractiveUi'
+import { successHaptic, warningHaptic } from 'components/utils/haptics'
 import {
   buildEditAppointmentInitialForm,
   buildEditAppointmentUpdateInput,
@@ -65,6 +66,7 @@ export function useEditAppointmentScreenModel() {
   const [pulseKey, setPulseKey] = useState(0)
   const {
     closePickers,
+    closeDatePicker,
     closeServicePicker,
     datePanel,
     dismissInteractiveUI,
@@ -158,9 +160,6 @@ export function useEditAppointmentScreenModel() {
     }
     if (!selectedDate) return
     setForm((prev) => ({ ...prev, date: formatDateFromPicker(selectedDate) }))
-    if (Platform.OS !== 'android') {
-      setShowDatePicker(false)
-    }
   }
 
   const toggleServiceSelection = (serviceId: number) => {
@@ -181,6 +180,7 @@ export function useEditAppointmentScreenModel() {
     setAttemptedSave(true)
     if (!hasRequired || !isDirty) {
       if (!hasRequired) {
+        void warningHaptic()
         const scrollTarget = getEditAppointmentRequiredDateScrollTarget(requiredY.current.date)
         if (scrollTarget !== null) {
           scrollRef.current?.scrollTo({
@@ -211,6 +211,7 @@ export function useEditAppointmentScreenModel() {
         })
       )
 
+      void successHaptic()
       router.back()
     } catch (error) {
       Alert.alert(
@@ -265,6 +266,7 @@ export function useEditAppointmentScreenModel() {
     clearSelectedServices,
     client,
     closePickers,
+    closeDatePicker,
     closeServicePicker,
     datePanel,
     dismissInteractiveUI,

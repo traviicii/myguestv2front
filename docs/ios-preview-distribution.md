@@ -6,10 +6,10 @@ your Mac is asleep, offline, or nowhere nearby.
 ## When To Use Which Lane
 
 - Local simulator/device development:
-  - `npm run ios`
   - `npm run dev:sim`
-  - `npm run ios:device`
+  - `npm run ios`
   - `npm run dev`
+  - `npm run ios:device`
 - Preview build for real-world testing away from your Mac:
   - `npm run eas:build:ios:preview`
 - Production/TestFlight build:

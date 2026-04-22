@@ -241,6 +241,205 @@ const patches = [
         `  const body = err.body;`,
         `  const body = err?.body || {};`
       )
+  },
+  {
+    // Some local installs expose resolve's homedir helper through a default
+    // export shape during Xcode script execution. Normalize it so Expo's
+    // Metro/export helpers can resolve modules consistently in build phases.
+    name: 'resolve-async-homedir-interop',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'resolve',
+      'lib',
+      'async.js'
+    ),
+    apply: (source) =>
+      source.replace(
+        `var getHomedir = require('./homedir');
+var path = require('path');`,
+        `var getHomedir = require('./homedir');
+if (getHomedir && typeof getHomedir !== 'function' && typeof getHomedir.default === 'function') {
+    getHomedir = getHomedir.default;
+}
+var path = require('path');`
+      )
+  },
+  {
+    name: 'resolve-sync-homedir-interop',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'resolve',
+      'lib',
+      'sync.js'
+    ),
+    apply: (source) =>
+      source.replace(
+        `var path = require('path');
+var getHomedir = require('./homedir');
+var caller = require('./caller');`,
+        `var path = require('path');
+var getHomedir = require('./homedir');
+if (getHomedir && typeof getHomedir !== 'function' && typeof getHomedir.default === 'function') {
+    getHomedir = getHomedir.default;
+}
+var caller = require('./caller');`
+      )
+  },
+  {
+    // Metro can expose @tamagui/static through a slightly different CommonJS
+    // interop shape than plain Node. Normalize the loader so the Tamagui Babel
+    // plugin can resolve its static helpers in both environments.
+    name: 'tamagui-static-sync-export-interop',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      '@tamagui',
+      'static-sync',
+      'dist',
+      'index.cjs'
+    ),
+    apply: (source) =>
+      source
+        .replace(
+          `module.exports = __toCommonJS(index_exports);
+var import_synckit = require("synckit"), import_node_url = require("node:url"), import_meta = {},`,
+          `module.exports = __toCommonJS(index_exports);
+var resolveStaticModule = () => {
+  const mod = require("@tamagui/static");
+  const candidates = [mod?.default, mod, mod?.default?.default].filter(Boolean);
+  for (const candidate of candidates) {
+    if (
+      typeof candidate.getBabelPlugin === "function" ||
+      typeof candidate.getPragmaOptions === "function"
+    ) {
+      return candidate;
+    }
+  }
+  return mod?.default ?? mod;
+};
+var import_synckit = require("synckit"), import_node_url = require("node:url"), import_meta = {},`
+        )
+        .replace(
+          `  let { default: Static } = require("@tamagui/static");
+  return Static.getPragmaOptions(props);`,
+          `  let Static = resolveStaticModule();
+  return Static.getPragmaOptions(props);`
+        )
+        .replace(
+          `  let { default: Static } = require("@tamagui/static");
+  return Static.getBabelPlugin();`,
+          `  let Static = resolveStaticModule();
+  return Static.getBabelPlugin();`
+        )
+  },
+  {
+    // RN 0.81 can expose two copies of RCTBridge.h via the prebuilt xcframework
+    // and the public React headers. These view manager files use a bare import,
+    // which can pull the xcframework copy and trigger duplicate interface errors.
+    name: 'react-native-ios-utilities-rctbridge-wrapper-view',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-ios-utilities',
+      'ios',
+      'Sources',
+      'RNIWrapperView',
+      'RNIWrapperViewManager.mm'
+    ),
+    apply: (source) =>
+      source.replace(`#import "RCTBridge.h"`, `#import <React/RCTBridge.h>`)
+  },
+  {
+    name: 'react-native-ios-utilities-rctbridge-detached-view',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-ios-utilities',
+      'ios',
+      'Sources',
+      'RNIDetachedView',
+      'RNIDetachedViewManager.mm'
+    ),
+    apply: (source) =>
+      source.replace(`#import "RCTBridge.h"`, `#import <React/RCTBridge.h>`)
+  },
+  {
+    name: 'react-native-ios-utilities-rctbridge-dummy-view',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-ios-utilities',
+      'ios',
+      'Sources',
+      'RNIDummyTestView',
+      'RNIDummyTestViewManager.mm'
+    ),
+    apply: (source) =>
+      source.replace(`#import "RCTBridge.h"`, `#import <React/RCTBridge.h>`)
+  },
+  {
+    // react-native-ios-context-menu hits the same duplicate RCTBridge header
+    // resolution issue as react-native-ios-utilities under RN 0.81's prebuilt
+    // React headers. Force the canonical public React include path.
+    name: 'react-native-ios-context-menu-rctbridge-button-manager',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-ios-context-menu',
+      'ios',
+      'RNIContextMenuButton',
+      'RNIContextMenuButtonViewManager.mm'
+    ),
+    apply: (source) =>
+      source.replace(`#import "RCTBridge.h"`, `#import <React/RCTBridge.h>`)
+  },
+  {
+    name: 'react-native-ios-context-menu-rctbridge-view-manager',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-ios-context-menu',
+      'ios',
+      'RNIContextMenuView',
+      'RNIContextMenuViewManager.mm'
+    ),
+    apply: (source) =>
+      source.replace(`#import "RCTBridge.h"`, `#import <React/RCTBridge.h>`)
+  },
+  {
+    // CocoaPods can surface RNSScreen.h through the public headers view while
+    // compiling another file, which makes this sibling-header import fragile.
+    // Point it at the public pod header explicitly so the include always resolves.
+    name: 'react-native-screens-content-wrapper-header',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-screens',
+      'ios',
+      'RNSScreen.h'
+    ),
+    apply: (source) =>
+      source.replace(
+        `#import "RNSScreenContentWrapper.h"`,
+        `#import <RNScreens/RNSScreenContentWrapper.h>`
+      )
+  },
+  {
+    name: 'react-native-screens-content-wrapper-impl',
+    target: path.join(
+      process.cwd(),
+      'node_modules',
+      'react-native-screens',
+      'ios',
+      'RNSScreen.mm'
+    ),
+    apply: (source) =>
+      source.replace(
+        `#import "RNSScreenContentWrapper.h"`,
+        `#import <RNScreens/RNSScreenContentWrapper.h>`
+      )
   }
 ];
 

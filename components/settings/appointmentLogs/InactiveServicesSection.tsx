@@ -1,7 +1,7 @@
 import { RotateCcw, Trash2 } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
-import { FieldLabel, SecondaryButton } from 'components/ui/controls'
+import { FieldLabel, SecondaryButton, SurfaceCard } from 'components/ui/controls'
 
 import type { SettingsSectionProps } from '../sectionTypes'
 import { getServiceUsageLabel } from './utils'
@@ -16,30 +16,37 @@ export function InactiveServicesSection({ model }: SettingsSectionProps) {
       <YStack gap="$1">
         <FieldLabel>Archived services</FieldLabel>
         <Text fontSize={11} color="$textSecondary">
-          Hidden from the picker, but still preserved on past appointment logs.
+          Hidden from new logs. Past appointments stay unchanged.
         </Text>
       </YStack>
-      <YStack gap="$1.5">
+      <YStack gap="$2">
         {model.inactiveServices.map((service) => (
-          <YStack
+          <SurfaceCard
             key={service.id}
-            gap="$1.5"
-            borderWidth={1}
-            borderColor="$borderSubtle"
-            rounded="$4"
-            p="$2"
+            mode="section"
+            tone="default"
+            p="$3"
+            gap="$2.5"
+            rounded="$5"
           >
-            <XStack items="center" justify="space-between">
-              <Text fontSize={13} fontWeight="600" color="$textPrimary">
-                {service.name}
-              </Text>
+            <YStack gap="$0.5">
+              <XStack items="center" justify="space-between" gap="$2">
+                <Text fontSize={13} fontWeight="700" color="$textPrimary" flex={1}>
+                  {service.name}
+                </Text>
+                <Text fontSize={11} color="$textSecondary">
+                  Archived
+                </Text>
+              </XStack>
               <Text fontSize={11} color="$textSecondary">
                 {getServiceUsageLabel(service.usageCount)}
               </Text>
-            </XStack>
-            <XStack items="center" justify="space-between" gap="$2">
+            </YStack>
+
+            <XStack items="center" gap="$2">
               <SecondaryButton
                 size="$2"
+                flex={1}
                 icon={<RotateCcw size={14} />}
                 onPress={() => {
                   void model.handleReactivateService(service.id)
@@ -49,6 +56,7 @@ export function InactiveServicesSection({ model }: SettingsSectionProps) {
               </SecondaryButton>
               <SecondaryButton
                 size="$2"
+                flex={1}
                 px="$2"
                 disabled={service.usageCount > 0 || model.isDeletingService}
                 opacity={service.usageCount > 0 ? 0.45 : 1}
@@ -66,7 +74,7 @@ export function InactiveServicesSection({ model }: SettingsSectionProps) {
                 Delete
               </SecondaryButton>
             </XStack>
-          </YStack>
+          </SurfaceCard>
         ))}
       </YStack>
     </YStack>

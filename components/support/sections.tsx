@@ -59,8 +59,7 @@ export function SupportContent({ model }: { model: DataPrivacyScreenModel }) {
           Support Center
         </ThemedHeadingText>
         <Text fontSize={12} color="$textSecondary">
-          A quick reference for the current build while public support pages and help channels
-          are being finalized.
+          Find help for sign-in, exports, account deletion, and photo permissions.
         </Text>
       </YStack>
 
@@ -72,8 +71,7 @@ export function SupportContent({ model }: { model: DataPrivacyScreenModel }) {
           </Text>
         </XStack>
         <Text fontSize={11} color="$textSecondary">
-          Sign-in access, exports, account deletion, and photo-permission issues are the main
-          launch-era support topics for MyGuest.
+          Start with the common support topics below, or use the account actions when you are signed in.
         </Text>
       </SurfaceCard>
 
@@ -118,29 +116,28 @@ export function SupportContent({ model }: { model: DataPrivacyScreenModel }) {
         )}
       </SurfaceCard>
 
-      <SurfaceCard tone="secondary" p="$4" gap="$3">
-        <Text fontSize={13} fontWeight="700" color="$textPrimary">
-          Need an external support page?
-        </Text>
-        <Text fontSize={11} color="$textSecondary">
-          The release build should also link to a hosted support URL for App Review and
-          production users.
-        </Text>
-        {model.hasSupportUrl ? (
+      {model.hasSupportUrl ? (
+        <SurfaceCard tone="secondary" p="$4" gap="$3">
+          <Text fontSize={13} fontWeight="700" color="$textPrimary">
+            Public support
+          </Text>
+          <Text fontSize={11} color="$textSecondary">
+            Open the public support page when you need help outside the app.
+          </Text>
           <SecondaryButton
             iconAfter={<ArrowUpRight size={16} />}
             onPress={() => {
               void model.handleOpenSupport()
             }}
           >
-            Open Hosted Support
+            Open Support
           </SecondaryButton>
-        ) : null}
-      </SurfaceCard>
+        </SurfaceCard>
+      ) : null}
 
       <SurfaceCard tone="secondary" p="$4" gap="$1">
         <Text fontSize={12} fontWeight="700" color="$textPrimary">
-          Release details
+          App version
         </Text>
         <Text fontSize={11} color="$textSecondary">
           {model.releaseLabel}

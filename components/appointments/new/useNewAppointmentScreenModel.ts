@@ -24,6 +24,7 @@ import {
   pickAppointmentImagesFromLibrary,
 } from 'components/appointments/shared/appointmentImagePicker'
 import { useAppointmentInteractiveUi } from 'components/appointments/shared/useAppointmentInteractiveUi'
+import { successHaptic, warningHaptic } from 'components/utils/haptics'
 import {
   buildNewAppointmentCreateInput,
   buildNewAppointmentInitialForm,
@@ -58,6 +59,8 @@ export function useNewAppointmentScreenModel() {
   const [pulseKey, setPulseKey] = useState(0)
   const {
     closePickers,
+    closeDatePicker,
+    closeServicePicker,
     datePanel,
     dismissInteractiveUI,
     handleDateFieldPress,
@@ -122,9 +125,6 @@ export function useNewAppointmentScreenModel() {
     }
     if (!selectedDate) return
     setForm((prev) => ({ ...prev, date: formatDateFromPicker(selectedDate) }))
-    if (Platform.OS !== 'android') {
-      setShowDatePicker(false)
-    }
   }
 
   const toggleServiceSelection = (serviceId: number) => {
@@ -144,6 +144,7 @@ export function useNewAppointmentScreenModel() {
   const handleSave = async () => {
     setAttemptedSave(true)
     if (!hasRequired) {
+      void warningHaptic()
       const scrollTarget = getRequiredDateScrollTarget(requiredY.current.date)
       if (scrollTarget !== null) {
         scrollRef.current?.scrollTo({
@@ -170,6 +171,7 @@ export function useNewAppointmentScreenModel() {
           images,
         })
       )
+      void successHaptic()
       router.back()
     } catch (error) {
       Alert.alert(
@@ -223,6 +225,8 @@ export function useNewAppointmentScreenModel() {
     clearSelectedServices,
     client,
     closePickers,
+    closeDatePicker,
+    closeServicePicker,
     createAppointmentLog,
     datePanel,
     dismissInteractiveUI,

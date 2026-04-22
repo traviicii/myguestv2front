@@ -2,34 +2,42 @@ import { SlidersHorizontal } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
+  SecondaryButton,
   ThemedHeadingText,
-  cardSurfaceProps,
 } from 'components/ui/controls'
+import { impactLightHaptic } from 'components/utils/haptics'
 
 import { ClientsFilterPanel, ClientsSearchBar, ClientsSectionFooter } from './ClientsFilterPanel'
 import type { ClientsSectionProps } from './sectionTypes'
 
 export function ClientsListHeader({ model }: ClientsSectionProps) {
+  const filterLabel = model.activeFilterCount
+    ? `Filters (${model.activeFilterCount})`
+    : 'Filters'
+
   return (
-    <YStack px="$5" pt={model.topInset} gap="$4">
+    <YStack px="$5" pt={model.topInset} gap="$3">
       <XStack items="center" justify="space-between">
         <ThemedHeadingText fontWeight="700" fontSize={16}>
           Client Index
         </ThemedHeadingText>
-        <XStack
-          {...cardSurfaceProps}
-          rounded={model.controlRadius}
+        <SecondaryButton
+          testID="clients-filter-button"
+          size="$2"
           px="$3"
-          py="$2.5"
-          items="center"
-          gap="$2"
-          onPress={model.toggleFilters}
+          height={36}
+          icon={<SlidersHorizontal size={15} color={model.hasActiveFilters ? '$accent' : '$textSecondary'} />}
+          bg={model.hasActiveFilters ? '$surfaceChipActive' : undefined}
+          borderColor={model.hasActiveFilters ? '$borderAccent' : undefined}
+          onPress={() => {
+            void impactLightHaptic()
+            model.openFilterSheet()
+          }}
         >
-          <SlidersHorizontal size={16} color="$textSecondary" />
-          <Text fontSize={12} color="$textSecondary">
-            {model.showFilters ? 'Hide Filters' : 'Filters'}
+          <Text fontSize={12} color={model.hasActiveFilters ? '$accent' : '$textSecondary'}>
+            {filterLabel}
           </Text>
-        </XStack>
+        </SecondaryButton>
       </XStack>
 
       <ClientsSearchBar model={model} />

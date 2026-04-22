@@ -33,6 +33,9 @@ export default function ClientsScreen() {
         contentContainerStyle={{
           paddingBottom: Math.max(24, model.insets.bottom + 24),
         }}
+        ListHeaderComponentStyle={{
+          paddingBottom: 12,
+        }}
         refreshControl={
           <ThemedRefreshControl
             refreshing={model.isRefreshing}

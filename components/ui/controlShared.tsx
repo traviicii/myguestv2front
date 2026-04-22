@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Button, useTheme } from 'tamagui'
 
 import { useResolvedThemeSelection, type ThemeAesthetic } from '../ThemePrefs'
-import { toNativeColor } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import {
   getGlassBlurIntensity,
   getGlassLayerColors,
@@ -143,8 +143,14 @@ export function GlassEffectLayer({
 }) {
   const theme = useTheme()
   const layerColors = getGlassLayerColors(mode, {
-    accent: toNativeColor(theme.backdropAccent?.val, mode === 'dark' ? '#9AB8FF' : '#8FC3FF'),
-    start: toNativeColor(theme.backdropStart?.val, mode === 'dark' ? '#465A84' : '#CFE2FF'),
+    accent: toNativeColor(
+      theme.backdropAccent?.val,
+      mode === 'dark' ? FALLBACK_COLORS.glassAccentDark : FALLBACK_COLORS.glassAccentLight
+    ),
+    start: toNativeColor(
+      theme.backdropStart?.val,
+      mode === 'dark' ? FALLBACK_COLORS.glassStartDark : FALLBACK_COLORS.glassStartLight
+    ),
   })
   const gradientColors =
     density === 'tab'

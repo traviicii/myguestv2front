@@ -34,6 +34,7 @@ export function PrimaryButton({
         bg: '$buttonPrimaryBgPress',
         borderColor: '$buttonPrimaryBorderPress',
         opacity: profile.buttonPressOpacity,
+        scale: 0.988,
       }}
       hoverStyle={{
         bg: '$buttonPrimaryBgPress',
@@ -88,6 +89,7 @@ export function SecondaryButton({
         bg: '$buttonSecondaryBgPress',
         borderColor: '$borderAccent',
         opacity: profile.buttonPressOpacity,
+        scale: 0.988,
       }}
       hoverStyle={{
         bg: '$buttonSecondaryBgPress',
@@ -130,7 +132,11 @@ export function GhostButton({
       height={40}
       chromeless
       rounded={profile.controlRadius}
-      pressStyle={{ bg: '$surfaceChipActive', opacity: profile.buttonPressOpacity }}
+      pressStyle={{
+        bg: '$surfaceChipActive',
+        opacity: profile.buttonPressOpacity,
+        scale: 0.99,
+      }}
       hoverStyle={{ bg: '$surfaceChipActive' }}
       {...props}
     >

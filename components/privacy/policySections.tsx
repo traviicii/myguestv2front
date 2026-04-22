@@ -64,8 +64,7 @@ export function PrivacyPolicyContent({ model }: { model: DataPrivacyScreenModel 
           Privacy Policy
         </ThemedHeadingText>
         <Text fontSize={12} color="$textSecondary">
-          This in-app summary explains how the current MyGuest build handles account,
-          client, appointment, formula, and photo data.
+          Learn what MyGuest stores, how that data is used, and what happens when an account is deleted.
         </Text>
       </YStack>
 
@@ -73,7 +72,7 @@ export function PrivacyPolicyContent({ model }: { model: DataPrivacyScreenModel 
         <XStack gap="$2" items="center">
           <Shield size={16} color="$accent" />
           <Text fontSize={13} fontWeight="700" color="$textPrimary">
-            Current build summary
+            Summary
           </Text>
         </XStack>
         <Text fontSize={11} color="$textSecondary">
@@ -87,29 +86,28 @@ export function PrivacyPolicyContent({ model }: { model: DataPrivacyScreenModel 
         ))}
       </YStack>
 
-      <SurfaceCard tone={model.cardTone} p="$4" gap="$3">
-        <Text fontSize={13} fontWeight="700" color="$textPrimary">
-          Need the public version?
-        </Text>
-        <Text fontSize={11} color="$textSecondary">
-          The App Store build should also link to a hosted privacy policy URL. Until that is
-          published, this in-app version is the clearest source of truth for the current build.
-        </Text>
-        {model.hasPrivacyPolicyUrl ? (
+      {model.hasPrivacyPolicyUrl ? (
+        <SurfaceCard tone={model.cardTone} p="$4" gap="$3">
+          <Text fontSize={13} fontWeight="700" color="$textPrimary">
+            Public policy
+          </Text>
+          <Text fontSize={11} color="$textSecondary">
+            Open the public privacy policy when you need a shareable version outside the app.
+          </Text>
           <SecondaryButton
             iconAfter={<ArrowUpRight size={16} />}
             onPress={() => {
               void model.handleOpenPrivacyPolicy()
             }}
           >
-            Open Hosted Privacy Policy
+            Open Privacy Policy
           </SecondaryButton>
-        ) : null}
-      </SurfaceCard>
+        </SurfaceCard>
+      ) : null}
 
       <SurfaceCard tone="secondary" p="$4" gap="$1">
         <Text fontSize={12} fontWeight="700" color="$textPrimary">
-          Release details
+          App version
         </Text>
         <Text fontSize={11} color="$textSecondary">
           {model.releaseLabel}

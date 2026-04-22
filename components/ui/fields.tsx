@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useRef } from 'react'
 import { Animated } from 'react-native'
 import { Input, Switch, Text, TextArea, XStack, YStack, useTheme } from 'tamagui'
 
-import { toNativeColor } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { getFontFamilyStyle, useAestheticProfile } from './controlShared'
 
 export const TextField = forwardRef<
@@ -192,7 +192,7 @@ export function ErrorPulseBorder({
         left: 0,
         borderWidth: 2,
         borderRadius: radius + 2,
-        borderColor: toNativeColor(theme.danger?.val, '#EF4444'),
+        borderColor: toNativeColor(theme.danger?.val, FALLBACK_COLORS.danger),
         zIndex: 2,
         opacity,
         transform: [{ scale }],

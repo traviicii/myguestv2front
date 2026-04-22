@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { ComponentProps } from 'react'
 import { StyleSheet } from 'react-native'
 import { ArrowDown, ArrowUp, Trash2 } from '@tamagui/lucide-icons'
-import { Button, Text, XStack, YStack } from 'tamagui'
+import { Text, XStack, YStack } from 'tamagui'
 import Animated, {
   Easing,
   LinearTransition,
@@ -16,7 +16,9 @@ import Animated, {
 import {
   CurrencyField,
   FieldLabel,
+  GhostButton,
   SecondaryButton,
+  SurfaceCard,
   TextField,
 } from 'components/ui/controls'
 
@@ -38,7 +40,7 @@ function ReorderButton({
   onPress: () => void
 }) {
   return (
-    <Button
+    <GhostButton
       chromeless
       width={30}
       height={30}
@@ -50,7 +52,7 @@ function ReorderButton({
       disabledStyle={{ opacity: 0.4 }}
     >
       {icon}
-    </Button>
+    </GhostButton>
   )
 }
 
@@ -125,12 +127,12 @@ export function ActiveServicesSection({ model }: SettingsSectionProps) {
   }
 
   return (
-    <YStack gap="$2.5">
+    <YStack gap="$3">
       <YStack gap="$1">
-        <FieldLabel>Active services</FieldLabel>
+        <FieldLabel>Visible services</FieldLabel>
         <Text fontSize={11} color="$textSecondary">
-          These appear in the appointment service picker. Use the arrows to adjust
-          the order.
+          Available when logging appointments. Defaults prefill new visits and
+          can be changed per log.
         </Text>
       </YStack>
       {model.activeServices.map((service, index) => (
@@ -243,17 +245,24 @@ function ActiveServiceCard({
             borderColor="$borderAccent"
           />
         </Animated.View>
-        <YStack
-          gap="$1.5"
+        <SurfaceCard
+          mode="section"
+          tone="default"
+          p="$3.5"
+          gap="$3"
+          rounded="$5"
           borderWidth={1}
           borderColor="$borderSubtle"
-          rounded="$4"
-          p="$2"
         >
-          <XStack items="center" justify="space-between" gap="$2">
-            <Text fontSize={11} color="$textSecondary">
-              {getServiceUsageLabel(service.usageCount)}
-            </Text>
+          <XStack items="flex-start" justify="space-between" gap="$3">
+            <YStack flex={1} gap="$0.5">
+              <Text fontSize={14} color="$textPrimary" fontWeight="700">
+                {model.renameDrafts[service.id] ?? service.name}
+              </Text>
+              <Text fontSize={11} color="$textSecondary">
+                {getServiceUsageLabel(service.usageCount)}
+              </Text>
+            </YStack>
             <XStack
               items="center"
               gap={0}
@@ -280,7 +289,8 @@ function ActiveServiceCard({
               />
             </XStack>
           </XStack>
-          <YStack gap="$2">
+
+          <YStack gap="$2.5">
             <YStack gap="$1">
               <FieldLabel>Service name</FieldLabel>
               <TextField
@@ -296,34 +306,36 @@ function ActiveServiceCard({
                 </Text>
               ) : null}
             </YStack>
-            <XStack items="flex-start" gap="$1.5">
+
+            <XStack items="flex-start" gap="$3">
               <YStack flex={1} gap="$1">
-              <FieldLabel>Default price</FieldLabel>
-              <CurrencyField
-                containerProps={{ width: '100%' }}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                value={
-                  model.priceDrafts[service.id] ??
-                  model.formatPriceInput(service.defaultPriceCents)
-                }
-                onChangeText={(text) => model.handlePriceDraftChange(service.id, text)}
-                onBlur={() => {
-                  void model.handlePriceBlur(service.id, service.defaultPriceCents)
-                }}
-              />
-              {priceStatus ? (
-                <Text
-                  fontSize={11}
-                  color={priceStatus.color}
-                  style={{ textAlign: 'right' }}
-                >
-                  {priceStatus.copy}
-                </Text>
-              ) : null}
+                <FieldLabel>Default price</FieldLabel>
+                <CurrencyField
+                  containerProps={{ width: '100%' }}
+                  placeholder="0.00"
+                  keyboardType="decimal-pad"
+                  value={
+                    model.priceDrafts[service.id] ??
+                    model.formatPriceInput(service.defaultPriceCents)
+                  }
+                  onChangeText={(text) => model.handlePriceDraftChange(service.id, text)}
+                  onBlur={() => {
+                    void model.handlePriceBlur(service.id, service.defaultPriceCents)
+                  }}
+                />
+                {priceStatus ? (
+                  <Text fontSize={11} color={priceStatus.color}>
+                    {priceStatus.copy}
+                  </Text>
+                ) : (
+                  <Text fontSize={11} color="$textSecondary">
+                    Optional
+                  </Text>
+                )}
               </YStack>
-              <YStack width={120} gap="$1">
-                <FieldLabel>Recommended return</FieldLabel>
+
+              <YStack width={128} gap="$1">
+                <FieldLabel>Return every</FieldLabel>
                 <TextField
                   width="100%"
                   placeholder="6"
@@ -338,20 +350,22 @@ function ActiveServiceCard({
                   }}
                 />
                 {returnStatus ? (
-                  <Text
-                    fontSize={11}
-                    color={returnStatus.color}
-                    style={{ textAlign: 'right' }}
-                  >
+                  <Text fontSize={11} color={returnStatus.color}>
                     {returnStatus.copy}
                   </Text>
-                ) : null}
+                ) : (
+                  <Text fontSize={11} color="$textSecondary">
+                    Weeks
+                  </Text>
+                )}
               </YStack>
             </XStack>
           </YStack>
-          <XStack items="center" justify="space-between" gap="$2">
+
+          <XStack items="center" gap="$2">
             <SecondaryButton
               size="$2"
+              flex={1}
               px="$2"
               onPress={() => {
                 void model.handleDeactivateService(service.id)
@@ -361,6 +375,7 @@ function ActiveServiceCard({
             </SecondaryButton>
             <SecondaryButton
               size="$2"
+              flex={1}
               px="$2"
               disabled={service.usageCount > 0 || model.isDeletingService}
               opacity={service.usageCount > 0 ? 0.45 : 1}
@@ -378,7 +393,7 @@ function ActiveServiceCard({
               Delete
             </SecondaryButton>
           </XStack>
-        </YStack>
+        </SurfaceCard>
       </YStack>
     </Animated.View>
   )
