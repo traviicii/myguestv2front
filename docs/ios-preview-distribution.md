@@ -22,6 +22,8 @@ Preview builds are standalone internal-distribution iPhone builds:
 - They launch without Metro.
 - They keep working when your Mac is off.
 - They are ideal for dogfooding, travel, and sharing with a small tester group.
+- They are separate from the local `MyGuest Dev` dev-client app after the local
+  app has been regenerated with `npm run ios:device:clean`.
 
 They are not the best fit for minute-to-minute coding iteration. Keep using the
 local simulator and dev-client paths for that.
@@ -83,6 +85,12 @@ Developer Mode is also required on iOS 16+ for internal-distribution builds.
 3. Install it from the EAS build page or with Expo Orbit.
 
 4. Open the app on your iPhone. No development server is required.
+
+If the app opens to “No development servers found,” you are looking at the dev
+client or an older install, not the standalone preview binary. Delete the old
+MyGuest app from the phone, reinstall the latest EAS preview artifact, then run
+`npm run ios:device:clean` only if you also want the separate local dev client
+installed beside it.
 
 ## Ship JS-Only Preview Fixes
 

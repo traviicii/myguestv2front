@@ -7,6 +7,7 @@ const tunnelRetryPatterns = [
   /ECONNREFUSED 127\.0\.0\.1:4040/,
   /ngrok tunnel took too long to connect/i,
 ]
+const watcherLimitPattern = /EMFILE: too many open files, watch/i
 const maxTunnelRetries = 3
 const tunnelRetryDelayMs = 1500
 
@@ -45,7 +46,6 @@ if (hostFlags.length > 1) {
 
 const host = args.has('--localhost') ? 'localhost' : args.has('--tunnel') ? 'tunnel' : 'lan'
 const clear = args.has('--clear')
-const expoArgs = ['expo', 'start', '--dev-client', '--host', host, '--scheme', 'myguest']
 const env = {
   ...process.env,
   APP_VARIANT: process.env.APP_VARIANT ?? 'development',
@@ -55,6 +55,12 @@ const env = {
     process.env.EXPO_TUNNEL_TIMEOUT_MS ?? '45000',
 }
 const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
+const resolveAppScheme = () => {
+  const appVariant = (env.APP_VARIANT ?? 'development').trim().toLowerCase()
+  return appVariant === 'development' ? 'myguest-dev' : 'myguest'
+}
+const appScheme = resolveAppScheme()
+const expoArgs = ['expo', 'start', '--dev-client', '--host', host, '--scheme', appScheme]
 
 const copyToClipboard = (value) => {
   if (!value || process.platform !== 'darwin') {
@@ -101,9 +107,10 @@ if (!appleSignInEnabled) {
 console.log(
   'If Expo says no development build is installed, run `npm run ios` for the simulator or `npm run ios:device` for a phone first.'
 )
+console.log(`Using dev-client scheme: ${appScheme}`)
 console.log('Rebuild native apps only when native dependencies, app config, or signing change.')
 
-const manualUrls = buildManualUrls({ host, scheme: 'myguest' })
+const manualUrls = buildManualUrls({ host, scheme: appScheme })
 if (manualUrls) {
   console.log('Manual fallback URLs:')
   console.log(`  Metro: ${manualUrls.metroBase}`)
@@ -165,8 +172,24 @@ const runWithTunnelRetry = async () => {
       tunnelRetryPatterns.some((pattern) => pattern.test(getOutput()))
 
     if (!shouldRetry) {
-      if (exitCode && host === 'tunnel') {
-        console.log('Tunnel startup failed. Retry with `npm run dev:lan` to use the simpler LAN path.')
+      if (exitCode) {
+        const output = getOutput()
+
+        if (watcherLimitPattern.test(output)) {
+          console.log(
+            'Metro hit the macOS file-watcher limit before it could stay up.'
+          )
+          console.log(
+            'Run `npm run dev:watchman:reset`, then start `npm run dev` again.'
+          )
+          console.log(
+            'If that still fails, stop any duplicate Metro terminals before retrying.'
+          )
+        } else if (host === 'tunnel') {
+          console.log(
+            'Tunnel startup failed. Retry with `npm run dev:lan` to use the simpler LAN path.'
+          )
+        }
       }
       process.exit(exitCode)
     }

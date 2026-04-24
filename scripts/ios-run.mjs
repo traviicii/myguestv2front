@@ -62,7 +62,12 @@ const env = {
     process.env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN ?? 'false',
 }
 const appleSignInEnabled = env.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN === 'true'
-const lanManualUrls = target === 'device' ? buildManualUrls({ host: 'lan', scheme: 'myguest' }) : null
+const resolveAppScheme = () => {
+  const appVariant = (env.APP_VARIANT ?? 'development').trim().toLowerCase()
+  return appVariant === 'development' ? 'myguest-dev' : 'myguest'
+}
+const appScheme = resolveAppScheme()
+const lanManualUrls = target === 'device' ? buildManualUrls({ host: 'lan', scheme: appScheme }) : null
 
 warnIfNodeVersionLooksOff()
 

@@ -18,6 +18,7 @@ as the operating guide.
 - [Local Toolchain](#local-toolchain)
 - [iOS Development Paths](#ios-development-paths)
 - [Two-Terminal Rule](#two-terminal-rule)
+- [Switching Between iPhone Paths](#switching-between-iphone-paths)
 - [Simulator Dev Loop](#simulator-dev-loop)
 - [Local iPhone Dev Loop](#local-iphone-dev-loop)
 - [Tunnel iPhone Dev Loop](#tunnel-iphone-dev-loop)
@@ -172,6 +173,37 @@ For physical iPhone work, this is a development-client workflow, not an Expo Go
 workflow. The app you open on the phone is `MyGuest Dev`, and the QR code is a
 fallback after that dev build is already installed.
 
+`MyGuest Dev` uses its own local development identity
+(`com.travispeck.myguest.dev` / `myguest-dev`) so it can live beside the
+standalone preview app. If you had an older local dev build from before this
+split, run a clean device build once so iOS installs the separated app identity.
+
+After that one-time cleanup, do not delete apps just to switch workflows. Open
+`MyGuest Dev` when Metro is running and you want live local iteration. Open
+`MyGuest Preview` when you want the standalone EAS preview build that works
+without your Mac.
+
+## Switching Between iPhone Paths
+
+Use these rules when moving between local iPhone development and standalone
+preview testing:
+
+1. `MyGuest Dev` is the local dev client.
+   It only works when Metro is running from `npm run dev` or
+   `npm run dev:tunnel`.
+2. `MyGuest Preview` is the standalone EAS preview app.
+   It does not require Metro and should keep working when your Mac is off.
+3. If you just published or received a preview OTA update, open `MyGuest Preview`
+   to verify it. That does not activate the local dev loop.
+4. If you want to go back to local live iteration, start Metro and open
+   `MyGuest Dev`.
+5. Signing into Expo on the phone can help preview-build installs, Orbit handoff,
+   and preview OTA update visibility, but it does not start Metro and does not
+   make `MyGuest Preview` behave like the local dev client.
+6. Deleting an app is only a cleanup step for an older pre-split install or a
+   clearly stale/broken install. It is not part of the normal switch between
+   pathways.
+
 If you already have MyGuest Metro running on `8081`, reuse it instead of
 starting a second server. Starting another `dev:*` command while the same
 project is already bound to `8081` can cause Expo to prompt for another port,
@@ -261,6 +293,9 @@ Notes:
 
 - This is the best path when you want live JavaScript updates while testing on a
   real iPhone.
+- After app identity, scheme, signing, or native config changes, run
+  `npm run ios:device:clean` once so `MyGuest Dev` is regenerated with the
+  current `com.travispeck.myguest.dev` bundle ID.
 - Keep the `npm run dev` terminal open while the app is in use.
 - Make sure your Mac and iPhone are on the same Wi-Fi.
 - Open `MyGuest Dev` directly on the phone after install. Do not rely on the QR
@@ -360,8 +395,20 @@ Notes:
   `EXPO_PUBLIC_API_BASE_URL` still points at `127.0.0.1`, the app will only
   work in mock mode away from your Mac.
 - Preview builds in this repo currently reuse the production bundle identifier
-  for the simplest Apple/Google auth setup, so installing one replaces any
-  existing MyGuest install on that iPhone.
+  for the simplest Apple/Google auth setup, but the local development app now
+  uses a separate `.dev` bundle ID. Preview and local dev can be installed side
+  by side after you refresh the local app with `npm run ios:device:clean`.
+- Once both apps are installed with the separated identities, switching between
+  workflows means opening the correct app icon. You should not delete and
+  reinstall every time you switch between local dev and preview.
+- Signing into Expo on the phone may help preview-install and OTA-update flows,
+  but it does not activate the local dev loop. Local dev still requires
+  `MyGuest Dev` plus a running Metro server.
+- If a supposed preview app shows “No development servers found,” you are not
+  in the standalone preview binary. Delete the old MyGuest install from the
+  phone only if it is a leftover pre-split install, reinstall the latest EAS
+  preview build, then refresh local dev with `npm run ios:device:clean` if you
+  still need the dev client.
 - Use the preview OTA script only for JavaScript, styling, copy, or image
   changes. Native dependency, entitlement, permission, app-config, or
   environment changes still require a new preview build.
@@ -398,6 +445,10 @@ credentials or submission answers in the local-only
   - Delete the app from the phone and re-run `npm run ios:device`.
 - **Expo says “No development build is installed”**
   - Run `npm run ios` for the simulator or `npm run ios:device:clean` for a physical iPhone first.
+- **`npm run ios:device:clean` looks stuck at “Running prebuild”**
+  - `npm run dev` will not help with this stage. Metro is only needed after the local dev app is installed.
+  - If the clean run never moves past prebuild, delete the installed `MyGuest Dev` app from the iPhone and retry `npm run ios:device:clean`.
+  - This appears to clear certain stale local native/install states. Treat it as a recovery step, not part of the normal switch between local dev and preview.
 - **Bundler error: “Unable to resolve ansi-styles” or other missing modules**
   - Run `npm run dev:clean` to clear Metro cache.
   - If it persists: delete `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/node_modules` and run `npm install`.
@@ -412,6 +463,11 @@ credentials or submission answers in the local-only
   - If the app still bundles and opens, treat this as a noisy Tamagui menu warning, not a launch blocker.
   - Only chase it if we start shipping native Tamagui menu/context-menu components or the app actually fails to render.
 - **The app says “No development servers found” or tries `localhost:8081`**
+  - This screen belongs to `MyGuest Dev`, not the standalone preview build.
+  - If you intended to use local dev, start `npm run dev` and open `MyGuest Dev`.
+  - If you expected a preview build, delete the old MyGuest app from the phone
+    only if it is a leftover pre-split install, then reinstall the latest
+    `npm run eas:build:ios:preview` artifact.
   - Make sure `npm run dev` is still running on your Mac.
   - For simulator work, prefer `npm run dev:sim` so the app always talks to `localhost`.
   - In `MyGuest Dev`, tap `Enter URL manually` and use the `Dev client` fallback URL that `npm run dev` prints. If that fails, try the plain `Metro` URL from the same output.
@@ -428,9 +484,16 @@ credentials or submission answers in the local-only
   - If tunnel still fails, check [ngrok status](https://status.ngrok.com/).
 - **The dev app still shows old names or old schemes**
   - Run `npm run ios:sim:clean` for the simulator or `npm run ios:device:clean` for the phone.
+  - Older local dev installs used the same iOS bundle ID as preview. After this
+    identity split, delete the old app from the phone if iOS keeps opening the
+    wrong one.
 - **Watchman prints a recrawl warning**
   - Run `npm run dev:watchman:reset`.
   - If you prefer the raw commands, the helper script runs the same two Watchman commands for this repo root.
+- **`npm run dev` starts, then dies with `EMFILE: too many open files, watch`**
+  - Metro hit the macOS file-watcher limit before it could stay up.
+  - Run `npm run dev:watchman:reset`, then restart `npm run dev`.
+  - If you already have another Metro terminal open, stop the duplicate before retrying.
 
 ## Other Commands
 
