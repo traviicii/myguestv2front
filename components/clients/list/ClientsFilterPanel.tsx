@@ -100,6 +100,7 @@ export function ClientsFilterPanel({ model }: ClientsSectionProps) {
     <IOSBottomSheet
       open={model.filterSheetOpen && model.hasClients}
       onClose={model.closeFilterSheet}
+      scrollable={false}
       title="Filters"
       testID="clients-filter-sheet"
       leadingAction={

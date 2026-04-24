@@ -38,18 +38,28 @@ export function NewAppointmentHeader({ model }: NewAppointmentSectionProps) {
 
 export function NewAppointmentDetailsSection({ model }: NewAppointmentSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleDetailsSectionLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Details"
         subtitle="Capture the date, services, price, and formula notes in one grouped flow."
       />
-      <InsetGroup tone={model.cardTone}>
+      <InsetGroup
+        tone={model.cardTone}
+        onLayout={(event) => {
+          model.handleDetailsGroupLayout(event.nativeEvent.layout.y)
+        }}
+      >
         <YStack
           px="$4"
           py="$3"
           gap="$2"
           onLayout={(event) => {
-            model.requiredY.current.date = event.nativeEvent.layout.y
+            model.handleDateLayout(event.nativeEvent.layout.y)
           }}
         >
           <FieldLabel>Date</FieldLabel>
@@ -112,13 +122,22 @@ export function NewAppointmentDetailsSection({ model }: NewAppointmentSectionPro
 
         <SectionDivider />
 
-        <YStack px="$4" py="$3" gap="$2">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handlePriceLayout(event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Price</FieldLabel>
           <CurrencyField
+            ref={model.setInputRef('price')}
             placeholder="0.00"
             value={model.form.price}
             inputAccessoryViewID={model.keyboardAccessoryId}
-            onFocus={model.closePickers}
+            onFocus={model.handlePriceFocus}
+            onBlur={model.handlePriceBlur}
             onChangeText={(text) => {
               model.setPriceEdited(true)
               model.setForm((prev) => ({ ...prev, price: text }))
@@ -133,13 +152,24 @@ export function NewAppointmentDetailsSection({ model }: NewAppointmentSectionPro
 
         <SectionDivider />
 
-        <YStack px="$4" py="$3" gap="$2">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleNotesLayout(event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Formula / Notes</FieldLabel>
           <TextAreaField
+            inputRef={model.setInputRef('notes')}
             placeholder="Color formula, technique, notes..."
             value={model.form.notes}
             inputAccessoryViewID={model.keyboardAccessoryId}
-            onFocus={model.closePickers}
+            onFocus={model.handleNotesFocus}
+            onBlur={model.handleNotesBlur}
+            selection={model.notesSelection}
+            onSelectionChange={model.handleNotesSelectionChange}
             onChangeText={(text) => model.setForm((prev) => ({ ...prev, notes: text }))}
           />
         </YStack>

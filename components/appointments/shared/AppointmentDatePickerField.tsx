@@ -4,7 +4,7 @@ import { CalendarDays, ChevronDown } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack, useTheme } from 'tamagui'
 
 import { useResolvedThemeSelection } from 'components/ThemePrefs'
-import { ErrorPulseBorder, IOSBottomSheet } from 'components/ui/controls'
+import { ErrorPulseBorder, GhostButton, IOSBottomSheet, ThemedHeadingText } from 'components/ui/controls'
 import { type ExpandablePanel } from 'components/ui/useExpandablePanel'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { selectionHaptic } from 'components/utils/haptics'
@@ -28,19 +28,49 @@ function DatePickerPanelCard({
   accentColor,
   mode,
   onDateChange,
+  onDone,
   pickerDate,
+  title,
   textColor,
 }: Pick<AppointmentDatePickerFieldProps, 'onDateChange' | 'pickerDate'> & {
   accentColor: string
   mode: 'light' | 'dark'
+  onDone: () => void
   textColor: string
+  title: string
 }) {
   return (
     <YStack
-      px="$1.5"
-      pt="$1"
-      pb="$0.5"
+      px="$0.5"
+      pt="$0.5"
+      pb="$1.5"
+      gap="$1.5"
     >
+      <YStack position="relative" minH={40} justify="center" px="$1">
+        <YStack
+          pointerEvents="none"
+          position="absolute"
+          items="center"
+          style={styles.pickerHeaderTitle}
+        >
+          <ThemedHeadingText
+            fontWeight="700"
+            fontSize={16}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            {title}
+          </ThemedHeadingText>
+        </YStack>
+        <XStack items="center" justify="flex-end">
+          <GhostButton onPress={onDone}>
+            <Text fontSize={13} color="$accent">
+              Done
+            </Text>
+          </GhostButton>
+        </XStack>
+      </YStack>
       <XStack justify="center" width="100%">
         <DateTimePicker
           value={pickerDate}
@@ -132,7 +162,8 @@ export function AppointmentDatePickerField({
         <IOSBottomSheet
           open={showDatePicker}
           onClose={onPickerDismiss ?? onFieldPress}
-          title={sheetTitle}
+          maxHeight="96%"
+          scrollable={false}
           testID="appointment-date-picker-sheet"
         >
           <Pressable
@@ -143,9 +174,11 @@ export function AppointmentDatePickerField({
             <DatePickerPanelCard
               pickerDate={pickerDate}
               onDateChange={onDateChange}
+              onDone={onPickerDismiss ?? onFieldPress}
               accentColor={pickerAccentColor}
               textColor={pickerTextColor}
               mode={mode}
+              title={sheetTitle}
             />
           </Pressable>
         </IOSBottomSheet>
@@ -160,6 +193,12 @@ export function AppointmentDatePickerField({
 }
 
 const styles = StyleSheet.create({
+  pickerHeaderTitle: {
+    left: 0,
+    right: 0,
+    paddingLeft: 68,
+    paddingRight: 68,
+  },
   inlinePicker: {
     alignSelf: 'center',
     transform: [{ scale: 0.93 }],

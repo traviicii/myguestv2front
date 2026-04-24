@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native'
+import { Platform, Pressable } from 'react-native'
 import { ScrollView, Text, YStack } from 'tamagui'
 
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
@@ -49,12 +49,25 @@ export default function NewAppointmentScreen() {
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
       <ScreenTopBar topInset={model.topInset} onBack={model.handleBack} />
-      <KeyboardDismissAccessory nativeID={model.keyboardAccessoryId} />
+      <KeyboardDismissAccessory
+        nativeID={model.keyboardAccessoryId}
+        canGoPrevious={model.canGoToPreviousKeyboardField}
+        canGoNext={model.canGoToNextKeyboardField}
+        onPrevious={() => model.focusAdjacentKeyboardField('previous')}
+        onNext={() => model.focusAdjacentKeyboardField('next')}
+        quickInsertKeys={[...model.quickInsertCharacters]}
+        onInsertKey={model.insertQuickCharacter}
+        canInsertText={model.canInsertQuickCharacter}
+      />
       <ScrollView
         ref={model.scrollRef}
-        contentContainerStyle={{ pb: '$10' }}
+        flex={1}
+        contentContainerStyle={{ paddingBottom: model.contentBottomPadding } as any}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={model.keyboardDismissMode}
+        onScroll={model.handleScroll}
+        scrollEventThrottle={16}
         onScrollBeginDrag={model.handleScrollBeginDrag}
       >
         <Pressable onPress={model.dismissInteractiveUI}>

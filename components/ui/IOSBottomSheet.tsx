@@ -5,22 +5,29 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Text, XStack, YStack } from 'tamagui'
+import { Text, XStack, YStack, useTheme } from 'tamagui'
 
+import { toAlpha } from 'components/ambientBackdropUtils'
+import { useResolvedThemeSelection } from 'components/ThemePrefs'
 import { GhostButton } from './buttons'
+import type { SurfaceTone } from './controlShared'
 import { SurfaceCard } from './surfaces'
 import { ThemedHeadingText } from './typography'
-import { FALLBACK_COLORS } from 'components/utils/color'
+import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 
 type IOSBottomSheetProps = {
   children: ReactNode
   leadingAction?: ReactNode
+  maxHeight?: number | string
   onClose: () => void
   open: boolean
+  scrollable?: boolean
   testID?: string
+  tone?: SurfaceTone
   title?: string
   trailingAction?: ReactNode
 }
@@ -30,13 +37,18 @@ const OPEN_TRANSLATE_Y = 28
 export function IOSBottomSheet({
   children,
   leadingAction,
+  maxHeight,
   onClose,
   open,
+  scrollable = true,
   testID,
+  tone,
   title,
   trailingAction,
 }: IOSBottomSheetProps) {
   const insets = useSafeAreaInsets()
+  const theme = useTheme()
+  const { aesthetic, mode } = useResolvedThemeSelection()
   const [mounted, setMounted] = useState(open)
   const backdropOpacity = useRef(new Animated.Value(0)).current
   const sheetTranslateY = useRef(new Animated.Value(OPEN_TRANSLATE_Y)).current
@@ -81,6 +93,47 @@ export function IOSBottomSheet({
     () => Math.max(insets.bottom + 8, 20),
     [insets.bottom]
   )
+  const horizontalPadding = aesthetic === 'cyberpunk' ? '$3' : '$4'
+  const resolvedMaxHeight = maxHeight ?? (aesthetic === 'glass' ? '94%' : '92%')
+  const resolvedTone = tone ?? (aesthetic === 'glass' ? 'tabGlass' : 'default')
+  const handleRounded = aesthetic === 'cyberpunk' ? 1 : 999
+  const handleWidth = aesthetic === 'glass' ? 44 : aesthetic === 'cyberpunk' ? 48 : 38
+  const handleHeight = aesthetic === 'glass' ? 6 : aesthetic === 'cyberpunk' ? 4 : 5
+  const handleBorderWidth = aesthetic === 'cyberpunk' ? 0 : 1
+  const handleColor =
+    aesthetic === 'glass' ? '$surfaceTabGlass' : aesthetic === 'cyberpunk' ? '$accent' : '$surfaceChipActive'
+  const handleBorderColor =
+    aesthetic === 'glass'
+      ? '$surfaceTabGlassBorder'
+      : aesthetic === 'cyberpunk'
+        ? '$accent'
+        : '$borderSubtle'
+  const overlayBaseColor =
+    aesthetic === 'glass'
+      ? toNativeColor(
+          theme.backdropAccent?.val,
+          mode === 'dark' ? FALLBACK_COLORS.glassAccentDark : FALLBACK_COLORS.glassAccentLight
+        )
+      : aesthetic === 'cyberpunk'
+        ? toNativeColor(
+            theme.surfacePanel?.val,
+            mode === 'dark' ? FALLBACK_COLORS.cyberSurfaceCard : FALLBACK_COLORS.surfacePage
+          )
+        : toNativeColor(theme.surfacePage?.val, FALLBACK_COLORS.surfacePage)
+  const overlayColor = toAlpha(
+    overlayBaseColor,
+    aesthetic === 'glass'
+      ? mode === 'dark'
+        ? 0.22
+        : 0.14
+      : aesthetic === 'cyberpunk'
+        ? mode === 'dark'
+          ? 0.74
+          : 0.18
+        : mode === 'dark'
+          ? 0.58
+          : 0.26
+  )
 
   if (!mounted) return null
 
@@ -101,6 +154,7 @@ export function IOSBottomSheet({
             style={[
               styles.overlay,
               {
+                backgroundColor: overlayColor,
                 opacity: backdropOpacity,
               },
             ]}
@@ -116,24 +170,29 @@ export function IOSBottomSheet({
               transform: [{ translateY: sheetTranslateY }],
             }}
           >
-            <YStack px="$4" pb={bottomPadding}>
+            <YStack px={horizontalPadding} pb={bottomPadding}>
               <SurfaceCard
                 testID={testID}
                 mode="panel"
-                tone="default"
+                tone={resolvedTone}
                 p="$4"
                 gap="$3.5"
-                rounded="$6"
-                maxH="88%"
+                overflow="hidden"
+                style={[
+                  styles.sheetCard,
+                  {
+                    maxHeight: resolvedMaxHeight,
+                  },
+                ]}
               >
                 <YStack items="center" gap="$2">
                   <YStack
-                    width={38}
-                    height={5}
-                    rounded={999}
-                    bg="$surfaceChipActive"
-                    borderWidth={1}
-                    borderColor="$borderSubtle"
+                    width={handleWidth}
+                    height={handleHeight}
+                    rounded={handleRounded}
+                    bg={handleColor}
+                    borderWidth={handleBorderWidth}
+                    borderColor={handleBorderColor}
                   />
                 </YStack>
 
@@ -165,7 +224,20 @@ export function IOSBottomSheet({
                   </YStack>
                 ) : null}
 
-                {children}
+                <YStack style={styles.contentWrapper}>
+                  {/* Keep the sheet header visible while taller picker content scrolls inside the capped height. */}
+                  {scrollable ? (
+                    <ScrollView
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={styles.scrollContent}
+                    >
+                      {children}
+                    </ScrollView>
+                  ) : (
+                    children
+                  )}
+                </YStack>
               </SurfaceCard>
             </YStack>
           </Animated.View>
@@ -181,6 +253,15 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: FALLBACK_COLORS.sheetOverlaySoft,
+  },
+  sheetCard: {
+    maxHeight: '92%',
+  },
+  contentWrapper: {
+    flexShrink: 1,
+    minHeight: 0,
+  },
+  scrollContent: {
+    paddingBottom: 4,
   },
 })

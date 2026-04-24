@@ -14,18 +14,24 @@ import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 
 type KeyboardDismissAccessoryProps = {
   canGoNext?: boolean
+  canInsertText?: boolean
   canGoPrevious?: boolean
   nativeID: string
+  onInsertKey?: (value: string) => void
   onNext?: () => void
   onPrevious?: () => void
+  quickInsertKeys?: string[]
 }
 
 export function KeyboardDismissAccessory({
   canGoNext = false,
+  canInsertText = false,
   canGoPrevious = false,
   nativeID,
+  onInsertKey,
   onNext,
   onPrevious,
+  quickInsertKeys = [],
 }: KeyboardDismissAccessoryProps) {
   const theme = useTheme() as any
   const [isVisible, setIsVisible] = useState(false)
@@ -91,6 +97,22 @@ export function KeyboardDismissAccessory({
   const backgroundColor = toNativeColor(theme.surfacePanel?.val, FALLBACK_COLORS.surfacePage)
   const borderColor = toNativeColor(theme.surfacePanelBorder?.val, FALLBACK_COLORS.borderSubtle)
   const textColor = toNativeColor(theme.accent?.val, FALLBACK_COLORS.textPrimary)
+  const chipBackgroundColor = toNativeColor(
+    theme.surfaceField?.val,
+    FALLBACK_COLORS.surfacePage
+  )
+  const chipBorderColor = toNativeColor(
+    theme.borderSubtle?.val,
+    FALLBACK_COLORS.borderSubtle
+  )
+  const chipTextColor = toNativeColor(
+    theme.textPrimary?.val,
+    FALLBACK_COLORS.textPrimary
+  )
+  const disabledChipTextColor = toNativeColor(
+    theme.textSecondary?.val,
+    FALLBACK_COLORS.textSecondary
+  )
   if (Platform.OS !== 'ios' || !isVisible) return null
 
   return (
@@ -115,30 +137,64 @@ export function KeyboardDismissAccessory({
         ]}
       >
         <View style={styles.actions}>
-          <Pressable
-            onPress={onPrevious}
-            accessibilityRole="button"
-            accessibilityLabel="Focus previous field"
-            style={[styles.navButton, !canGoPrevious && styles.navButtonDisabled]}
-            disabled={!canGoPrevious || !onPrevious}
-          >
-            <ChevronUp
-              size={16}
-              color={canGoPrevious ? '$accent' : '$textSecondary'}
-            />
-          </Pressable>
-          <Pressable
-            onPress={onNext}
-            accessibilityRole="button"
-            accessibilityLabel="Focus next field"
-            style={[styles.navButton, !canGoNext && styles.navButtonDisabled]}
-            disabled={!canGoNext || !onNext}
-          >
-            <ChevronDown
-              size={16}
-              color={canGoNext ? '$accent' : '$textSecondary'}
-            />
-          </Pressable>
+          <View style={styles.leftActions}>
+            <Pressable
+              onPress={onPrevious}
+              accessibilityRole="button"
+              accessibilityLabel="Focus previous field"
+              style={[styles.navButton, !canGoPrevious && styles.navButtonDisabled]}
+              disabled={!canGoPrevious || !onPrevious}
+            >
+              <ChevronUp
+                size={16}
+                color={canGoPrevious ? '$accent' : '$textSecondary'}
+              />
+            </Pressable>
+            <Pressable
+              onPress={onNext}
+              accessibilityRole="button"
+              accessibilityLabel="Focus next field"
+              style={[styles.navButton, !canGoNext && styles.navButtonDisabled]}
+              disabled={!canGoNext || !onNext}
+            >
+              <ChevronDown
+                size={16}
+                color={canGoNext ? '$accent' : '$textSecondary'}
+              />
+            </Pressable>
+          </View>
+          {quickInsertKeys.length ? (
+            <View style={styles.quickInsertGroup}>
+              {quickInsertKeys.map((key) => (
+                <Pressable
+                  key={key}
+                  onPress={() => onInsertKey?.(key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Insert ${key}`}
+                  style={[
+                    styles.quickInsertButton,
+                    {
+                      backgroundColor: chipBackgroundColor,
+                      borderColor: chipBorderColor,
+                    },
+                    !canInsertText && styles.quickInsertButtonDisabled,
+                  ]}
+                  disabled={!canInsertText || !onInsertKey}
+                >
+                  <Text
+                    style={[
+                      styles.quickInsertLabel,
+                      {
+                        color: canInsertText ? chipTextColor : disabledChipTextColor,
+                      },
+                    ]}
+                  >
+                    {key}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
           <Pressable
             onPress={Keyboard.dismiss}
             accessibilityRole="button"
@@ -169,6 +225,12 @@ const styles = StyleSheet.create({
   actions: {
     alignItems: 'center',
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  leftActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
     gap: 6,
   },
   navButton: {
@@ -181,6 +243,30 @@ const styles = StyleSheet.create({
   },
   navButtonDisabled: {
     opacity: 0.45,
+  },
+  quickInsertGroup: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  quickInsertButton: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minWidth: 30,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  quickInsertButtonDisabled: {
+    opacity: 0.5,
+  },
+  quickInsertLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   doneButton: {
     paddingHorizontal: 8,
