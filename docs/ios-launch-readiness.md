@@ -1,6 +1,6 @@
 # iOS Launch Readiness
 
-Last updated: 2026-04-15
+Last updated: 2026-04-29
 
 This file is the tracked release-prep guide for the frontend repo. It covers the
 production settings and App Store preparation work that belong in source control.
@@ -14,6 +14,11 @@ Related tracked docs:
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/public-privacy-policy-draft.md`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/public-support-page-draft.md`
 - `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2front/docs/app-review-notes-template.md`
+
+Related backend launch docs:
+
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/docs/app-store-backend-launch-checklist.md`
+- `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/docs/render-production-baseline.md`
 
 ## Current Production Identity
 
@@ -85,6 +90,30 @@ Notes:
 - Release builds no longer support a public bearer-token auth escape hatch; real
   API access must come from Firebase-authenticated sessions.
 
+## Backend Production Baseline
+
+The iOS launch is only as ready as the backend footprint behind it.
+
+Current recommendation:
+
+- Render Starter is acceptable for preview and dogfooding.
+- Render Starter is not the intended final footprint for a public App Store
+  launch with simultaneous active users.
+- Before the first public launch, move the backend to at least the Render
+  production baseline documented in
+  `/Users/travispeck/Documents/coding_projects/myguestv2/myguestv2back/docs/render-production-baseline.md`.
+
+Minimum backend checks before a production iOS build is submitted:
+
+- Production backend is running on a non-Starter Render web instance.
+- Production database plan has enough headroom for the chosen worker count.
+- Worker count and SQLAlchemy pool settings are explicitly configured.
+- Production smoke passes against the deployed backend.
+- Recent backup/restore drill is recorded.
+
+If those backend items are not true yet, treat the iOS app as preview-only even
+if the frontend build itself is otherwise stable.
+
 ## Release-Sensitive User Flows
 
 These flows should be manually checked on a production-style iPhone build before
@@ -103,6 +132,8 @@ submitting:
 - Delete Account still explains the destructive effect clearly and completes
   against the live backend.
 - Photo-library and camera denial do not break appointment logging.
+- Overview, clients, and appointment history remain responsive with production
+  data volume and overlapping active sessions.
 
 If Apple sign-in ever shows an audience-mismatch error in preview or release
 QA, use the troubleshooting steps in
