@@ -1,8 +1,10 @@
-import { useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { FlatList, ViewToken } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from 'tamagui'
 
 import { useThemePrefs } from 'components/ThemePrefs'
+import type { Client } from 'components/data/models'
 import { useAppointmentHistoryLite, useClients } from 'components/data/queries'
 import { useClientsStore } from 'components/state/clientsStore'
 import { useStudioStore } from 'components/state/studioStore'
@@ -10,7 +12,48 @@ import { deriveLastVisitByClient } from 'components/utils/clientDerived'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { formatDateByStyle } from 'components/utils/date'
 import { useDebouncedValue } from 'components/utils/useDebouncedValue'
+import { impactLightHaptic } from 'components/utils/haptics'
 import { usePullToRefresh } from 'components/ui/usePullToRefresh'
+
+const ALPHA_RAIL_MIN_ITEMS = 12
+const ALPHA_RAIL_TOP_OFFSET = 72
+const ALPHA_RAIL_HIDE_DELAY_MS = 900
+const CLIENT_JUMP_VIEW_POSITION = 0.24
+const SCROLL_INDEX_FALLBACK_OFFSET = 140
+const ALPHA_RAIL_LETTERS = [
+  '#',
+  ...Array.from({ length: 26 }, (_value, index) =>
+    String.fromCharCode(65 + index)
+  ),
+] as const
+
+type AlphaRailLetter = (typeof ALPHA_RAIL_LETTERS)[number]
+
+export type ClientSectionHeaderItem = {
+  type: 'section'
+  letter: AlphaRailLetter
+}
+
+export type ClientListRowItem = {
+  type: 'client'
+  client: Client
+  index: number
+}
+
+export type ClientListItem = ClientSectionHeaderItem | ClientListRowItem
+
+type ScrollToIndexFailedInfo = {
+  averageItemLength: number
+  highestMeasuredFrameIndex: number
+  index: number
+}
+
+function getAlphaBucket(name: string): AlphaRailLetter {
+  const firstCharacter = name.trim().charAt(0).toUpperCase()
+  return /^[A-Z]$/.test(firstCharacter)
+    ? (firstCharacter as AlphaRailLetter)
+    : '#'
+}
 
 export function useClientsScreenModel() {
   const insets = useSafeAreaInsets()
@@ -41,6 +84,14 @@ export function useClientsScreenModel() {
   const resetFilters = useClientsStore((state) => state.resetFilters)
   const resetFilterSelections = useClientsStore((state) => state.resetFilterSelections)
   const searchInputRef = useRef<any>(null)
+  const flatListRef = useRef<FlatList<ClientListItem>>(null)
+  const scrollRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const alphaRailHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const alphaRailFocusedLetterRef = useRef<AlphaRailLetter | null>(null)
+  const lastAlphaJumpHapticRef = useRef<AlphaRailLetter | null>(null)
+  const [alphaRailVisible, setAlphaRailVisible] = useState(false)
+  const [alphaRailFocusedLetter, setAlphaRailFocusedLetter] =
+    useState<AlphaRailLetter | null>(null)
 
   const {
     data: clients = [],
@@ -164,6 +215,52 @@ export function useClientsScreenModel() {
 
   const hasClients = clients.length > 0
   const hasFilteredClients = filteredClients.length > 0
+  const shouldShowAlphaRail =
+    hasFilteredClients &&
+    filteredClients.length >= ALPHA_RAIL_MIN_ITEMS
+
+  const {
+    alphaIndexMap,
+    clientListItems,
+  } = useMemo(() => {
+    const map: Partial<Record<(typeof ALPHA_RAIL_LETTERS)[number], number>> = {}
+    const items: ClientListItem[] = []
+
+    // Alphabet headers are synthetic FlatList rows so jump targets stay stable
+    // without trading the existing list architecture for a SectionList.
+    filteredClients.forEach((client, index) => {
+      const bucket = getAlphaBucket(client.name)
+      if (map[bucket] === undefined) {
+        map[bucket] = items.length
+        items.push({
+          letter: bucket,
+          type: 'section',
+        })
+      }
+
+      items.push({
+        client,
+        index,
+        type: 'client',
+      })
+    })
+
+    return {
+      alphaIndexMap: map,
+      clientListItems: items,
+    }
+  }, [filteredClients])
+
+  const availableAlphaLetters = useMemo(
+    () =>
+      new Set(
+        ALPHA_RAIL_LETTERS.filter((letter) => alphaIndexMap[letter] !== undefined)
+      ),
+    [alphaIndexMap]
+  )
+  const alphaRailFocusedIndex = alphaRailFocusedLetter
+    ? ALPHA_RAIL_LETTERS.indexOf(alphaRailFocusedLetter)
+    : null
   const activeFilterCount =
     Number(statusFilter !== 'All') +
     Number(typeFilter !== 'All') +
@@ -193,19 +290,202 @@ export function useClientsScreenModel() {
     })
   }
 
+  const updateAlphaRailFocusedLetter = useCallback(
+    (letter: AlphaRailLetter | null) => {
+      if (alphaRailFocusedLetterRef.current === letter) return
+
+      alphaRailFocusedLetterRef.current = letter
+      setAlphaRailFocusedLetter(letter)
+    },
+    []
+  )
+
+  const clientsViewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 38,
+    minimumViewTime: 60,
+  }).current
+
+  const handleClientsViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      let firstVisibleIndex = Number.POSITIVE_INFINITY
+      let firstVisibleName: string | null = null
+
+      viewableItems.forEach((item) => {
+        const itemIndex = item.index
+        const isFirstVisibleCandidate =
+          item.isViewable &&
+          itemIndex !== null &&
+          itemIndex < firstVisibleIndex
+
+        if (!isFirstVisibleCandidate) return
+
+        const listItem = item.item as ClientListItem | undefined
+        const name =
+          listItem?.type === 'section'
+            ? listItem.letter
+            : listItem?.client.name
+        firstVisibleIndex = itemIndex
+        firstVisibleName = typeof name === 'string' ? name : null
+      })
+
+      updateAlphaRailFocusedLetter(
+        firstVisibleName ? getAlphaBucket(firstVisibleName) : null
+      )
+    }
+  ).current
+
+  const clearAlphaRailHideTimeout = useCallback(() => {
+    if (alphaRailHideTimeoutRef.current !== null) {
+      clearTimeout(alphaRailHideTimeoutRef.current)
+      alphaRailHideTimeoutRef.current = null
+    }
+  }, [])
+
+  const scheduleAlphaRailHide = useCallback(
+    (delayMs = ALPHA_RAIL_HIDE_DELAY_MS) => {
+      clearAlphaRailHideTimeout()
+
+      alphaRailHideTimeoutRef.current = setTimeout(() => {
+        setAlphaRailVisible(false)
+        alphaRailHideTimeoutRef.current = null
+      }, delayMs)
+    },
+    [clearAlphaRailHideTimeout]
+  )
+
+  const showAlphaRail = useCallback(
+    () => {
+      if (!shouldShowAlphaRail) return
+
+      clearAlphaRailHideTimeout()
+      setAlphaRailVisible(true)
+    },
+    [clearAlphaRailHideTimeout, shouldShowAlphaRail]
+  )
+
+  const handleAlphaRailInteractionStart = useCallback(() => {
+    showAlphaRail()
+  }, [showAlphaRail])
+
+  const handleAlphaRailInteractionEnd = useCallback(() => {
+    scheduleAlphaRailHide(700)
+  }, [scheduleAlphaRailHide])
+
+  const jumpToClientIndex = useCallback((index: number) => {
+    flatListRef.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: CLIENT_JUMP_VIEW_POSITION,
+    })
+  }, [])
+
+  const jumpToLetter = useCallback(
+    (letter: (typeof ALPHA_RAIL_LETTERS)[number]) => {
+      const index = alphaIndexMap[letter]
+      if (index === undefined) return
+
+      updateAlphaRailFocusedLetter(letter)
+      if (lastAlphaJumpHapticRef.current !== letter) {
+        lastAlphaJumpHapticRef.current = letter
+        void impactLightHaptic()
+      }
+      jumpToClientIndex(index)
+    },
+    [alphaIndexMap, jumpToClientIndex, updateAlphaRailFocusedLetter]
+  )
+
+  const handleScrollToIndexFailed = useCallback(
+    (info: ScrollToIndexFailedInfo) => {
+      flatListRef.current?.scrollToOffset({
+        offset: Math.max(
+          0,
+          info.averageItemLength * info.index - SCROLL_INDEX_FALLBACK_OFFSET
+        ),
+        animated: true,
+      })
+
+      if (scrollRetryTimeoutRef.current !== null) {
+        clearTimeout(scrollRetryTimeoutRef.current)
+      }
+
+      scrollRetryTimeoutRef.current = setTimeout(() => {
+        jumpToClientIndex(info.index)
+        scrollRetryTimeoutRef.current = null
+      }, 160)
+    },
+    [jumpToClientIndex]
+  )
+
+  const handleClientsScroll = useCallback(
+    (event: Parameters<typeof handleRefreshScroll>[0]) => {
+      handleRefreshScroll(event)
+      showAlphaRail()
+    },
+    [handleRefreshScroll, showAlphaRail]
+  )
+
+  const handleClientsScrollRelease = useCallback(
+    () => {
+      handleRefreshScrollRelease()
+      scheduleAlphaRailHide(700)
+    },
+    [handleRefreshScrollRelease, scheduleAlphaRailHide]
+  )
+
+  useEffect(() => {
+    if (!shouldShowAlphaRail) {
+      clearAlphaRailHideTimeout()
+      setAlphaRailVisible(false)
+      updateAlphaRailFocusedLetter(null)
+    }
+  }, [clearAlphaRailHideTimeout, shouldShowAlphaRail, updateAlphaRailFocusedLetter])
+
+  useEffect(() => {
+    if (!shouldShowAlphaRail) return
+
+    updateAlphaRailFocusedLetter(
+      filteredClients[0]?.name ? getAlphaBucket(filteredClients[0].name) : null
+    )
+  }, [filteredClients, shouldShowAlphaRail, updateAlphaRailFocusedLetter])
+
+  useEffect(
+    () => () => {
+      if (scrollRetryTimeoutRef.current !== null) {
+        clearTimeout(scrollRetryTimeoutRef.current)
+      }
+      clearAlphaRailHideTimeout()
+    },
+    [clearAlphaRailHideTimeout]
+  )
+
   return {
     activeFilterCount,
+    alphaRailFocusedIndex,
+    alphaRailFocusedLetter,
+    alphaIndexMap,
+    alphaRailLetters: ALPHA_RAIL_LETTERS,
+    alphaRailTop: topInset + ALPHA_RAIL_TOP_OFFSET,
+    alphaRailVisible,
     aesthetic,
     availableTags,
+    availableAlphaLetters,
     chipRadius,
+    clientListItems,
+    clientsViewabilityConfig,
     closeFilterSheet: closeFilters,
     controlRadius,
+    flatListRef,
     filteredClients,
+    focusedAlphaLetter: alphaRailFocusedLetter,
     formatLastVisitLabel,
+    handleAlphaRailInteractionEnd,
+    handleAlphaRailInteractionStart,
     handleClearSearch,
+    handleClientsScroll,
+    handleClientsScrollRelease,
+    handleClientsViewableItemsChanged,
     handleRefresh,
-    handleRefreshScroll,
-    handleRefreshScrollRelease,
+    handleScrollToIndexFailed,
     hasClients,
     hasActiveFilters: activeFilterCount > 0,
     hasFilteredClients,
@@ -218,6 +498,7 @@ export function useClientsScreenModel() {
     isRefreshing,
     isRefreshThresholdReached,
     lineColor,
+    jumpToLetter,
     refreshFeedbackMessage,
     refreshPullProgress,
     resetFilters,
@@ -233,6 +514,7 @@ export function useClientsScreenModel() {
     setVisitFilter,
     showFilters,
     showStatus,
+    shouldShowAlphaRail,
     statusFilter,
     tagFilter,
     toggleFilters,

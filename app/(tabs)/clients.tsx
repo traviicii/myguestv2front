@@ -4,6 +4,8 @@ import { YStack } from 'tamagui'
 
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
 import {
+  ClientsAlphabetRail,
+  ClientAlphabetSectionHeader,
   ClientListRow,
   ClientsEmptyState,
   ClientsListHeader,
@@ -28,8 +30,11 @@ export default function ClientsScreen() {
         feedbackMessage={model.refreshFeedbackMessage}
       />
       <FlatList
-        data={model.filteredClients}
-        keyExtractor={(item) => item.id}
+        ref={model.flatListRef}
+        data={model.clientListItems}
+        keyExtractor={(item) =>
+          item.type === 'section' ? `section-${item.letter}` : item.client.id
+        }
         contentContainerStyle={{
           paddingBottom: Math.max(24, model.insets.bottom + 24),
         }}
@@ -43,9 +48,12 @@ export default function ClientsScreen() {
             progressViewOffset={model.topInset}
           />
         }
-        onScroll={model.handleRefreshScroll}
-        onScrollEndDrag={model.handleRefreshScrollRelease}
-        onMomentumScrollEnd={model.handleRefreshScrollRelease}
+        onScroll={model.handleClientsScroll}
+        onScrollEndDrag={model.handleClientsScrollRelease}
+        onMomentumScrollEnd={model.handleClientsScrollRelease}
+        onScrollToIndexFailed={model.handleScrollToIndexFailed}
+        onViewableItemsChanged={model.handleClientsViewableItemsChanged}
+        viewabilityConfig={model.clientsViewabilityConfig}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         alwaysBounceVertical
@@ -56,17 +64,24 @@ export default function ClientsScreen() {
             onNewClient={() => router.push('/clients/new')}
           />
         }
-        renderItem={({ item: client, index }) => (
-          <ClientListRow
-            model={model}
-            client={client}
-            index={index}
-            totalCount={model.filteredClients.length}
-            onOpenClient={() => router.push(`/client/${client.id}`)}
-            onNewAppointment={() => router.push(`/client/${client.id}/new-appointment`)}
-          />
-        )}
+        renderItem={({ item }) => {
+          if (item.type === 'section') {
+            return <ClientAlphabetSectionHeader letter={item.letter} />
+          }
+
+          return (
+            <ClientListRow
+              model={model}
+              client={item.client}
+              index={item.index}
+              totalCount={model.filteredClients.length}
+              onOpenClient={() => router.push(`/client/${item.client.id}`)}
+              onNewAppointment={() => router.push(`/client/${item.client.id}/new-appointment`)}
+            />
+          )
+        }}
       />
+      <ClientsAlphabetRail model={model} />
     </YStack>
   )
 }

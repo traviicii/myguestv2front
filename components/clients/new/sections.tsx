@@ -28,7 +28,12 @@ type NewClientFormSectionProps = {
 // in terms of "client info" first, then optional classification and notes.
 function ClientInfoSection({ model }: NewClientFormSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleIdentitySectionLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Client Info"
         subtitle="Start with the core details you need to recognize, contact, and revisit this client later."
@@ -44,6 +49,7 @@ function ClientInfoSection({ model }: NewClientFormSectionProps) {
           gap="$2"
           onLayout={(event) => {
             model.requiredY.current.firstName = event.nativeEvent.layout.y
+            model.handleKeyboardFieldLayout('firstName', event.nativeEvent.layout.y)
           }}
         >
           <FieldLabel>First name</FieldLabel>
@@ -79,6 +85,7 @@ function ClientInfoSection({ model }: NewClientFormSectionProps) {
           gap="$2"
           onLayout={(event) => {
             model.requiredY.current.lastName = event.nativeEvent.layout.y
+            model.handleKeyboardFieldLayout('lastName', event.nativeEvent.layout.y)
           }}
         >
           <FieldLabel>Last name</FieldLabel>
@@ -108,7 +115,14 @@ function ClientInfoSection({ model }: NewClientFormSectionProps) {
 
         <SectionDivider />
 
-        <YStack px="$4" py="$3" gap="$2">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleKeyboardFieldLayout('email', event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Email</FieldLabel>
           <TextField
             ref={model.setInputRef('email')}
@@ -126,7 +140,14 @@ function ClientInfoSection({ model }: NewClientFormSectionProps) {
 
         <SectionDivider />
 
-        <YStack px="$4" py="$3" gap="$2">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleKeyboardFieldLayout('phone', event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Phone</FieldLabel>
           <TextField
             ref={model.setInputRef('phone')}
@@ -194,17 +215,28 @@ function ClientTypeSection({ model }: NewClientFormSectionProps) {
 
 function ClientNotesSection({ model }: NewClientFormSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleNotesSectionLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Notes"
         subtitle="Keep any preferences, reminders, or formula context close to the profile."
       />
       <InsetGroup
         onLayout={(event) => {
-          model.handleNotesLayout(event.nativeEvent.layout.y)
+          model.handleNotesGroupLayout(event.nativeEvent.layout.y)
         }}
       >
-        <YStack px="$4" py="$3">
+        <YStack
+          px="$4"
+          py="$3"
+          onLayout={(event) => {
+            model.handleNotesLayout(event.nativeEvent.layout.y)
+          }}
+        >
           <TextAreaField
             inputRef={model.setInputRef('notes')}
             placeholder="Client preferences, formulas, reminders..."

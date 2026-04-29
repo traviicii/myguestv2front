@@ -1,3 +1,5 @@
+export { ClientsAlphabetRail } from './list/ClientsAlphabetRail'
+export { ClientAlphabetSectionHeader } from './list/ClientAlphabetSectionHeader'
 export { ClientListRow } from './list/ClientListRow'
 export { ClientsEmptyState } from './list/ClientsEmptyState'
 export { ClientsListHeader } from './list/ClientsListHeader'

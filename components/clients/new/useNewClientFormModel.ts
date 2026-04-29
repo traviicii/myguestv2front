@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -19,7 +19,12 @@ import {
 } from './newClientFormUtils'
 
 type KeyboardField = 'firstName' | 'lastName' | 'email' | 'phone' | 'notes'
+type FocusTarget = KeyboardField | 'birthday'
 type FocusableField = { focus?: () => void } | null
+
+const FOCUS_SCROLL_TOLERANCE = 24
+const IOS_KEYBOARD_SETTLE_DELAY_MS = 72
+const ANDROID_KEYBOARD_SETTLE_DELAY_MS = 48
 
 const KEYBOARD_FIELDS: KeyboardField[] = [
   'firstName',
@@ -34,9 +39,14 @@ export function useNewClientFormModel() {
   const insets = useSafeAreaInsets()
   const scrollRef = useRef<any>(null)
   const scrollY = useRef(0)
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const keyboardVisible = useRef(false)
   const createClient = useCreateClient()
   const requiredY = useRef<{ firstName?: number; lastName?: number; notes?: number }>({})
-  const focusY = useRef<{ identity?: number; birthday?: number; notes?: number }>({})
+  const sectionY = useRef<{ identity?: number; notes?: number }>({})
+  const groupY = useRef<{ identity?: number; notes?: number }>({})
+  const focusY = useRef<Partial<Record<FocusTarget, number>>>({})
+  const activeField = useRef<KeyboardField | null>(null)
   const defaultType: ClientType = 'Cut & Color'
 
   const [clientType, setClientType] = useState<ClientType>(defaultType)
@@ -79,37 +89,123 @@ export function useNewClientFormModel() {
     return parsed ?? new Date(1990, 0, 1)
   }, [birthdayDisplayValue])
 
-  const scrollFocusedFieldIntoView = useCallback((targetY?: number, focusOffset?: number) => {
-    if (typeof targetY !== 'number') return
-
-    const nextScrollY = Math.max(
-      0,
-      targetY - (focusOffset ?? (Platform.OS === 'ios' ? 36 : 28))
-    )
-    if (Math.abs(scrollY.current - nextScrollY) < 12) {
-      return
-    }
-
-    const delay = Platform.OS === 'ios' ? 140 : 80
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        y: nextScrollY,
-        animated: true,
-      })
-    }, delay)
-  }, [])
-
-  const handleIdentityLayout = useCallback((y: number) => {
-    focusY.current.identity = y
-  }, [])
-
   const closeBirthdayPicker = useCallback(() => {
     setShowBirthdayPicker(false)
   }, [])
 
+  const clearPendingScroll = useCallback(() => {
+    if (scrollTimeoutRef.current !== null) {
+      clearTimeout(scrollTimeoutRef.current)
+      scrollTimeoutRef.current = null
+    }
+  }, [])
+
+  const setFocusedKeyboardField = useCallback((field: KeyboardField | null) => {
+    activeField.current = field
+    setActiveKeyboardField(field)
+  }, [])
+
+  const resolveFieldTarget = useCallback((field: FocusTarget) => {
+    const fieldY = focusY.current[field]
+    if (typeof fieldY !== 'number') return undefined
+
+    if (field === 'notes') {
+      if (
+        typeof sectionY.current.notes !== 'number' ||
+        typeof groupY.current.notes !== 'number'
+      ) {
+        return undefined
+      }
+
+      return sectionY.current.notes + groupY.current.notes + fieldY
+    }
+
+    if (
+      typeof sectionY.current.identity !== 'number' ||
+      typeof groupY.current.identity !== 'number'
+    ) {
+      return undefined
+    }
+
+    return sectionY.current.identity + groupY.current.identity + fieldY
+  }, [])
+
+  const getFocusOffset = useCallback((field: FocusTarget) => {
+    if (field === 'firstName' || field === 'lastName') {
+      return Platform.OS === 'ios' ? 32 : 24
+    }
+
+    if (field === 'notes') {
+      return Platform.OS === 'ios' ? 96 : 82
+    }
+
+    if (field === 'birthday') {
+      return Platform.OS === 'ios' ? 92 : 76
+    }
+
+    return Platform.OS === 'ios' ? 76 : 64
+  }, [])
+
+  const scrollFocusedFieldIntoView = useCallback(
+    (field: FocusTarget, options?: { delayMs?: number }) => {
+      const targetY = resolveFieldTarget(field)
+      if (typeof targetY !== 'number') return
+
+      clearPendingScroll()
+      const delay =
+        options?.delayMs ??
+        (keyboardVisible.current
+          ? Platform.OS === 'ios'
+            ? 12
+            : 20
+          : Platform.OS === 'ios'
+            ? 72
+            : 36)
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        const nextScrollY = Math.max(0, targetY - getFocusOffset(field))
+
+        if (Math.abs(scrollY.current - nextScrollY) < FOCUS_SCROLL_TOLERANCE) {
+          scrollTimeoutRef.current = null
+          return
+        }
+
+        scrollRef.current?.scrollTo({
+          y: nextScrollY,
+          animated: true,
+        })
+        scrollTimeoutRef.current = null
+      }, delay)
+    },
+    [clearPendingScroll, getFocusOffset, resolveFieldTarget]
+  )
+
+  const handleIdentitySectionLayout = useCallback((y: number) => {
+    sectionY.current.identity = y
+  }, [])
+
+  const handleIdentityLayout = useCallback((y: number) => {
+    groupY.current.identity = y
+  }, [])
+
+  const handleKeyboardFieldLayout = useCallback((field: FocusTarget, y: number) => {
+    focusY.current[field] = y
+  }, [])
+
+  const handleNotesSectionLayout = useCallback((y: number) => {
+    sectionY.current.notes = y
+  }, [])
+
+  const handleNotesGroupLayout = useCallback((y: number) => {
+    groupY.current.notes = y
+  }, [])
+
   const handleIdentityFocus = useCallback(() => {
     closeBirthdayPicker()
-    scrollFocusedFieldIntoView(focusY.current.identity, Platform.OS === 'ios' ? 28 : 22)
+    const targetField = activeField.current ?? 'firstName'
+    if (keyboardVisible.current) {
+      scrollFocusedFieldIntoView(targetField, { delayMs: 20 })
+    }
   }, [closeBirthdayPicker, scrollFocusedFieldIntoView])
 
   const handleBirthdayLayout = useCallback((y: number) => {
@@ -118,7 +214,7 @@ export function useNewClientFormModel() {
 
   const handleBirthdayFieldPress = useCallback(() => {
     Keyboard.dismiss()
-    scrollFocusedFieldIntoView(focusY.current.birthday, Platform.OS === 'ios' ? 24 : 18)
+    scrollFocusedFieldIntoView('birthday')
     if (Platform.OS === 'android') {
       setShowBirthdayPicker(true)
       return
@@ -148,7 +244,9 @@ export function useNewClientFormModel() {
 
   const handleNotesFocus = useCallback(() => {
     closeBirthdayPicker()
-    scrollFocusedFieldIntoView(focusY.current.notes)
+    if (keyboardVisible.current) {
+      scrollFocusedFieldIntoView('notes', { delayMs: 20 })
+    }
   }, [closeBirthdayPicker, scrollFocusedFieldIntoView])
 
   const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
@@ -156,9 +254,10 @@ export function useNewClientFormModel() {
   }, [])
 
   const handleScrollBeginDrag = useCallback(() => {
+    setFocusedKeyboardField(null)
     Keyboard.dismiss()
     closeBirthdayPicker()
-  }, [closeBirthdayPicker])
+  }, [closeBirthdayPicker, setFocusedKeyboardField])
 
   const setInputRef = useCallback(
     (field: KeyboardField) => (instance: FocusableField) => {
@@ -173,29 +272,64 @@ export function useNewClientFormModel() {
 
   const handleKeyboardFieldFocus = useCallback(
     (field: KeyboardField) => {
-      setActiveKeyboardField(field)
+      setFocusedKeyboardField(field)
       if (field === 'notes') {
         handleNotesFocus()
         return
       }
       handleIdentityFocus()
     },
-    [handleIdentityFocus, handleNotesFocus]
+    [handleIdentityFocus, handleNotesFocus, setFocusedKeyboardField]
   )
 
   const focusAdjacentKeyboardField = useCallback(
     (direction: 'previous' | 'next') => {
-      if (!activeKeyboardField) return
-      const currentIndex = KEYBOARD_FIELDS.indexOf(activeKeyboardField)
+      const currentField = activeField.current ?? activeKeyboardField
+      if (!currentField) return
+      const currentIndex = KEYBOARD_FIELDS.indexOf(currentField)
       if (currentIndex === -1) return
       const nextIndex =
         direction === 'previous' ? currentIndex - 1 : currentIndex + 1
       const targetField = KEYBOARD_FIELDS[nextIndex]
       if (!targetField) return
-      focusKeyboardField(targetField)
+      setFocusedKeyboardField(targetField)
+      setTimeout(() => {
+        focusKeyboardField(targetField)
+        if (keyboardVisible.current) {
+          scrollFocusedFieldIntoView(targetField, { delayMs: 20 })
+        }
+      }, 0)
     },
-    [activeKeyboardField, focusKeyboardField]
+    [activeKeyboardField, focusKeyboardField, scrollFocusedFieldIntoView, setFocusedKeyboardField]
   )
+
+  useEffect(() => {
+    const handleKeyboardShow = () => {
+      keyboardVisible.current = true
+      if (activeField.current) {
+        scrollFocusedFieldIntoView(activeField.current, {
+          delayMs: Platform.OS === 'ios'
+            ? IOS_KEYBOARD_SETTLE_DELAY_MS
+            : ANDROID_KEYBOARD_SETTLE_DELAY_MS,
+        })
+      }
+    }
+
+    const handleKeyboardHide = () => {
+      keyboardVisible.current = false
+      setFocusedKeyboardField(null)
+      clearPendingScroll()
+    }
+
+    const showSub = Keyboard.addListener('keyboardDidShow', handleKeyboardShow)
+    const hideSub = Keyboard.addListener('keyboardDidHide', handleKeyboardHide)
+
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+      clearPendingScroll()
+    }
+  }, [clearPendingScroll, scrollFocusedFieldIntoView, setFocusedKeyboardField])
 
   const activeKeyboardFieldIndex = activeKeyboardField
     ? KEYBOARD_FIELDS.indexOf(activeKeyboardField)
@@ -208,7 +342,9 @@ export function useNewClientFormModel() {
     setAttemptedSave(true)
     if (!hasRequired) {
       void warningHaptic()
-      const targetY = !form.firstName.trim() ? requiredY.current.firstName : requiredY.current.lastName
+      const targetY = resolveFieldTarget(
+        !form.firstName.trim() ? 'firstName' : 'lastName'
+      )
       const scrollTarget = getNewClientRequiredScrollTarget(targetY)
       if (scrollTarget !== null) {
         scrollRef.current?.scrollTo({ y: scrollTarget, animated: true })
@@ -271,10 +407,14 @@ export function useNewClientFormModel() {
     handleBirthdayChange,
     handleBirthdayFieldPress,
     handleBirthdayLayout,
+    handleIdentitySectionLayout,
     handleIdentityFocus,
     handleIdentityLayout,
+    handleKeyboardFieldLayout,
     handleNotesFocus,
+    handleNotesGroupLayout,
     handleNotesLayout,
+    handleNotesSectionLayout,
     handleSave,
     handleScroll,
     onScrollBeginDrag: handleScrollBeginDrag,
