@@ -61,3 +61,23 @@ export function useUpdateAppointmentLog() {
     },
   })
 }
+
+export function useDeleteAppointmentLog() {
+  const queryClient = useDataQueryClient()
+
+  return useMutation({
+    mutationFn: (appointmentId: string) => dataSource.deleteAppointmentLog(appointmentId),
+    onSuccess: async (_result, appointmentId) => {
+      queryClient.removeQueries({
+        queryKey: ['appointment-detail', DATA_SOURCE_KIND, appointmentId],
+      })
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['metrics', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointment-detail'] }),
+      ])
+    },
+  })
+}

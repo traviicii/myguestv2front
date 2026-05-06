@@ -39,6 +39,14 @@ type ScrollTarget = {
   scrollTo: (options: { animated: boolean; y: number }) => void
 }
 
+type KeyboardField = 'name' | 'email' | 'phone' | 'notes'
+type FocusableField = { focus?: () => void } | null
+
+type SectionKey = 'name' | 'contact' | 'notes'
+
+const KEYBOARD_FIELDS: KeyboardField[] = ['name', 'email', 'phone', 'notes']
+const FOCUS_SCROLL_TOLERANCE = 24
+
 export function useEditClientScreenModel() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -50,7 +58,20 @@ export function useEditClientScreenModel() {
   const deleteClient = useDeleteClient()
   const updateClient = useUpdateClient()
   const scrollRef = useRef<ScrollTarget | null>(null)
+  const scrollY = useRef(0)
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const keyboardVisible = useRef(false)
+  const inputRefs = useRef<Record<KeyboardField, FocusableField>>({
+    name: null,
+    email: null,
+    phone: null,
+    notes: null,
+  })
   const requiredY = useRef<{ name?: number }>({})
+  const sectionY = useRef<Partial<Record<SectionKey, number>>>({})
+  const groupY = useRef<Partial<Record<SectionKey, number>>>({})
+  const focusY = useRef<Partial<Record<KeyboardField, number>>>({})
+  const activeField = useRef<KeyboardField | null>(null)
 
   const client = useMemo(() => clients.find((item) => item.id === id), [clients, id])
 
@@ -68,6 +89,7 @@ export function useEditClientScreenModel() {
   const [form, setForm] = useState(initialForm)
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
+  const [activeKeyboardField, setActiveKeyboardField] = useState<KeyboardField | null>(null)
 
   useEffect(() => {
     setForm(initialForm)
@@ -91,6 +113,86 @@ export function useEditClientScreenModel() {
     Platform.OS === 'ios' ? 'interactive' : 'on-drag'
   const isBootstrapping = clientsLoading && !clients.length
   const isMissingClient = !isBootstrapping && !client
+  const contentBottomPadding = 40 + insets.bottom
+
+  const clearPendingScroll = useCallback(() => {
+    if (scrollTimeoutRef.current !== null) {
+      clearTimeout(scrollTimeoutRef.current)
+      scrollTimeoutRef.current = null
+    }
+  }, [])
+
+  const setFocusedKeyboardField = useCallback((field: KeyboardField | null) => {
+    activeField.current = field
+    setActiveKeyboardField(field)
+  }, [])
+
+  const resolveSectionForField = useCallback((field: KeyboardField): SectionKey => {
+    if (field === 'name') return 'name'
+    if (field === 'notes') return 'notes'
+    return 'contact'
+  }, [])
+
+  const resolveFieldTarget = useCallback(
+    (field: KeyboardField) => {
+      const fieldY = focusY.current[field]
+      if (typeof fieldY !== 'number') return undefined
+
+      const section = resolveSectionForField(field)
+      const sectionOffset = sectionY.current[section]
+      const groupOffset = groupY.current[section]
+      if (typeof sectionOffset !== 'number' || typeof groupOffset !== 'number') {
+        return undefined
+      }
+
+      return sectionOffset + groupOffset + fieldY
+    },
+    [resolveSectionForField]
+  )
+
+  const getFocusOffset = useCallback((field: KeyboardField) => {
+    if (field === 'name') {
+      return Platform.OS === 'ios' ? 36 : 28
+    }
+    if (field === 'notes') {
+      return Platform.OS === 'ios' ? 96 : 82
+    }
+    return Platform.OS === 'ios' ? 76 : 64
+  }, [])
+
+  const scrollFocusedFieldIntoView = useCallback(
+    (field: KeyboardField, options?: { delayMs?: number }) => {
+      const targetY = resolveFieldTarget(field)
+      if (typeof targetY !== 'number') return
+
+      clearPendingScroll()
+      const delay =
+        options?.delayMs ??
+        (keyboardVisible.current
+          ? Platform.OS === 'ios'
+            ? 12
+            : 20
+          : Platform.OS === 'ios'
+            ? 72
+            : 36)
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        const nextScrollY = Math.max(0, targetY - getFocusOffset(field))
+
+        if (Math.abs(scrollY.current - nextScrollY) < FOCUS_SCROLL_TOLERANCE) {
+          scrollTimeoutRef.current = null
+          return
+        }
+
+        scrollRef.current?.scrollTo({
+          y: nextScrollY,
+          animated: true,
+        })
+        scrollTimeoutRef.current = null
+      }, delay)
+    },
+    [clearPendingScroll, getFocusOffset, resolveFieldTarget]
+  )
 
   const updateField = useCallback(<K extends keyof EditClientForm>(field: K, value: EditClientForm[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -100,9 +202,64 @@ export function useEditClientScreenModel() {
     router.back()
   }, [router])
 
-  const handleNameLayout = useCallback((y: number) => {
-    requiredY.current.name = y
+  const handleSectionLayout = useCallback((section: SectionKey, y: number) => {
+    sectionY.current[section] = y
   }, [])
+
+  const handleGroupLayout = useCallback((section: SectionKey, y: number) => {
+    groupY.current[section] = y
+  }, [])
+
+  const handleKeyboardFieldLayout = useCallback((field: KeyboardField, y: number) => {
+    focusY.current[field] = y
+    if (field === 'name') {
+      requiredY.current.name = y
+    }
+  }, [])
+
+  const setInputRef = useCallback(
+    (field: KeyboardField) => (instance: FocusableField) => {
+      inputRefs.current[field] = instance
+    },
+    []
+  )
+
+  const focusKeyboardField = useCallback((field: KeyboardField) => {
+    inputRefs.current[field]?.focus?.()
+  }, [])
+
+  const handleKeyboardFieldFocus = useCallback(
+    (field: KeyboardField) => {
+      setFocusedKeyboardField(field)
+      if (keyboardVisible.current) {
+        scrollFocusedFieldIntoView(field, { delayMs: 20 })
+      }
+    },
+    [scrollFocusedFieldIntoView, setFocusedKeyboardField]
+  )
+
+  const focusAdjacentKeyboardField = useCallback(
+    (direction: 'previous' | 'next') => {
+      const currentField = activeField.current ?? activeKeyboardField
+      if (!currentField) return
+
+      const currentIndex = KEYBOARD_FIELDS.indexOf(currentField)
+      if (currentIndex === -1) return
+
+      const nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1
+      const targetField = KEYBOARD_FIELDS[nextIndex]
+      if (!targetField) return
+
+      setFocusedKeyboardField(targetField)
+      setTimeout(() => {
+        focusKeyboardField(targetField)
+        if (keyboardVisible.current) {
+          scrollFocusedFieldIntoView(targetField, { delayMs: 20 })
+        }
+      }, 0)
+    },
+    [activeKeyboardField, focusKeyboardField, scrollFocusedFieldIntoView, setFocusedKeyboardField]
+  )
 
   const pulseNameError = useCallback((delayMs: number) => {
     setTimeout(() => {
@@ -113,16 +270,18 @@ export function useEditClientScreenModel() {
   const handleSave = useCallback(async () => {
     setAttemptedSave(true)
     if (!hasRequired || !isDirty) {
-      if (!hasRequired && typeof requiredY.current.name === 'number') {
+      if (!hasRequired) {
         void warningHaptic()
-        scrollRef.current?.scrollTo({
-          y: Math.max(0, requiredY.current.name - 12),
-          animated: true,
-        })
-        pulseNameError(350)
-      } else if (!hasRequired) {
-        void warningHaptic()
-        pulseNameError(0)
+        const targetY = resolveFieldTarget('name')
+        if (typeof targetY === 'number') {
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, targetY - 12),
+            animated: true,
+          })
+          pulseNameError(350)
+        } else {
+          pulseNameError(0)
+        }
       }
       return
     }
@@ -154,7 +313,7 @@ export function useEditClientScreenModel() {
           : 'Unable to save this client right now. Please try again.'
       )
     }
-  }, [client, form, hasRequired, isDirty, pulseNameError, router, updateClient])
+  }, [client, form, hasRequired, isDirty, pulseNameError, resolveFieldTarget, router, updateClient])
 
   const confirmDelete = useCallback(() => {
     if (!client || deleteClient.isPending) return
@@ -189,19 +348,65 @@ export function useEditClientScreenModel() {
     )
   }, [client, deleteClient, router])
 
-  const handleScrollBeginDrag = useCallback(() => {
-    Keyboard.dismiss()
+  const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
+    scrollY.current = event.nativeEvent.contentOffset.y
   }, [])
 
+  const handleScrollBeginDrag = useCallback(() => {
+    setFocusedKeyboardField(null)
+    Keyboard.dismiss()
+  }, [setFocusedKeyboardField])
+
+  useEffect(() => {
+    const handleKeyboardShow = () => {
+      keyboardVisible.current = true
+      if (activeField.current) {
+        scrollFocusedFieldIntoView(activeField.current, {
+          delayMs: Platform.OS === 'ios' ? 72 : 48,
+        })
+      }
+    }
+
+    const handleKeyboardHide = () => {
+      keyboardVisible.current = false
+      setFocusedKeyboardField(null)
+      clearPendingScroll()
+    }
+
+    const showSub = Keyboard.addListener('keyboardDidShow', handleKeyboardShow)
+    const hideSub = Keyboard.addListener('keyboardDidHide', handleKeyboardHide)
+
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+      clearPendingScroll()
+    }
+  }, [clearPendingScroll, scrollFocusedFieldIntoView, setFocusedKeyboardField])
+
+  const activeKeyboardFieldIndex = activeKeyboardField
+    ? KEYBOARD_FIELDS.indexOf(activeKeyboardField)
+    : -1
+  const canGoToPreviousKeyboardField = activeKeyboardFieldIndex > 0
+  const canGoToNextKeyboardField =
+    activeKeyboardFieldIndex >= 0 && activeKeyboardFieldIndex < KEYBOARD_FIELDS.length - 1
+
   return {
+    canGoToNextKeyboardField,
+    canGoToPreviousKeyboardField,
     canSave,
     client,
     confirmDelete,
+    contentBottomPadding,
+    focusAdjacentKeyboardField,
     form,
     handleBack,
-    handleNameLayout,
+    handleGroupLayout,
+    handleKeyboardFieldFocus,
+    handleKeyboardFieldLayout,
     handleSave,
+    handleScroll,
     handleScrollBeginDrag,
+    handleSectionLayout,
     isBootstrapping,
     isGlass,
     isMissingClient,
@@ -212,6 +417,7 @@ export function useEditClientScreenModel() {
     pulseKey,
     scrollRef,
     setForm,
+    setInputRef,
     showNameError,
     topInset,
     updateField,

@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Alert,
-  Keyboard,
-  Platform,
-  type KeyboardEvent,
-} from 'react-native'
+import { Alert, Platform } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -37,9 +32,9 @@ import {
   hasNewAppointmentDraftContent,
   toggleNewAppointmentServiceId,
 } from './newAppointmentModelUtils'
+import { useKeyboardFormNavigation } from 'components/ui/useKeyboardFormNavigation'
 
 type KeyboardField = 'price' | 'notes'
-type FocusableField = { focus?: () => void } | null
 
 const KEYBOARD_FIELDS: KeyboardField[] = ['price', 'notes']
 const QUICK_INSERT_CHARACTERS = ['/', '+', '%', ':', '-', ','] as const
@@ -57,19 +52,10 @@ export function useNewAppointmentScreenModel() {
   const createAppointmentLog = useCreateAppointmentLog()
 
   const client = clients.find((item) => item.id === id)
-  const scrollRef = useRef<any>(null)
-  const scrollY = useRef(0)
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const keyboardVisible = useRef(false)
-  const inputRefs = useRef<Record<KeyboardField, FocusableField>>({
-    price: null,
-    notes: null,
-  })
   const detailsSectionY = useRef(0)
   const detailsGroupY = useRef(0)
   const requiredY = useRef<{ date?: number }>({})
   const focusY = useRef<{ price?: number; notes?: number }>({})
-  const activeField = useRef<KeyboardField | null>(null)
   const defaultDate = useMemo(() => formatDateFromPicker(new Date()), [])
 
   const [form, setForm] = useState(() => buildNewAppointmentInitialForm(defaultDate))
@@ -79,7 +65,6 @@ export function useNewAppointmentScreenModel() {
   const [priceEdited, setPriceEdited] = useState(false)
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
-  const [activeKeyboardField, setActiveKeyboardField] = useState<KeyboardField | null>(null)
   const [notesSelection, setNotesSelection] = useState({ start: 0, end: 0 })
   const {
     closePickers,
@@ -138,23 +123,7 @@ export function useNewAppointmentScreenModel() {
   const showDateError = attemptedSave && !form.date.trim()
   const pickerDate = useMemo(() => parseDateForPicker(form.date) ?? new Date(), [form.date])
   const keyboardAccessoryId = 'new-appointment-keyboard-dismiss'
-  const keyboardDismissMode =
-    Platform.OS === 'ios'
-      ? ('interactive' as const)
-      : ('on-drag' as const)
   const contentBottomPadding = Math.max(48, insets.bottom + 48)
-
-  const clearPendingScroll = useCallback(() => {
-    if (scrollTimeoutRef.current !== null) {
-      clearTimeout(scrollTimeoutRef.current)
-      scrollTimeoutRef.current = null
-    }
-  }, [])
-
-  const setFocusedKeyboardField = useCallback((field: KeyboardField | null) => {
-    activeField.current = field
-    setActiveKeyboardField(field)
-  }, [])
 
   const resolveDetailsFieldTarget = useCallback((targetY?: number) => {
     if (typeof targetY !== 'number') {
@@ -164,86 +133,34 @@ export function useNewAppointmentScreenModel() {
     return detailsSectionY.current + detailsGroupY.current + targetY
   }, [])
 
-  const scrollFieldIntoView = useCallback(
-    (field: 'notes' | 'price', options?: { delayMs?: number }) => {
-      const targetY = resolveDetailsFieldTarget(
+  const {
+    activeKeyboardField,
+    canGoToNextKeyboardField,
+    canGoToPreviousKeyboardField,
+    focusAdjacentKeyboardField,
+    focusKeyboardField,
+    handleKeyboardFieldBlur,
+    handleKeyboardFieldFocus,
+    handleScroll,
+    handleScrollBeginDrag: handleKeyboardScrollBeginDrag,
+    keyboardDismissMode,
+    scrollRef,
+    setInputRef,
+  } = useKeyboardFormNavigation<KeyboardField>({
+    fields: KEYBOARD_FIELDS,
+    getFocusOffset: (field) =>
+      field === 'notes'
+        ? Platform.OS === 'ios'
+          ? 148
+          : 124
+        : Platform.OS === 'ios'
+          ? 196
+          : 164,
+    resolveFieldTarget: (field) =>
+      resolveDetailsFieldTarget(
         field === 'notes' ? focusY.current.notes : focusY.current.price
-      )
-      if (typeof targetY !== 'number') {
-        return
-      }
-
-      clearPendingScroll()
-      const delay =
-        options?.delayMs ??
-        (keyboardVisible.current
-          ? Platform.OS === 'ios'
-            ? 12
-            : 20
-          : Platform.OS === 'ios'
-            ? 72
-            : 36)
-      const focusOffset =
-        field === 'notes'
-          ? Platform.OS === 'ios'
-            ? 148
-            : 124
-          : Platform.OS === 'ios'
-            ? 196
-            : 164
-
-      scrollTimeoutRef.current = setTimeout(() => {
-        const nextScrollY = Math.max(0, targetY - focusOffset)
-
-        if (Math.abs(scrollY.current - nextScrollY) < 12) {
-          scrollTimeoutRef.current = null
-          return
-        }
-
-        scrollRef.current?.scrollTo({
-          y: nextScrollY,
-          animated: true,
-        })
-        scrollTimeoutRef.current = null
-      }, delay)
-    },
-    [clearPendingScroll, resolveDetailsFieldTarget]
-  )
-
-  const setInputRef = useCallback(
-    (field: KeyboardField) => (instance: FocusableField) => {
-      inputRefs.current[field] = instance
-    },
-    []
-  )
-
-  const focusKeyboardField = useCallback((field: KeyboardField) => {
-    inputRefs.current[field]?.focus?.()
-  }, [])
-
-  const focusAdjacentKeyboardField = useCallback(
-    (direction: 'previous' | 'next') => {
-      const currentField = activeField.current
-      if (!currentField) return
-
-      const currentIndex = KEYBOARD_FIELDS.indexOf(currentField)
-      if (currentIndex === -1) return
-
-      const nextIndex =
-        direction === 'previous' ? currentIndex - 1 : currentIndex + 1
-      const targetField = KEYBOARD_FIELDS[nextIndex]
-      if (!targetField) return
-
-      setFocusedKeyboardField(targetField)
-      setTimeout(() => {
-        focusKeyboardField(targetField)
-        if (keyboardVisible.current) {
-          scrollFieldIntoView(targetField, { delayMs: 20 })
-        }
-      }, 0)
-    },
-    [focusKeyboardField, scrollFieldIntoView, setFocusedKeyboardField]
-  )
+      ),
+  })
 
   const handleDetailsSectionLayout = useCallback((y: number) => {
     detailsSectionY.current = y
@@ -274,7 +191,7 @@ export function useNewAppointmentScreenModel() {
 
   const insertQuickCharacter = useCallback(
     (character: string) => {
-      if (activeField.current !== 'notes') return
+      if (activeKeyboardField !== 'notes') return
 
       const { start, end } = notesSelection
       const safeStart = Math.max(0, Math.min(start, form.notes.length))
@@ -289,48 +206,11 @@ export function useNewAppointmentScreenModel() {
       setNotesSelection({ start: nextCursor, end: nextCursor })
 
       setTimeout(() => {
-        inputRefs.current.notes?.focus?.()
+        focusKeyboardField('notes')
       }, 0)
     },
-    [form.notes, notesSelection]
+    [activeKeyboardField, focusKeyboardField, form.notes, notesSelection]
   )
-
-  useEffect(
-    () => () => {
-      clearPendingScroll()
-    },
-    [clearPendingScroll]
-  )
-
-  useEffect(() => {
-    const handleKeyboardShow = (_event: KeyboardEvent) => {
-      keyboardVisible.current = true
-      if (activeField.current) {
-        scrollFieldIntoView(activeField.current, {
-          delayMs: Platform.OS === 'ios' ? 96 : 56,
-        })
-      }
-    }
-
-    const handleKeyboardHide = () => {
-      keyboardVisible.current = false
-      clearPendingScroll()
-    }
-
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardDidShow' : 'keyboardDidShow',
-      handleKeyboardShow
-    )
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardDidHide' : 'keyboardDidHide',
-      handleKeyboardHide
-    )
-
-    return () => {
-      showSub.remove()
-      hideSub.remove()
-    }
-  }, [clearPendingScroll, scrollFieldIntoView])
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -427,52 +307,29 @@ export function useNewAppointmentScreenModel() {
   const handleBack = () => router.back()
 
   const handleNotesFocus = useCallback(() => {
-    setFocusedKeyboardField('notes')
     closePickers()
-    if (keyboardVisible.current) {
-      scrollFieldIntoView('notes', { delayMs: 20 })
-    }
-  }, [closePickers, scrollFieldIntoView, setFocusedKeyboardField])
+    handleKeyboardFieldFocus('notes')
+  }, [closePickers, handleKeyboardFieldFocus])
 
   const handleNotesBlur = useCallback(() => {
-    if (activeField.current === 'notes') {
-      setFocusedKeyboardField(null)
-    }
-  }, [setFocusedKeyboardField])
+    handleKeyboardFieldBlur('notes')
+  }, [handleKeyboardFieldBlur])
 
   const handlePriceFocus = useCallback(() => {
-    setFocusedKeyboardField('price')
     closePickers()
-    if (keyboardVisible.current) {
-      scrollFieldIntoView('price', { delayMs: 20 })
-    }
-  }, [closePickers, scrollFieldIntoView, setFocusedKeyboardField])
+    handleKeyboardFieldFocus('price')
+  }, [closePickers, handleKeyboardFieldFocus])
 
   const handlePriceBlur = useCallback(() => {
-    if (activeField.current === 'price') {
-      setFocusedKeyboardField(null)
-    }
-  }, [setFocusedKeyboardField])
-
-  const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
-    scrollY.current = event.nativeEvent.contentOffset.y
-  }, [])
+    handleKeyboardFieldBlur('price')
+  }, [handleKeyboardFieldBlur])
 
   const handleScrollBeginDrag = () => {
-    setFocusedKeyboardField(null)
-    Keyboard.dismiss()
+    handleKeyboardScrollBeginDrag()
     if (showDatePicker) {
       setShowDatePicker(false)
     }
   }
-
-  const activeKeyboardFieldIndex = activeKeyboardField
-    ? KEYBOARD_FIELDS.indexOf(activeKeyboardField)
-    : -1
-  const canGoToPreviousKeyboardField = activeKeyboardFieldIndex > 0
-  const canGoToNextKeyboardField =
-    activeKeyboardFieldIndex >= 0 &&
-    activeKeyboardFieldIndex < KEYBOARD_FIELDS.length - 1
   const canInsertQuickCharacter = activeKeyboardField === 'notes'
 
   return {

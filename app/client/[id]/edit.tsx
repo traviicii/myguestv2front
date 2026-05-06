@@ -16,7 +16,13 @@ export default function EditClientScreen() {
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
       <EditClientTopBar model={model} />
-      <KeyboardDismissAccessory nativeID={model.keyboardAccessoryId} />
+      <KeyboardDismissAccessory
+        nativeID={model.keyboardAccessoryId}
+        canGoPrevious={model.canGoToPreviousKeyboardField}
+        canGoNext={model.canGoToNextKeyboardField}
+        onPrevious={() => model.focusAdjacentKeyboardField('previous')}
+        onNext={() => model.focusAdjacentKeyboardField('next')}
+      />
       {model.isBootstrapping ? (
         <EditClientStateMessage message="Loading client..." />
       ) : model.isMissingClient ? (

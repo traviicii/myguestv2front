@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { Stack } from 'expo-router'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
@@ -60,7 +61,12 @@ function ColorChartPicklistField({
   const showOtherInput = model.otherInputs[field]
 
   return (
-    <YStack gap="$2.5">
+    <YStack
+      gap="$2.5"
+      onLayout={(event) => {
+        model.handleKeyboardFieldLayout(field, event.nativeEvent.layout.y)
+      }}
+    >
       <FieldLabel>{COLOR_CHART_FIELD_LABELS[field]}</FieldLabel>
       <XStack gap="$2" flexWrap="wrap">
         {options.map((option) => {
@@ -84,9 +90,14 @@ function ColorChartPicklistField({
       </XStack>
       {showOtherInput ? (
         <TextField
+          ref={model.setInputRef(field)}
           placeholder={getColorChartFieldPlaceholder(field)}
           value={model.form[field]}
           inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType(field)}
+          blurOnSubmit={false}
+          onFocus={() => model.handleKeyboardFieldFocus(field)}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit(field)}
           onChangeText={(text) => model.setField(field, text)}
         />
       ) : null}
@@ -102,12 +113,22 @@ function ColorChartTextField({
   model: EditColorChartScreenModel
 }) {
   return (
-    <YStack gap="$2">
+    <YStack
+      gap="$2"
+      onLayout={(event) => {
+        model.handleKeyboardFieldLayout(field, event.nativeEvent.layout.y)
+      }}
+    >
       <FieldLabel>{COLOR_CHART_FIELD_LABELS[field]}</FieldLabel>
       <TextField
+        ref={model.setInputRef(field)}
         placeholder={getColorChartFieldPlaceholder(field)}
         value={model.form[field]}
         inputAccessoryViewID={model.keyboardAccessoryId}
+        returnKeyType={model.getKeyboardReturnKeyType(field)}
+        blurOnSubmit={false}
+        onFocus={() => model.handleKeyboardFieldFocus(field)}
+        onSubmitEditing={() => model.handleKeyboardFieldSubmit(field)}
         onChangeText={(text) => model.setField(field, text)}
       />
     </YStack>
@@ -123,16 +144,38 @@ function ColorChartFieldGroupSection({
   index: number
 }) {
   return (
-    <YStack key={group.id} gap="$3">
+    <YStack
+      key={group.id}
+      gap="$3"
+      onLayout={(event) => {
+        model.handleGroupSectionLayout(group.id, event.nativeEvent.layout.y)
+      }}
+    >
       <ThemedHeadingText fontWeight="700" fontSize={14}>
         {group.title}
       </ThemedHeadingText>
-      <SurfaceCard p="$4" gap="$3" tone={model.isGlass ? 'secondary' : 'default'} mode="alwaysCard">
+      <SurfaceCard
+        p="$4"
+        gap="$3"
+        tone={model.isGlass ? 'secondary' : 'default'}
+        mode="alwaysCard"
+        onLayout={(event) => {
+          model.handleGroupCardLayout(group.id, event.nativeEvent.layout.y)
+        }}
+      >
         {group.fields.map((field) =>
           isPicklistField(field) ? (
-            <ColorChartPicklistField key={field} field={field} model={model} />
+            <ColorChartPicklistField
+              key={field}
+              field={field}
+              model={model}
+            />
           ) : (
-            <ColorChartTextField key={field} field={field} model={model} />
+            <ColorChartTextField
+              key={field}
+              field={field}
+              model={model}
+            />
           )
         )}
       </SurfaceCard>
@@ -148,11 +191,21 @@ function ColorChartEditContent({ model }: ColorChartEditSectionProps) {
     <YStack flex={1} bg="$background" position="relative">
       <AmbientBackdrop />
       <ScreenTopBar topInset={model.topInset} onBack={model.handleBack} />
-      <KeyboardDismissAccessory nativeID={model.keyboardAccessoryId} />
+      <KeyboardDismissAccessory
+        nativeID={model.keyboardAccessoryId}
+        canGoPrevious={model.canGoToPreviousKeyboardField}
+        canGoNext={model.canGoToNextKeyboardField}
+        onPrevious={() => model.focusAdjacentKeyboardField('previous')}
+        onNext={() => model.focusAdjacentKeyboardField('next')}
+      />
       <ScrollView
-        contentContainerStyle={{ pb: '$10' }}
+        ref={model.scrollRef}
+        contentContainerStyle={{ paddingBottom: model.contentBottomPadding } as any}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={model.keyboardDismissMode as 'interactive' | 'on-drag'}
+        onScroll={model.handleScroll}
+        scrollEventThrottle={16}
         onScrollBeginDrag={model.dismissKeyboard}
       >
         <YStack px="$5" pt="$6" gap="$4">

@@ -1,4 +1,4 @@
-import { ChevronDown } from '@tamagui/lucide-icons'
+import { ChevronDown, Trash2 } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import { AppointmentDatePickerField } from 'components/appointments/shared/AppointmentDatePickerField'
@@ -25,12 +25,22 @@ type EditAppointmentSectionProps = {
 
 export function AppointmentDetailsSection({ model }: EditAppointmentSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleDetailsSectionLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Details"
         subtitle="Adjust the appointment date, services, price, and notes in a grouped flow."
       />
-      <InsetGroup tone={model.cardTone}>
+      <InsetGroup
+        tone={model.cardTone}
+        onLayout={(event) => {
+          model.handleDetailsGroupLayout(event.nativeEvent.layout.y)
+        }}
+      >
         <YStack
           px="$4"
           py="$3"
@@ -94,13 +104,22 @@ export function AppointmentDetailsSection({ model }: EditAppointmentSectionProps
 
         <SectionDivider />
 
-        <YStack px="$4" py="$3" gap="$2">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handlePriceLayout(event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Price</FieldLabel>
           <CurrencyField
+            ref={model.setInputRef('price')}
             placeholder="0.00"
             value={model.form.price}
             inputAccessoryViewID={model.keyboardAccessoryId}
-            onFocus={model.closePickers}
+            onFocus={model.handlePriceFocus}
+            onBlur={model.handlePriceBlur}
             onChangeText={(text) => model.setForm((prev) => ({ ...prev, price: text }))}
           />
           {model.suggestedPriceCents !== null ? (
@@ -112,13 +131,24 @@ export function AppointmentDetailsSection({ model }: EditAppointmentSectionProps
 
         <SectionDivider />
 
-        <YStack px="$4" py="$3" gap="$2">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleNotesLayout(event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Formula / Notes</FieldLabel>
           <TextAreaField
+            inputRef={model.setInputRef('notes')}
             placeholder="Color formula, technique, notes..."
             value={model.form.notes}
             inputAccessoryViewID={model.keyboardAccessoryId}
-            onFocus={model.closePickers}
+            onFocus={model.handleNotesFocus}
+            onBlur={model.handleNotesBlur}
+            selection={model.notesSelection}
+            onSelectionChange={model.handleNotesSelectionChange}
             onChangeText={(text) => model.setForm((prev) => ({ ...prev, notes: text }))}
           />
         </YStack>
@@ -155,22 +185,42 @@ export function AppointmentPhotosSection({ model }: EditAppointmentSectionProps)
 
 export function AppointmentActionsRow({ model }: EditAppointmentSectionProps) {
   return (
-    <XStack gap="$3">
-      <SecondaryButton flex={1} onPress={model.handleBack}>
-        Cancel
-      </SecondaryButton>
-      <PrimaryButton
-        flex={1}
-        onPress={() => {
-          model.dismissInteractiveUI()
-          void model.handleSave()
+    <YStack gap="$3">
+      <XStack gap="$3">
+        <SecondaryButton flex={1} onPress={model.handleBack}>
+          Cancel
+        </SecondaryButton>
+        <PrimaryButton
+          flex={1}
+          onPress={() => {
+            model.dismissInteractiveUI()
+            void model.handleSave()
+          }}
+          disabled={!model.canSave}
+          opacity={model.canSave ? 1 : 0.5}
+        >
+          {model.updateAppointmentLog.isPending ? 'Saving...' : 'Save'}
+        </PrimaryButton>
+      </XStack>
+
+      <SecondaryButton
+        onPress={model.handleDelete}
+        disabled={model.isDeletingAppointment}
+        opacity={model.isDeletingAppointment ? 0.6 : 1}
+        borderColor="$red8"
+        bg="$red2"
+        pressStyle={{
+          bg: '$red3',
+          borderColor: '$red9',
+          opacity: 0.92,
         }}
-        disabled={!model.canSave}
-        opacity={model.canSave ? 1 : 0.5}
+        icon={<Trash2 size={16} />}
       >
-        {model.updateAppointmentLog.isPending ? 'Saving...' : 'Save'}
-      </PrimaryButton>
-    </XStack>
+        <Text fontWeight="700" color="$red11">
+          {model.isDeletingAppointment ? 'Deleting...' : 'Delete Appointment Log'}
+        </Text>
+      </SecondaryButton>
+    </YStack>
   )
 }
 

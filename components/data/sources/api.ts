@@ -9,6 +9,7 @@ import {
 import { exportMyDataViaApi } from '../api/exports'
 import {
   createFormulaViaApi,
+  deleteFormulaViaApi,
   fetchAppointmentById,
   fetchAppointmentHistoryFromApi,
   fetchAppointmentHistoryLite,
@@ -52,5 +53,6 @@ export const apiDataSource: DataSource = {
   permanentlyDeleteService: permanentlyDeleteServiceViaApi,
   createAppointmentLog: createFormulaViaApi,
   updateAppointmentLog: updateFormulaViaApi,
+  deleteAppointmentLog: deleteFormulaViaApi,
   upsertColorAnalysisForClient: upsertColorAnalysisForClientViaApi,
 }

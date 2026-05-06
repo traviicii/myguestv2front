@@ -75,6 +75,27 @@ const copyToClipboard = (value) => {
   return !result.error && result.status === 0
 }
 
+const printManualFallbackBlock = ({ host, manualUrls, copiedToClipboard }) => {
+  if (!manualUrls) {
+    if (host === 'tunnel') {
+      console.log('Tunnel fallback URL will come from Expo after the tunnel finishes connecting.')
+    }
+    return
+  }
+
+  console.log('')
+  console.log('iPhone manual fallback:')
+  console.log('  If auto-connect fails, open MyGuest Dev on the phone and tap "Enter URL manually".')
+  console.log('  Paste this exact dev-client URL:')
+  console.log(`  ${manualUrls.devClientUrl}`)
+  console.log('  Raw Metro URL (usually not enough by itself):')
+  console.log(`  ${manualUrls.metroBase}`)
+
+  if (copiedToClipboard) {
+    console.log('  The dev-client URL was copied to your clipboard.')
+  }
+}
+
 warnIfNodeVersionLooksOff()
 
 if (clear) {
@@ -112,15 +133,10 @@ console.log('Rebuild native apps only when native dependencies, app config, or s
 
 const manualUrls = buildManualUrls({ host, scheme: appScheme })
 if (manualUrls) {
-  console.log('Manual fallback URLs:')
-  console.log(`  Metro: ${manualUrls.metroBase}`)
-  console.log(`  Dev client: ${manualUrls.devClientUrl}`)
-  console.log('If the app says no development servers were found, unlock the phone and try the dev-client URL first.')
-  if (host === 'lan' && copyToClipboard(manualUrls.devClientUrl)) {
-    console.log('Copied the LAN dev-client URL to your clipboard.')
-  }
-} else if (host === 'tunnel') {
-  console.log('Tunnel fallback URL will come from Expo after the tunnel finishes connecting.')
+  const copiedToClipboard = host === 'lan' && copyToClipboard(manualUrls.devClientUrl)
+  printManualFallbackBlock({ host, manualUrls, copiedToClipboard })
+} else {
+  printManualFallbackBlock({ host, manualUrls, copiedToClipboard: false })
 }
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

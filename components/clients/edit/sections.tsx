@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
 import { ScreenTopBar } from 'components/ui/ScreenTopBar'
@@ -50,25 +51,40 @@ function EditClientHeader() {
 
 function EditClientNameSection({ model }: EditClientSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleSectionLayout('name', event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Name"
         subtitle="Keep the client name clean so search and lists stay readable."
       />
-      <InsetGroup>
+      <InsetGroup
+        onLayout={(event) => {
+          model.handleGroupLayout('name', event.nativeEvent.layout.y)
+        }}
+      >
         <YStack
           px="$4"
           py="$3"
           gap="$2"
           onLayout={(event) => {
-            model.handleNameLayout(event.nativeEvent.layout.y)
+            model.handleKeyboardFieldLayout('name', event.nativeEvent.layout.y)
           }}
         >
           <FieldLabel>Name</FieldLabel>
           <YStack position="relative">
             <TextField
+              ref={model.setInputRef('name')}
               value={model.form.name}
+              placeholder="Client name"
               inputAccessoryViewID={model.keyboardAccessoryId}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onFocus={() => model.handleKeyboardFieldFocus('name')}
+              onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
               onChangeText={(text) => model.updateField('name', text)}
               borderColor={model.showNameError ? '$red10' : '$borderSubtle'}
             />
@@ -87,27 +103,64 @@ function EditClientNameSection({ model }: EditClientSectionProps) {
 
 function EditClientContactSection({ model }: EditClientSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleSectionLayout('contact', event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Contact"
         subtitle="Refine contact details without the form feeling heavy."
       />
-      <InsetGroup>
-        <YStack px="$4" py="$3" gap="$2">
+      <InsetGroup
+        onLayout={(event) => {
+          model.handleGroupLayout('contact', event.nativeEvent.layout.y)
+        }}
+      >
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleKeyboardFieldLayout('email', event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Email</FieldLabel>
           <TextField
+            ref={model.setInputRef('email')}
+            placeholder="email@example.com"
+            keyboardType="email-address"
             value={model.form.email}
             inputAccessoryViewID={model.keyboardAccessoryId}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onFocus={() => model.handleKeyboardFieldFocus('email')}
+            onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
             onChangeText={(text) => model.updateField('email', text)}
           />
         </YStack>
-        <YStack px="$4" py="$3" gap="$2" borderTopWidth={1} borderTopColor="$divider">
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          borderTopWidth={1}
+          borderTopColor="$divider"
+          onLayout={(event) => {
+            model.handleKeyboardFieldLayout('phone', event.nativeEvent.layout.y)
+          }}
+        >
           <FieldLabel>Phone</FieldLabel>
           <TextField
+            ref={model.setInputRef('phone')}
             placeholder={PHONE_INPUT_PLACEHOLDER}
             keyboardType="phone-pad"
             value={model.form.phone}
             inputAccessoryViewID={model.keyboardAccessoryId}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onFocus={() => model.handleKeyboardFieldFocus('phone')}
+            onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
             onChangeText={(text) => model.updateField('phone', formatPhoneForInput(text))}
           />
         </YStack>
@@ -138,16 +191,33 @@ function EditClientDetailsSection({ model }: EditClientSectionProps) {
 
 function EditClientNotesSection({ model }: EditClientSectionProps) {
   return (
-    <YStack gap="$3.5">
+    <YStack
+      gap="$3.5"
+      onLayout={(event) => {
+        model.handleSectionLayout('notes', event.nativeEvent.layout.y)
+      }}
+    >
       <InsetSectionHeader
         title="Notes"
         subtitle="Capture personal preferences, color history, and reminders in one place."
       />
-      <InsetGroup>
-        <YStack px="$4" py="$3">
+      <InsetGroup
+        onLayout={(event) => {
+          model.handleGroupLayout('notes', event.nativeEvent.layout.y)
+        }}
+      >
+        <YStack
+          px="$4"
+          py="$3"
+          onLayout={(event) => {
+            model.handleKeyboardFieldLayout('notes', event.nativeEvent.layout.y)
+          }}
+        >
           <TextAreaField
+            inputRef={model.setInputRef('notes')}
             value={model.form.notes}
             inputAccessoryViewID={model.keyboardAccessoryId}
+            onFocus={() => model.handleKeyboardFieldFocus('notes')}
             onChangeText={(text) => model.updateField('notes', text)}
             placeholder="Client preferences, color history, personal notes..."
           />
@@ -201,9 +271,12 @@ export function EditClientContent({ model }: EditClientSectionProps) {
   return (
     <ScrollView
       ref={model.scrollRef as never}
-      contentContainerStyle={{ paddingBottom: 40 } as never}
+      contentContainerStyle={{ paddingBottom: model.contentBottomPadding } as never}
+      automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={model.keyboardDismissMode}
+      onScroll={model.handleScroll as never}
+      scrollEventThrottle={16}
       onScrollBeginDrag={model.handleScrollBeginDrag}
     >
       <YStack px="$5" pt="$6" gap="$4">

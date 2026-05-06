@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { Search } from '@tamagui/lucide-icons'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
@@ -12,6 +13,7 @@ import {
   TextField,
   ThemedHeadingText,
 } from 'components/ui/controls'
+import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
 
 import type { QuickLogScreenModel } from './useQuickLogScreenModel'
 
@@ -36,16 +38,29 @@ export function QuickLogHeader() {
 
 function QuickLogClientSearch({ model }: QuickLogSectionProps) {
   return (
-    <PreviewCard p="$0" gap="$0" px="$3" py="$2">
+    <PreviewCard
+      p="$0"
+      gap="$0"
+      px="$3"
+      py="$2"
+      onLayout={(event) => {
+        model.handleKeyboardFieldLayout('searchText', event.nativeEvent.layout.y)
+      }}
+    >
       <XStack items="center" gap="$2">
         <Search size={16} color="$textSecondary" />
         <TextField
+          ref={model.setInputRef('searchText')}
           flex={1}
           borderWidth={0}
           height={36}
           px="$0"
           placeholder="Search clients"
           value={model.searchText}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType('searchText')}
+          onFocus={() => model.handleKeyboardFieldFocus('searchText')}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit('searchText')}
           onChangeText={model.setSearchText}
           fontSize={12}
           color="$color"
@@ -66,7 +81,7 @@ function QuickLogClientList({ model }: QuickLogSectionProps) {
           p="$4"
           pressStyle={{ opacity: 0.88 }}
           cursor="pointer"
-          onPress={() => model.setSelectedClientId(client.id)}
+          onPress={() => model.handleSelectClient(client.id)}
         >
           <Text fontSize={14} fontWeight="600">
             {client.name}
@@ -118,12 +133,23 @@ export function QuickLogForm({ model }: QuickLogSectionProps) {
 
       <SectionDivider />
 
-      <TextField
-        placeholder="Date (MM/DD/YYYY)"
-        value={model.date}
-        onChangeText={model.setDate}
-        accessibilityLabel="Appointment date"
-      />
+      <YStack
+        onLayout={(event) => {
+          model.handleKeyboardFieldLayout('date', event.nativeEvent.layout.y)
+        }}
+      >
+        <TextField
+          ref={model.setInputRef('date')}
+          placeholder="Date (MM/DD/YYYY)"
+          value={model.date}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType('date')}
+          onFocus={() => model.handleKeyboardFieldFocus('date')}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit('date')}
+          onChangeText={model.setDate}
+          accessibilityLabel="Appointment date"
+        />
+      </YStack>
 
       <Text fontSize={12} color="$textSecondary">
         Choose a service
@@ -142,22 +168,59 @@ export function QuickLogForm({ model }: QuickLogSectionProps) {
         ))}
       </XStack>
 
-      <TextField
-        placeholder="Or add a new service"
-        value={model.newServiceName}
-        onChangeText={model.setNewServiceName}
-      />
+      <YStack
+        onLayout={(event) => {
+          model.handleKeyboardFieldLayout('newServiceName', event.nativeEvent.layout.y)
+        }}
+      >
+        <TextField
+          ref={model.setInputRef('newServiceName')}
+          placeholder="Or add a new service"
+          value={model.newServiceName}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType('newServiceName')}
+          onFocus={() => model.handleKeyboardFieldFocus('newServiceName')}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit('newServiceName')}
+          onChangeText={model.setNewServiceName}
+        />
+      </YStack>
       <SecondaryButton onPress={() => void model.handleSaveNewService()}>
         Save as preset
       </SecondaryButton>
 
-      <TextField
-        placeholder="Price (optional)"
-        keyboardType="decimal-pad"
-        value={model.price}
-        onChangeText={model.setPrice}
-      />
-      <TextField placeholder="Notes (optional)" value={model.notes} onChangeText={model.setNotes} />
+      <YStack
+        onLayout={(event) => {
+          model.handleKeyboardFieldLayout('price', event.nativeEvent.layout.y)
+        }}
+      >
+        <TextField
+          ref={model.setInputRef('price')}
+          placeholder="Price (optional)"
+          keyboardType="decimal-pad"
+          value={model.price}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType('price')}
+          onFocus={() => model.handleKeyboardFieldFocus('price')}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit('price')}
+          onChangeText={model.setPrice}
+        />
+      </YStack>
+      <YStack
+        onLayout={(event) => {
+          model.handleKeyboardFieldLayout('notes', event.nativeEvent.layout.y)
+        }}
+      >
+        <TextField
+          ref={model.setInputRef('notes')}
+          placeholder="Notes (optional)"
+          value={model.notes}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType('notes')}
+          onFocus={() => model.handleKeyboardFieldFocus('notes')}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit('notes')}
+          onChangeText={model.setNotes}
+        />
+      </YStack>
 
       <Text fontSize={12} color="$textSecondary">
         Follow-up channel
@@ -167,22 +230,42 @@ export function QuickLogForm({ model }: QuickLogSectionProps) {
       <Text fontSize={12} color="$textSecondary">
         Follow-up date
       </Text>
-      <TextField
-        placeholder="MM/DD/YYYY"
-        value={model.followUpDate}
-        onChangeText={model.setFollowUpDate}
-        accessibilityLabel="Follow-up date"
-      />
+      <YStack
+        onLayout={(event) => {
+          model.handleKeyboardFieldLayout('followUpDate', event.nativeEvent.layout.y)
+        }}
+      >
+        <TextField
+          ref={model.setInputRef('followUpDate')}
+          placeholder="MM/DD/YYYY"
+          value={model.followUpDate}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          returnKeyType={model.getKeyboardReturnKeyType('followUpDate')}
+          onFocus={() => model.handleKeyboardFieldFocus('followUpDate')}
+          onSubmitEditing={() => model.handleKeyboardFieldSubmit('followUpDate')}
+          onChangeText={model.setFollowUpDate}
+          accessibilityLabel="Follow-up date"
+        />
+      </YStack>
 
       <Text fontSize={12} color="$textSecondary">
         Follow-up message
       </Text>
-      <TextAreaField
-        minH={120}
-        value={model.followUpMessage}
-        onChangeText={model.setFollowUpMessage}
-        placeholder="Add your follow-up message"
-      />
+      <YStack
+        onLayout={(event) => {
+          model.handleKeyboardFieldLayout('followUpMessage', event.nativeEvent.layout.y)
+        }}
+      >
+        <TextAreaField
+          inputRef={model.setInputRef('followUpMessage')}
+          minH={120}
+          value={model.followUpMessage}
+          inputAccessoryViewID={model.keyboardAccessoryId}
+          onFocus={() => model.handleKeyboardFieldFocus('followUpMessage')}
+          onChangeText={model.setFollowUpMessage}
+          placeholder="Add your follow-up message"
+        />
+      </YStack>
 
       <XStack gap="$3" pt="$2">
         <SecondaryButton flex={1} onPress={() => void model.handleSave(false)}>
@@ -198,11 +281,29 @@ export function QuickLogForm({ model }: QuickLogSectionProps) {
 
 export function QuickLogContent({ model }: QuickLogSectionProps) {
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: model.contentPaddingBottom } as never}>
+    <>
+      <KeyboardDismissAccessory
+        nativeID={model.keyboardAccessoryId}
+        canGoPrevious={model.canGoToPreviousKeyboardField}
+        canGoNext={model.canGoToNextKeyboardField}
+        onPrevious={() => model.focusAdjacentKeyboardField('previous')}
+        onNext={() => model.focusAdjacentKeyboardField('next')}
+      />
+      <ScrollView
+        ref={model.scrollRef}
+        contentContainerStyle={{ paddingBottom: model.contentPaddingBottom } as never}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={model.keyboardDismissMode}
+        onScroll={model.handleScroll as never}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={model.handleScrollBeginDrag}
+      >
       <YStack px="$5" pt={model.topPadding} gap="$4">
         <QuickLogHeader />
         {model.hasSelectedClient ? <QuickLogForm model={model} /> : <QuickLogClientPicker model={model} />}
       </YStack>
-    </ScrollView>
+      </ScrollView>
+    </>
   )
 }

@@ -201,6 +201,7 @@ export const mockDataSource: DataSource = {
   permanentlyDeleteService: async () => readOnlyError('manage services in the v2 backend'),
   createAppointmentLog: async () => readOnlyError('create appointment logs in the v2 backend'),
   updateAppointmentLog: async () => readOnlyError('update appointment logs in the v2 backend'),
+  deleteAppointmentLog: async () => readOnlyError('delete appointment logs in the v2 backend'),
   upsertColorAnalysisForClient: async () =>
     readOnlyError('save color charts in the v2 backend'),
 }

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Keyboard, Platform } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Platform } from 'react-native'
+import { CommonActions } from '@react-navigation/native'
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -23,6 +24,7 @@ import {
   removeImageAtIndex,
 } from 'components/appointments/shared/appointmentFormUtils'
 import {
+  useDeleteAppointmentLog,
   useAppointmentDetail,
   useClients,
   useServices,
@@ -39,9 +41,22 @@ import {
   resolveInitialEditAppointmentServiceIds,
   toggleEditAppointmentServiceId,
 } from './editAppointmentModelUtils'
+import { useKeyboardFormNavigation } from 'components/ui/useKeyboardFormNavigation'
+
+type KeyboardField = 'price' | 'notes'
+type TabsResetRoute = { name: '(tabs)'; state?: { routes: { name: string }[] } }
+type NestedRouteState = {
+  index?: number
+  routes?: { name?: string }[]
+}
+
+const KEYBOARD_FIELDS: KeyboardField[] = ['price', 'notes']
+const QUICK_INSERT_CHARACTERS = ['/', '+', '%', ':', '-', ','] as const
+const TAB_ROUTE_NAMES = new Set(['index', 'clients', 'profile'])
 
 export function useEditAppointmentScreenModel() {
   const router = useRouter()
+  const rootNavigation = useNavigation('/')
   const insets = useSafeAreaInsets()
   const topInset = Math.max(insets.top + 8, 16)
   const { aesthetic } = useThemePrefs()
@@ -55,15 +70,19 @@ export function useEditAppointmentScreenModel() {
   const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: serviceCatalog = [] } = useServices('all')
   const updateAppointmentLog = useUpdateAppointmentLog()
+  const deleteAppointmentLog = useDeleteAppointmentLog()
 
-  const scrollRef = useRef<any>(null)
   const initialServiceIdsRef = useRef<number[]>([])
   const hasInitializedServicesRef = useRef(false)
   const hasInitializedFormRef = useRef(false)
+  const detailsSectionY = useRef(0)
+  const detailsGroupY = useRef(0)
   const requiredY = useRef<{ date?: number }>({})
+  const focusY = useRef<{ price?: number; notes?: number }>({})
 
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
+  const [notesSelection, setNotesSelection] = useState({ start: 0, end: 0 })
   const {
     closePickers,
     closeDatePicker,
@@ -92,7 +111,6 @@ export function useEditAppointmentScreenModel() {
   const [images, setImages] = useState<string[]>(appointment?.images ?? [])
   const [previewUri, setPreviewUri] = useState<string | null>(null)
 
-
   const selectedServices = useMemo(
     () => getSelectedServices(serviceCatalog, selectedServiceIds),
     [serviceCatalog, selectedServiceIds]
@@ -113,6 +131,117 @@ export function useEditAppointmentScreenModel() {
     [selectedServices]
   )
 
+  const hasRequired = useMemo(() => Boolean(form.date.trim()), [form.date])
+  const canSave = useMemo(
+    () =>
+      hasEditAppointmentChanges({
+        form,
+        images,
+        initialForm,
+        initialImages: appointment?.images ?? [],
+        initialServiceIds: initialServiceIdsRef.current,
+        selectedServiceIds,
+      }) &&
+      !updateAppointmentLog.isPending &&
+      !deleteAppointmentLog.isPending,
+    [
+      appointment?.images,
+      deleteAppointmentLog.isPending,
+      form,
+      images,
+      initialForm,
+      selectedServiceIds,
+      updateAppointmentLog.isPending,
+    ]
+  )
+  const showDateError = attemptedSave && !form.date.trim()
+  const pickerDate = useMemo(() => parseDateForPicker(form.date) ?? new Date(), [form.date])
+  const keyboardAccessoryId = 'appointment-edit-keyboard-dismiss'
+  const contentBottomPadding = Math.max(48, insets.bottom + 48)
+
+  const resolveDetailsFieldTarget = useCallback((targetY?: number) => {
+    if (typeof targetY !== 'number') {
+      return undefined
+    }
+
+    return detailsSectionY.current + detailsGroupY.current + targetY
+  }, [])
+
+  const {
+    activeKeyboardField,
+    canGoToNextKeyboardField,
+    canGoToPreviousKeyboardField,
+    focusAdjacentKeyboardField,
+    focusKeyboardField,
+    handleKeyboardFieldBlur,
+    handleKeyboardFieldFocus,
+    handleScroll,
+    handleScrollBeginDrag: handleKeyboardScrollBeginDrag,
+    keyboardDismissMode,
+    scrollRef,
+    setInputRef,
+  } = useKeyboardFormNavigation<KeyboardField>({
+    fields: KEYBOARD_FIELDS,
+    getFocusOffset: (field) =>
+      field === 'notes'
+        ? Platform.OS === 'ios'
+          ? 148
+          : 124
+        : Platform.OS === 'ios'
+          ? 196
+          : 164,
+    resolveFieldTarget: (field) =>
+      resolveDetailsFieldTarget(
+        field === 'notes' ? focusY.current.notes : focusY.current.price
+      ),
+  })
+
+  const handleDetailsSectionLayout = useCallback((y: number) => {
+    detailsSectionY.current = y
+  }, [])
+
+  const handleDetailsGroupLayout = useCallback((y: number) => {
+    detailsGroupY.current = y
+  }, [])
+
+  const handlePriceLayout = useCallback((y: number) => {
+    focusY.current.price = y
+  }, [])
+
+  const handleNotesLayout = useCallback((y: number) => {
+    focusY.current.notes = y
+  }, [])
+
+  const handleNotesSelectionChange = useCallback(
+    (event: { nativeEvent: { selection: { start: number; end: number } } }) => {
+      setNotesSelection(event.nativeEvent.selection)
+    },
+    []
+  )
+
+  const insertQuickCharacter = useCallback(
+    (character: string) => {
+      if (activeKeyboardField !== 'notes') return
+
+      const { start, end } = notesSelection
+      const safeStart = Math.max(0, Math.min(start, form.notes.length))
+      const safeEnd = Math.max(safeStart, Math.min(end, form.notes.length))
+      const nextNotes =
+        form.notes.slice(0, safeStart) +
+        character +
+        form.notes.slice(safeEnd)
+      const nextCursor = safeStart + character.length
+
+      setForm((prev) => ({ ...prev, notes: nextNotes }))
+      setNotesSelection({ start: nextCursor, end: nextCursor })
+
+      setTimeout(() => {
+        focusKeyboardField('notes')
+      }, 0)
+    },
+    [activeKeyboardField, focusKeyboardField, form.notes, notesSelection]
+  )
+
   useEffect(() => {
     if (!appointment || hasInitializedFormRef.current) return
     setForm(buildEditAppointmentInitialForm(appointment))
@@ -130,29 +259,6 @@ export function useEditAppointmentScreenModel() {
     setSelectedServiceIds(initialIds)
     hasInitializedServicesRef.current = true
   }, [appointment, serviceCatalog])
-
-  const isDirty = useMemo(
-    () =>
-      hasEditAppointmentChanges({
-        form,
-        images,
-        initialForm,
-        initialImages: appointment?.images ?? [],
-        initialServiceIds: initialServiceIdsRef.current,
-        selectedServiceIds,
-      }),
-    [appointment?.images, form, images, initialForm, selectedServiceIds]
-  )
-
-  const hasRequired = useMemo(() => Boolean(form.date.trim()), [form.date])
-  const canSave = isDirty && !updateAppointmentLog.isPending
-  const showDateError = attemptedSave && !form.date.trim()
-  const pickerDate = useMemo(() => parseDateForPicker(form.date) ?? new Date(), [form.date])
-  const keyboardAccessoryId = 'appointment-edit-keyboard-dismiss'
-  const keyboardDismissMode =
-    Platform.OS === 'ios'
-      ? ('interactive' as const)
-      : ('on-drag' as const)
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -178,7 +284,7 @@ export function useEditAppointmentScreenModel() {
 
   const handleSave = async () => {
     setAttemptedSave(true)
-    if (!hasRequired || !isDirty) {
+    if (!hasRequired || !canSave) {
       if (!hasRequired) {
         void warningHaptic()
         const scrollTarget = getEditAppointmentRequiredDateScrollTarget(requiredY.current.date)
@@ -251,15 +357,120 @@ export function useEditAppointmentScreenModel() {
 
   const handleBack = () => router.back()
 
+  const buildTabsResetRoute = useCallback((): TabsResetRoute => {
+    const rootState = rootNavigation.getState()
+    const tabsRoute = rootState?.routes.find((route) => route.name === '(tabs)') as
+      | { state?: NestedRouteState }
+      | undefined
+    const tabsState = tabsRoute?.state
+    const activeIndex = typeof tabsState?.index === 'number' ? tabsState.index : 0
+    const activeTabName = tabsState?.routes?.[activeIndex]?.name
+
+    if (!activeTabName || !TAB_ROUTE_NAMES.has(activeTabName)) {
+      return { name: '(tabs)' }
+    }
+
+    return {
+      name: '(tabs)',
+      state: {
+        routes: [{ name: activeTabName }],
+      },
+    }
+  }, [rootNavigation])
+
+  const resetAfterAppointmentDelete = useCallback(
+    (targetClientId?: string | null) => {
+      const tabsRoute = buildTabsResetRoute()
+
+      rootNavigation.dispatch(
+        CommonActions.reset({
+          index: targetClientId ? 1 : 0,
+          routes: targetClientId
+            ? [
+                tabsRoute,
+                {
+                  name: 'client/[id]',
+                  params: { id: targetClientId },
+                },
+              ]
+            : [tabsRoute],
+        })
+      )
+    },
+    [buildTabsResetRoute, rootNavigation]
+  )
+
+  const executeDeleteAppointment = useCallback(async () => {
+    if (!appointment) return
+
+    try {
+      await deleteAppointmentLog.mutateAsync(appointment.id)
+      void successHaptic()
+
+      const targetClientId = appointment.clientId || client?.id
+      resetAfterAppointmentDelete(targetClientId)
+    } catch (error) {
+      Alert.alert(
+        'Delete Failed',
+        error instanceof Error
+          ? error.message
+          : 'Unable to delete appointment log right now. Please try again.'
+      )
+    }
+  }, [appointment, client?.id, deleteAppointmentLog, resetAfterAppointmentDelete])
+
+  const handleDelete = useCallback(() => {
+    if (!appointment || deleteAppointmentLog.isPending) return
+
+    Alert.alert(
+      'Delete Appointment Log?',
+      'This permanently removes the appointment log and any attached photos. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void warningHaptic()
+            void executeDeleteAppointment()
+          },
+        },
+      ]
+    )
+  }, [appointment, deleteAppointmentLog.isPending, executeDeleteAppointment])
+
+  const handleNotesFocus = useCallback(() => {
+    closePickers()
+    handleKeyboardFieldFocus('notes')
+  }, [closePickers, handleKeyboardFieldFocus])
+
+  const handleNotesBlur = useCallback(() => {
+    handleKeyboardFieldBlur('notes')
+  }, [handleKeyboardFieldBlur])
+
+  const handlePriceFocus = useCallback(() => {
+    closePickers()
+    handleKeyboardFieldFocus('price')
+  }, [closePickers, handleKeyboardFieldFocus])
+
+  const handlePriceBlur = useCallback(() => {
+    handleKeyboardFieldBlur('price')
+  }, [handleKeyboardFieldBlur])
+
   const handleScrollBeginDrag = () => {
-    Keyboard.dismiss()
+    handleKeyboardScrollBeginDrag()
     if (showDatePicker) {
       setShowDatePicker(false)
     }
   }
+  const canInsertQuickCharacter = activeKeyboardField === 'notes'
 
   return {
+    activeKeyboardField,
     appointment,
+    canGoToNextKeyboardField,
+    canGoToPreviousKeyboardField,
+    canInsertQuickCharacter,
     canSave,
     cardMode,
     cardTone,
@@ -268,27 +479,44 @@ export function useEditAppointmentScreenModel() {
     closePickers,
     closeDatePicker,
     closeServicePicker,
+    contentBottomPadding,
     datePanel,
     dismissInteractiveUI,
+    focusAdjacentKeyboardField,
     form,
     formatPriceFromCents,
     handleBack,
     handleCapture,
     handleDateChange,
     handleDateFieldPress,
+    handleDetailsGroupLayout,
+    handleDetailsSectionLayout,
+    handleNotesBlur,
+    handleNotesFocus,
+    handleNotesLayout,
+    handleNotesSelectionChange,
+    handleDelete,
+    handlePriceBlur,
+    handlePriceFocus,
+    handlePriceLayout,
     handleSave,
+    handleScroll,
     handleScrollBeginDrag,
     handleServiceFieldPress,
     handleUpload,
     images,
+    insertQuickCharacter,
     isBootstrapping,
+    isDeletingAppointment: deleteAppointmentLog.isPending,
     isGlass,
     keyboardAccessoryId,
     keyboardDismissMode,
+    notesSelection,
     pickerDate,
     pickerServices,
     previewUri,
     pulseKey,
+    quickInsertCharacters: QUICK_INSERT_CHARACTERS,
     removeImage,
     requiredY,
     scrollRef,
@@ -300,6 +528,7 @@ export function useEditAppointmentScreenModel() {
     selectService,
     setCoverImage,
     setForm,
+    setInputRef,
     setPreviewUri,
     setSelectedServiceIds,
     setShowDatePicker,

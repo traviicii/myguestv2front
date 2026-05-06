@@ -127,7 +127,12 @@ export function ActiveServicesSection({ model }: SettingsSectionProps) {
   }
 
   return (
-    <YStack gap="$3">
+    <YStack
+      gap="$3"
+      onLayout={(event) => {
+        model.handleActiveServicesSectionLayout(event.nativeEvent.layout.y)
+      }}
+    >
       <YStack gap="$1">
         <FieldLabel>Visible services</FieldLabel>
         <Text fontSize={11} color="$textSecondary">
@@ -136,7 +141,7 @@ export function ActiveServicesSection({ model }: SettingsSectionProps) {
         </Text>
       </YStack>
       {model.activeServices.map((service, index) => (
-        <ActiveServiceCard
+      <ActiveServiceCard
           key={service.id}
           index={index}
           model={model}
@@ -231,7 +236,13 @@ function ActiveServiceCard({
   }))
 
   return (
-    <Animated.View layout={reorderRowTransition} style={pulseStyle}>
+    <Animated.View
+      layout={reorderRowTransition}
+      style={pulseStyle}
+      onLayout={(event) => {
+        model.handleActiveServiceCardLayout(service.id, event.nativeEvent.layout.y)
+      }}
+    >
       <YStack position="relative">
         <Animated.View
           pointerEvents="none"
@@ -291,10 +302,21 @@ function ActiveServiceCard({
           </XStack>
 
           <YStack gap="$2.5">
-            <YStack gap="$1">
+            <YStack
+              gap="$1"
+              onLayout={(event) => {
+                model.handleServiceFieldLayout(`rename:${service.id}`, event.nativeEvent.layout.y)
+              }}
+            >
               <FieldLabel>Service name</FieldLabel>
               <TextField
+                ref={model.setServiceInputRef(`rename:${service.id}`)}
                 value={model.renameDrafts[service.id] ?? service.name}
+                inputAccessoryViewID={model.keyboardAccessoryId}
+                returnKeyType={model.getServiceFieldReturnKeyType(`rename:${service.id}`)}
+                blurOnSubmit={false}
+                onFocus={() => model.handleServiceFieldFocus(`rename:${service.id}`)}
+                onSubmitEditing={() => model.handleServiceFieldSubmit(`rename:${service.id}`)}
                 onChangeText={(text) => model.handleRenameDraftChange(service.id, text)}
                 onBlur={() => {
                   void model.handleRenameService(service.id, service.name)
@@ -308,12 +330,24 @@ function ActiveServiceCard({
             </YStack>
 
             <XStack items="flex-start" gap="$3">
-              <YStack flex={1} gap="$1">
+              <YStack
+                flex={1}
+                gap="$1"
+                onLayout={(event) => {
+                  model.handleServiceFieldLayout(`price:${service.id}`, event.nativeEvent.layout.y)
+                }}
+              >
                 <FieldLabel>Default price</FieldLabel>
                 <CurrencyField
+                  ref={model.setServiceInputRef(`price:${service.id}`)}
                   containerProps={{ width: '100%' }}
                   placeholder="0.00"
                   keyboardType="decimal-pad"
+                  inputAccessoryViewID={model.keyboardAccessoryId}
+                  returnKeyType={model.getServiceFieldReturnKeyType(`price:${service.id}`)}
+                  blurOnSubmit={false}
+                  onFocus={() => model.handleServiceFieldFocus(`price:${service.id}`)}
+                  onSubmitEditing={() => model.handleServiceFieldSubmit(`price:${service.id}`)}
                   value={
                     model.priceDrafts[service.id] ??
                     model.formatPriceInput(service.defaultPriceCents)
@@ -334,12 +368,24 @@ function ActiveServiceCard({
                 )}
               </YStack>
 
-              <YStack width={128} gap="$1">
+              <YStack
+                width={128}
+                gap="$1"
+                onLayout={(event) => {
+                  model.handleServiceFieldLayout(`return:${service.id}`, event.nativeEvent.layout.y)
+                }}
+              >
                 <FieldLabel>Return every</FieldLabel>
                 <TextField
+                  ref={model.setServiceInputRef(`return:${service.id}`)}
                   width="100%"
                   placeholder="6"
                   keyboardType="number-pad"
+                  inputAccessoryViewID={model.keyboardAccessoryId}
+                  returnKeyType={model.getServiceFieldReturnKeyType(`return:${service.id}`)}
+                  blurOnSubmit={false}
+                  onFocus={() => model.handleServiceFieldFocus(`return:${service.id}`)}
+                  onSubmitEditing={() => model.handleServiceFieldSubmit(`return:${service.id}`)}
                   value={
                     model.returnWeeksDrafts[service.id] ??
                     model.formatReturnWeeksInput(service.defaultReturnWeeks)

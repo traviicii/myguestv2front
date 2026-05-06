@@ -391,9 +391,11 @@ if (target === 'simulator') {
   console.log('Use `npm run dev` for LAN or `npm run dev:tunnel` when the phone is off-network.')
   console.log('Unlock your iPhone before the final app launch handoff. A locked phone can make Expo look stuck at "Connecting to..." after a successful build.')
   if (lanManualUrls) {
-    console.log('If `MyGuest Dev` says no development servers were found while using `npm run dev`, these are the LAN fallback URLs:')
-    console.log(`  Metro: ${lanManualUrls.metroBase}`)
-    console.log(`  Dev client: ${lanManualUrls.devClientUrl}`)
+    console.log('If `MyGuest Dev` does not auto-connect during `npm run dev`, use this manual fallback on the phone:')
+    console.log('  Open MyGuest Dev > "Enter URL manually" and paste:')
+    console.log(`  ${lanManualUrls.devClientUrl}`)
+    console.log('  Raw Metro URL (usually not enough by itself):')
+    console.log(`  ${lanManualUrls.metroBase}`)
   }
   console.log('If you are using `npm run dev:tunnel`, use the tunnel URL from that terminal instead of the LAN fallback above.')
 }

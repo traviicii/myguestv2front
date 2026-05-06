@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Platform } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Keyboard, Platform } from 'react-native'
 import { useToastController } from '@tamagui/toast'
 
 import {
@@ -27,6 +27,49 @@ import {
   hasServiceNameConflict,
 } from './settingsServiceManagementUtils'
 
+type ServiceKeyboardField =
+  | `rename:${number}`
+  | `price:${number}`
+  | `return:${number}`
+  | 'new-service-name'
+  | 'new-service-price'
+  | 'new-service-return'
+
+type FocusableField = { focus?: () => void } | null
+
+const FOCUS_SCROLL_TOLERANCE = 24
+const IOS_KEYBOARD_SETTLE_DELAY_MS = 72
+const ANDROID_KEYBOARD_SETTLE_DELAY_MS = 48
+
+const ADD_SERVICE_FIELDS: ServiceKeyboardField[] = [
+  'new-service-name',
+  'new-service-price',
+  'new-service-return',
+]
+
+function buildServiceFieldId(
+  kind: 'rename' | 'price' | 'return',
+  serviceId: number
+): ServiceKeyboardField {
+  return `${kind}:${serviceId}` as ServiceKeyboardField
+}
+
+function isAddServiceField(field: ServiceKeyboardField) {
+  return ADD_SERVICE_FIELDS.includes(field)
+}
+
+function resolveServiceFieldParts(field: ServiceKeyboardField) {
+  if (isAddServiceField(field)) {
+    return null
+  }
+
+  const [kind, id] = field.split(':')
+  return {
+    kind: kind as 'rename' | 'price' | 'return',
+    serviceId: Number(id),
+  }
+}
+
 export function useSettingsServiceManagement() {
   const toast = useToastController()
   const [serviceDraft, setServiceDraft] = useState('')
@@ -49,6 +92,18 @@ export function useSettingsServiceManagement() {
   const renameSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const priceSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const returnWeeksSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
+  const settingsScrollRef = useRef<any>(null)
+  const settingsScrollY = useRef(0)
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const keyboardVisible = useRef(false)
+  const activeServicesSectionY = useRef<number | null>(null)
+  const addServiceSectionY = useRef<number | null>(null)
+  const activeServiceCardY = useRef<Record<number, number>>({})
+  const fieldY = useRef<Partial<Record<ServiceKeyboardField, number>>>({})
+  const activeField = useRef<ServiceKeyboardField | null>(null)
+  const inputRefs = useRef<Partial<Record<ServiceKeyboardField, FocusableField>>>({})
+  const [activeKeyboardField, setActiveKeyboardField] =
+    useState<ServiceKeyboardField | null>(null)
 
   const { data: serviceCatalog = [] } = useServices('all')
   const createService = useCreateService()
@@ -81,6 +136,164 @@ export function useSettingsServiceManagement() {
   )
 
   const canAddService = Boolean(normalizeServiceName(serviceDraft))
+  const keyboardFields = useMemo<ServiceKeyboardField[]>(
+    () => [
+      ...activeServices.flatMap((service) => [
+        buildServiceFieldId('rename', service.id),
+        buildServiceFieldId('price', service.id),
+        buildServiceFieldId('return', service.id),
+      ]),
+      ...ADD_SERVICE_FIELDS,
+    ],
+    [activeServices]
+  )
+
+  const clearPendingScroll = useCallback(() => {
+    if (scrollTimeoutRef.current !== null) {
+      clearTimeout(scrollTimeoutRef.current)
+      scrollTimeoutRef.current = null
+    }
+  }, [])
+
+  const setFocusedKeyboardField = useCallback((field: ServiceKeyboardField | null) => {
+    activeField.current = field
+    setActiveKeyboardField(field)
+  }, [])
+
+  const resolveFieldTarget = useCallback((field: ServiceKeyboardField) => {
+    const localFieldY = fieldY.current[field]
+    if (typeof localFieldY !== 'number') {
+      return undefined
+    }
+
+    if (isAddServiceField(field)) {
+      const sectionY = addServiceSectionY.current
+      if (typeof sectionY !== 'number') {
+        return undefined
+      }
+      return sectionY + localFieldY
+    }
+
+    const fieldParts = resolveServiceFieldParts(field)
+    if (!fieldParts) {
+      return undefined
+    }
+
+    const sectionY = activeServicesSectionY.current
+    const cardY = activeServiceCardY.current[fieldParts.serviceId]
+    if (typeof sectionY !== 'number' || typeof cardY !== 'number') {
+      return undefined
+    }
+
+    return sectionY + cardY + localFieldY
+  }, [])
+
+  const getFocusOffset = useCallback((field: ServiceKeyboardField) => {
+    if (field.startsWith('rename:')) {
+      return Platform.OS === 'ios' ? 70 : 58
+    }
+    return Platform.OS === 'ios' ? 88 : 76
+  }, [])
+
+  const scrollFocusedFieldIntoView = useCallback(
+    (field: ServiceKeyboardField, options?: { delayMs?: number }) => {
+      const targetY = resolveFieldTarget(field)
+      if (typeof targetY !== 'number') return
+
+      clearPendingScroll()
+      const delay =
+        options?.delayMs ??
+        (keyboardVisible.current
+          ? Platform.OS === 'ios'
+            ? 12
+            : 20
+          : Platform.OS === 'ios'
+            ? 72
+            : 36)
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        const nextScrollY = Math.max(0, targetY - getFocusOffset(field))
+
+        if (Math.abs(settingsScrollY.current - nextScrollY) < FOCUS_SCROLL_TOLERANCE) {
+          scrollTimeoutRef.current = null
+          return
+        }
+
+        settingsScrollRef.current?.scrollTo({
+          y: nextScrollY,
+          animated: true,
+        })
+        scrollTimeoutRef.current = null
+      }, delay)
+    },
+    [clearPendingScroll, getFocusOffset, resolveFieldTarget]
+  )
+
+  const setServiceInputRef = useCallback(
+    (field: ServiceKeyboardField) => (instance: FocusableField) => {
+      inputRefs.current[field] = instance
+    },
+    []
+  )
+
+  const focusKeyboardField = useCallback((field: ServiceKeyboardField) => {
+    inputRefs.current[field]?.focus?.()
+  }, [])
+
+  const handleServiceFieldFocus = useCallback(
+    (field: ServiceKeyboardField) => {
+      setFocusedKeyboardField(field)
+      if (keyboardVisible.current) {
+        scrollFocusedFieldIntoView(field, { delayMs: 20 })
+      }
+    },
+    [scrollFocusedFieldIntoView, setFocusedKeyboardField]
+  )
+
+  const focusAdjacentKeyboardField = useCallback(
+    (direction: 'previous' | 'next') => {
+      const currentField = activeField.current ?? activeKeyboardField
+      if (!currentField) return
+
+      const currentIndex = keyboardFields.indexOf(currentField)
+      if (currentIndex === -1) return
+
+      const nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1
+      const targetField = keyboardFields[nextIndex]
+      if (!targetField) return
+
+      setFocusedKeyboardField(targetField)
+      setTimeout(() => {
+        focusKeyboardField(targetField)
+        if (keyboardVisible.current) {
+          scrollFocusedFieldIntoView(targetField, { delayMs: 20 })
+        }
+      }, 0)
+    },
+    [activeKeyboardField, focusKeyboardField, keyboardFields, scrollFocusedFieldIntoView, setFocusedKeyboardField]
+  )
+
+  const handleServiceFieldSubmit = useCallback(
+    (field: ServiceKeyboardField) => {
+      const currentIndex = keyboardFields.indexOf(field)
+      if (currentIndex === -1) return
+
+      if (currentIndex >= keyboardFields.length - 1) {
+        setFocusedKeyboardField(null)
+        Keyboard.dismiss()
+        return
+      }
+
+      focusAdjacentKeyboardField('next')
+    },
+    [focusAdjacentKeyboardField, keyboardFields, setFocusedKeyboardField]
+  )
+
+  const getServiceFieldReturnKeyType = useCallback(
+    (field: ServiceKeyboardField) =>
+      keyboardFields[keyboardFields.length - 1] === field ? 'done' : 'next',
+    [keyboardFields]
+  )
 
   useEffect(() => {
     const renameTimers = renameSaveTimers.current
@@ -91,8 +304,48 @@ export function useSettingsServiceManagement() {
       Object.values(renameTimers).forEach((timer) => clearTimeout(timer))
       Object.values(priceTimers).forEach((timer) => clearTimeout(timer))
       Object.values(returnWeeksTimers).forEach((timer) => clearTimeout(timer))
+      clearPendingScroll()
     }
-  }, [])
+  }, [clearPendingScroll])
+
+  useEffect(() => {
+    const activeIds = new Set(activeServices.map((service) => service.id))
+    if (!activeField.current) {
+      return
+    }
+
+    const fieldParts = resolveServiceFieldParts(activeField.current)
+    if (fieldParts && !activeIds.has(fieldParts.serviceId)) {
+      setFocusedKeyboardField(null)
+    }
+  }, [activeServices, setFocusedKeyboardField])
+
+  useEffect(() => {
+    const handleKeyboardShow = () => {
+      keyboardVisible.current = true
+      if (activeField.current) {
+        scrollFocusedFieldIntoView(activeField.current, {
+          delayMs: Platform.OS === 'ios'
+            ? IOS_KEYBOARD_SETTLE_DELAY_MS
+            : ANDROID_KEYBOARD_SETTLE_DELAY_MS,
+        })
+      }
+    }
+
+    const handleKeyboardHide = () => {
+      keyboardVisible.current = false
+      setFocusedKeyboardField(null)
+      clearPendingScroll()
+    }
+
+    const showSub = Keyboard.addListener('keyboardDidShow', handleKeyboardShow)
+    const hideSub = Keyboard.addListener('keyboardDidHide', handleKeyboardHide)
+
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
+  }, [clearPendingScroll, scrollFocusedFieldIntoView, setFocusedKeyboardField])
 
   const clearRenameSaveTimer = (serviceId: number) => {
     const timer = renameSaveTimers.current[serviceId]
@@ -261,6 +514,9 @@ export function useSettingsServiceManagement() {
         defaultPriceCents,
         defaultReturnWeeks: resolvedDefaultReturnWeeks,
       })
+      setFocusedKeyboardField(null)
+      Keyboard.dismiss()
+      clearPendingScroll()
       setServiceDraft('')
       setServicePriceDraft('')
       setServiceReturnWeeksDraft('')
@@ -524,13 +780,58 @@ export function useSettingsServiceManagement() {
     )
   }
 
+  const handleServicesScreenScroll = useCallback((event: {
+    nativeEvent: { contentOffset: { y: number } }
+  }) => {
+    settingsScrollY.current = event.nativeEvent.contentOffset.y
+  }, [])
+
+  const handleServicesScreenScrollBeginDrag = useCallback(() => {
+    setFocusedKeyboardField(null)
+    Keyboard.dismiss()
+    clearPendingScroll()
+  }, [clearPendingScroll, setFocusedKeyboardField])
+
+  const handleActiveServicesSectionLayout = useCallback((y: number) => {
+    activeServicesSectionY.current = y
+  }, [])
+
+  const handleAddServiceSectionLayout = useCallback((y: number) => {
+    addServiceSectionY.current = y
+  }, [])
+
+  const handleActiveServiceCardLayout = useCallback((serviceId: number, y: number) => {
+    activeServiceCardY.current[serviceId] = y
+  }, [])
+
+  const handleServiceFieldLayout = useCallback((field: ServiceKeyboardField, y: number) => {
+    fieldY.current[field] = y
+  }, [])
+
+  const activeKeyboardFieldIndex = activeKeyboardField
+    ? keyboardFields.indexOf(activeKeyboardField)
+    : -1
+  const canGoToPreviousServiceField = activeKeyboardFieldIndex > 0
+  const canGoToNextServiceField =
+    activeKeyboardFieldIndex >= 0 && activeKeyboardFieldIndex < keyboardFields.length - 1
+
   return {
     activeServices,
     canAddService,
+    canGoToNextServiceField,
+    canGoToPreviousServiceField,
     formatPriceInput,
     formatReturnWeeksInput,
     handleAddService,
+    handleActiveServiceCardLayout,
+    handleActiveServicesSectionLayout,
+    handleAddServiceSectionLayout,
     handleDeactivateService,
+    handleServiceFieldFocus,
+    handleServiceFieldLayout,
+    handleServiceFieldSubmit,
+    handleServicesScreenScroll,
+    handleServicesScreenScrollBeginDrag,
     handleMoveService,
     handlePermanentlyDeleteService,
     handleRenameDraftChange,
@@ -540,9 +841,14 @@ export function useSettingsServiceManagement() {
     handleReactivateService,
     handleRenameService,
     handleReturnWeeksDraftChange,
+    focusAdjacentKeyboardField,
+    getServiceFieldReturnKeyType,
     inactiveServices,
     isCreatingService: createService.isPending,
     isDeletingService: permanentlyDeleteService.isPending,
+    keyboardAccessoryId: 'settings-services-keyboard-dismiss',
+    keyboardDismissMode:
+      Platform.OS === 'ios' ? ('interactive' as const) : ('on-drag' as const),
     priceDrafts,
     priceSaveStates,
     returnWeeksDrafts,
@@ -550,6 +856,8 @@ export function useSettingsServiceManagement() {
     reorderPulseKeys,
     renameDrafts,
     renameSaveStates,
+    setServiceInputRef,
+    settingsScrollRef,
     serviceDraft,
     servicePriceDraft,
     serviceReturnWeeksDraft,

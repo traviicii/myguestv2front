@@ -35,6 +35,7 @@ export type DataSource = {
   permanentlyDeleteService: (serviceId: number) => Promise<void>
   createAppointmentLog: (input: CreateFormulaInput) => Promise<AppointmentHistory>
   updateAppointmentLog: (input: UpdateFormulaInput) => Promise<AppointmentHistory>
+  deleteAppointmentLog: (appointmentId: string) => Promise<void>
   upsertColorAnalysisForClient: (
     clientId: string,
     input: UpsertColorChartInput

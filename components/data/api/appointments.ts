@@ -80,6 +80,13 @@ export async function updateFormulaViaApi(
   return toAppointmentModel(response)
 }
 
+export async function deleteFormulaViaApi(formulaId: string): Promise<void> {
+  const normalizedFormulaId = toFormulaId(formulaId)
+  await request<unknown>(`/formulas/${normalizedFormulaId}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function fetchAppointmentHistoryFromApi(
   options?: FormulaListOptions
 ): Promise<AppointmentHistory[]> {
