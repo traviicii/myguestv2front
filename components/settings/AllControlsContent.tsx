@@ -1,12 +1,9 @@
 import type { ReactNode } from 'react'
-import { Link, type Href, useRouter } from 'expo-router'
+import { type Href, useRouter } from 'expo-router'
 import {
   BarChart3,
   CalendarDays,
-  Download,
-  LifeBuoy,
   Scissors,
-  Shield,
   Users,
 } from '@tamagui/lucide-icons'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
@@ -19,7 +16,6 @@ import {
   OptionChip,
   OptionChipLabel,
   SecondaryButton,
-  SurfaceCard,
   ThemedHeadingText,
   ThemedSwitch,
 } from 'components/ui/controls'
@@ -36,14 +32,12 @@ export type AllControlsSectionId =
   | 'overview-insights'
   | 'services-logs'
   | 'dates-formatting'
-  | 'account-privacy'
 
 const SETTINGS_SECTIONS: AllControlsSectionId[] = [
   'client-display',
   'overview-insights',
   'services-logs',
   'dates-formatting',
-  'account-privacy',
 ]
 
 export function isAllControlsSectionId(
@@ -57,8 +51,7 @@ export function getSettingsSectionTitle(sectionId: AllControlsSectionId) {
   if (sectionId === 'client-display') return 'Client Display'
   if (sectionId === 'overview-insights') return 'Overview & Insights'
   if (sectionId === 'services-logs') return 'Services & Appointment Logs'
-  if (sectionId === 'dates-formatting') return 'Dates & Formatting'
-  return 'Account & Privacy'
+  return 'Dates & Formatting'
 }
 
 function getSettingsSectionIntro(sectionId: AllControlsSectionId) {
@@ -74,93 +67,11 @@ function getSettingsSectionIntro(sectionId: AllControlsSectionId) {
   if (sectionId === 'dates-formatting') {
     return 'Choose how dates appear across appointments, previews, and client history.'
   }
-  return 'Manage exports, privacy details, support, and account deletion.'
+  return ''
 }
 
 export function getSettingsSectionHref(sectionId: AllControlsSectionId): Href {
   return `/settings/${sectionId}` as Href
-}
-
-function AccountActionRow({
-  body,
-  disabled = false,
-  icon,
-  isLoading = false,
-  onPress,
-  title,
-}: {
-  body: string
-  disabled?: boolean
-  icon: ReactNode
-  isLoading?: boolean
-  onPress?: () => void
-  title: string
-}) {
-  return (
-    <SurfaceCard
-      mode="section"
-      tone="default"
-      pressStyle={disabled ? undefined : { opacity: 0.85, scale: 0.995 }}
-      onPress={
-        disabled || isLoading || !onPress
-          ? undefined
-          : () => {
-              void impactLightHaptic()
-              onPress()
-            }
-      }
-      opacity={disabled ? 0.6 : 1}
-    >
-      <XStack items="center" gap="$3" flexWrap="wrap">
-        <YStack
-          width={28}
-          height={28}
-          rounded={999}
-          items="center"
-          justify="center"
-          bg="$surfaceChipActive"
-          borderWidth={1}
-          borderColor="$borderAccent"
-        >
-          {icon}
-        </YStack>
-        <YStack flex={1} minW={0}>
-          <Text fontSize={13} color="$textPrimary" fontWeight="600">
-            {title}
-          </Text>
-          <Text fontSize={11} color="$textSecondary">
-            {body}
-          </Text>
-        </YStack>
-        {isLoading ? (
-          <Text fontSize={11} color="$textSecondary">
-            Working...
-          </Text>
-        ) : null}
-      </XStack>
-    </SurfaceCard>
-  )
-}
-
-function PrivacyHighlightCard({
-  title,
-  body,
-}: {
-  title: string
-  body: string
-}) {
-  return (
-    <SurfaceCard mode="section" tone="secondary">
-      <YStack gap="$1.5">
-        <Text fontSize={12} fontWeight="700" color="$textPrimary">
-          {title}
-        </Text>
-        <Text fontSize={11} color="$textSecondary">
-          {body}
-        </Text>
-      </YStack>
-    </SurfaceCard>
-  )
 }
 
 function SettingsSectionPageHeader({
@@ -533,85 +444,6 @@ function DatesFormattingDetail({ model }: { model: SettingsScreenModel }) {
   )
 }
 
-function AccountPrivacyDetail({ model }: { model: SettingsScreenModel }) {
-  return (
-    <YStack gap="$4">
-      <YStack gap="$1.5">
-        <Text fontSize={13} fontWeight="600" color="$textPrimary">
-          Your data
-        </Text>
-        <Text fontSize={11} color="$textSecondary">
-          {model.privacySummary}
-        </Text>
-      </YStack>
-
-      <Link href="/data-privacy" asChild>
-        <SecondaryButton>Open Data & Privacy</SecondaryButton>
-      </Link>
-
-      <YStack gap="$2">
-        <Text fontSize={12} fontWeight="600" color="$textPrimary">
-          Privacy at a glance
-        </Text>
-        {model.privacyHighlights.map((highlight) => (
-          <PrivacyHighlightCard
-            key={highlight.title}
-            title={highlight.title}
-            body={highlight.body}
-          />
-        ))}
-      </YStack>
-
-      <AccountActionRow
-        icon={<Shield size={14} color="$accent" />}
-        title="Privacy Policy"
-        body={
-          model.hasPrivacyPolicyUrl
-            ? 'Read the privacy policy for this version of MyGuest.'
-            : 'Read the in-app privacy policy.'
-        }
-        onPress={() => {
-          void model.handleOpenPrivacyPolicy()
-        }}
-      />
-
-      <AccountActionRow
-        icon={<LifeBuoy size={14} color="$accent" />}
-        title="Support"
-        body={
-          model.hasSupportUrl
-            ? 'Open support for help with sign-in, exports, or account access.'
-            : 'Open the in-app support center.'
-        }
-        onPress={() => {
-          void model.handleOpenSupport()
-        }}
-      />
-
-      <AccountActionRow
-        icon={<Download size={14} color="$accent" />}
-        title="Export My Data"
-        body="Download a CSV ZIP of clients, services, appointment logs, and color charts."
-        isLoading={model.isExportingData}
-        onPress={() => {
-          void model.handleExportMyData()
-        }}
-      />
-
-      <SurfaceCard mode="section" tone="secondary">
-        <YStack gap="$1.5">
-          <Text fontSize={12} fontWeight="700" color="$textPrimary">
-            Account deletion
-          </Text>
-          <Text fontSize={11} color="$textSecondary">
-            Delete Account is managed from Data & Privacy so it stays separate from Sign Out.
-          </Text>
-        </YStack>
-      </SurfaceCard>
-    </YStack>
-  )
-}
-
 function SettingsSectionBody({
   model,
   sectionId,
@@ -631,7 +463,7 @@ function SettingsSectionBody({
   if (sectionId === 'dates-formatting') {
     return <DatesFormattingDetail model={model} />
   }
-  return <AccountPrivacyDetail model={model} />
+  return null
 }
 
 export function SettingsSectionScreenContent({
@@ -678,12 +510,6 @@ export function AllControlsContent({ model }: { model: SettingsScreenModel }) {
       title: 'Dates & Formatting',
       subtitle: model.datesFormattingSummary,
       icon: <CalendarDays size={16} color="$accent" />,
-    },
-    {
-      id: 'account-privacy' as const,
-      title: 'Account & Privacy',
-      subtitle: model.accountPrivacySummary,
-      icon: <Shield size={16} color="$accent" />,
     },
   ]
 

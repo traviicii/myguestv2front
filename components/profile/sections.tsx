@@ -89,7 +89,7 @@ function PreferencesSection({ model }: ProfileSectionProps) {
     {
       id: 'data-privacy',
       title: 'Data & Privacy',
-      subtitle: 'Export records, review privacy details, get support, or manage deletion.',
+      subtitle: 'Export records, review privacy details, get support, and manage deletion.',
       icon: <Lock size={16} color="$accent" />,
       onPress: () => router.push('/data-privacy'),
     },
@@ -125,8 +125,6 @@ function PreferencesSection({ model }: ProfileSectionProps) {
 }
 
 function AccountSection({ model }: ProfileSectionProps) {
-  const router = useRouter()
-
   return (
     <SurfaceCard p="$4" gap="$3" tone={model.cardTone}>
       <XStack items="center" justify="space-between" gap="$3">
@@ -249,27 +247,6 @@ function AccountSection({ model }: ProfileSectionProps) {
             {model.isSigningOut ? 'Signing out...' : 'Sign Out'}
           </SecondaryButton>
         ) : null}
-      </YStack>
-
-      <SectionDivider />
-
-      <YStack gap="$2">
-        <YStack gap="$1">
-          <Text fontSize={11} color="$textSecondary">
-            Data & privacy
-          </Text>
-          <Text fontSize={12} color="$textSecondary">
-            Manage exports, privacy information, support, and account deletion.
-          </Text>
-        </YStack>
-        <SecondaryButton
-          onPress={() => {
-            void impactLightHaptic()
-            router.push('/data-privacy')
-          }}
-        >
-          Open Data & Privacy
-        </SecondaryButton>
       </YStack>
     </SurfaceCard>
   )

@@ -16,12 +16,17 @@ export default function SettingsSectionScreen() {
   const router = useRouter()
   const params = useLocalSearchParams<{ section?: string | string[] }>()
   const model = useSettingsScreenModel()
-  const sectionId = isAllControlsSectionId(params.section) ? params.section : null
+  const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section
+  const sectionId = isAllControlsSectionId(sectionParam) ? sectionParam : null
 
   useEffect(() => {
+    if (sectionParam === 'account-privacy') {
+      router.replace('/data-privacy')
+      return
+    }
     if (sectionId) return
     router.replace('/settings')
-  }, [router, sectionId])
+  }, [router, sectionId, sectionParam])
 
   return (
     <YStack flex={1} bg="$surfacePage" position="relative">

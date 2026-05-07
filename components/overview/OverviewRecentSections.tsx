@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays } from '@tamagui/lucide-icons'
+import { ArrowRight, CalendarDays, UserPlus } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
@@ -153,17 +153,28 @@ export function OverviewRecentClientsSection({
             <YStack key={client.id}>
               <PreviewCard p="$4" onPress={() => onNavigate(`/client/${client.id}`)}>
                 <XStack items="center" justify="space-between" gap="$3">
-                  <YStack>
-                    <Text fontSize={14} fontWeight="600">
-                      {client.name}
-                    </Text>
-                    <Text fontSize={12} color="$textSecondary">
-                      {client.type} • Last visit{' '}
-                      {model.formatLastVisitLabel(
-                        model.resolveLastVisit(client.id, client.lastVisit)
-                      )}
-                    </Text>
-                  </YStack>
+                  <XStack items="center" gap="$3" flex={1}>
+                    <XStack
+                      bg="$accentSoft"
+                      rounded={model.iconBadgeRadius}
+                      p="$2.5"
+                      items="center"
+                      justify="center"
+                    >
+                      <UserPlus size={18} color="$accent" />
+                    </XStack>
+                    <YStack flex={1} gap="$1">
+                      <Text fontSize={14} fontWeight="600" numberOfLines={1}>
+                        {client.name}
+                      </Text>
+                      <Text fontSize={12} color="$textSecondary" numberOfLines={1}>
+                        {client.type} • Last visit{' '}
+                        {model.formatLastVisitLabel(
+                          model.resolveLastVisit(client.id, client.lastVisit)
+                        )}
+                      </Text>
+                    </YStack>
+                  </XStack>
                 </XStack>
               </PreviewCard>
             </YStack>

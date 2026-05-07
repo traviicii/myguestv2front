@@ -1,5 +1,4 @@
-import { Link } from 'expo-router'
-import { ArrowUpRight, LifeBuoy, Shield } from '@tamagui/lucide-icons'
+import { ArrowUpRight, Shield } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import {
@@ -114,9 +113,6 @@ export function PrivacyPolicyContent({ model }: { model: DataPrivacyScreenModel 
         </Text>
       </SurfaceCard>
 
-      <Link href="/support" asChild>
-        <SecondaryButton icon={<LifeBuoy size={16} />}>Open Support Center</SecondaryButton>
-      </Link>
     </YStack>
   )
 }

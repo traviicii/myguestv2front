@@ -5,7 +5,6 @@ import type {
   OverviewSectionId,
   PhotoCoverageRange,
 } from 'components/state/studioStore'
-import type { PrivacyHighlight } from 'components/privacy/content'
 
 export type PreviewCountSettingKey =
   | 'overviewRecentAppointmentsCount'
@@ -37,7 +36,6 @@ export type SettingsOptionSet = {
   avgTicketOptions: Option<AvgTicketRange>[]
   overviewSectionOptions: OverviewSectionOption[]
   photoCoverageOptions: Option<PhotoCoverageRange>[]
-  privacyHighlights: PrivacyHighlight[]
 }
 
 export type SettingsDisplayCounts = Pick<

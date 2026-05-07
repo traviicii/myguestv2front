@@ -15,12 +15,17 @@ export default function SettingsScreen() {
   const router = useRouter()
   const params = useLocalSearchParams<{ focus?: string | string[] }>()
   const model = useSettingsScreenModel()
-  const focusSection = isAllControlsSectionId(params.focus) ? params.focus : null
+  const focusParam = Array.isArray(params.focus) ? params.focus[0] : params.focus
+  const focusSection = isAllControlsSectionId(focusParam) ? focusParam : null
 
   useEffect(() => {
+    if (focusParam === 'account-privacy') {
+      router.replace('/data-privacy')
+      return
+    }
     if (!focusSection) return
     router.replace(getSettingsSectionHref(focusSection))
-  }, [focusSection, router])
+  }, [focusParam, focusSection, router])
 
   return (
     <YStack flex={1} bg="$surfacePage" position="relative">

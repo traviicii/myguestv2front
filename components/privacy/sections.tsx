@@ -11,25 +11,6 @@ import {
 
 import type { DataPrivacyScreenModel } from './useDataPrivacyScreenModel'
 
-function PrivacyHighlightCard({
-  title,
-  body,
-}: {
-  title: string
-  body: string
-}) {
-  return (
-    <SurfaceCard tone="secondary" p="$3" gap="$1.5">
-      <Text fontSize={12} fontWeight="700" color="$textPrimary">
-        {title}
-      </Text>
-      <Text fontSize={11} color="$textSecondary">
-        {body}
-      </Text>
-    </SurfaceCard>
-  )
-}
-
 function UtilityCard({
   title,
   body,
@@ -99,47 +80,62 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
           Data & Privacy
         </ThemedHeadingText>
         <Text fontSize={12} color="$textSecondary">
-          Manage exports, privacy information, support, and account deletion.
+          One place to understand, export, and remove the data tied to your MyGuest account.
         </Text>
       </YStack>
 
-      <SurfaceCard tone={model.cardTone} p="$4" gap="$2.5">
-        <Text fontSize={13} fontWeight="700" color="$textPrimary">
-          Your data
-        </Text>
+      <SurfaceCard tone={model.cardTone} p="$4" gap="$3">
+        <XStack gap="$2" items="center">
+          <Shield size={16} color="$accent" />
+          <Text fontSize={13} fontWeight="700" color="$textPrimary">
+            Data summary
+          </Text>
+        </XStack>
         <Text fontSize={11} color="$textSecondary">
           {model.privacySummary}
         </Text>
-        <Text fontSize={11} color="$textSecondary">
-          Exports are CSV-only. Appointment images stay inside MyGuest and are permanently
-          removed if you delete your account.
-        </Text>
       </SurfaceCard>
 
-      <YStack gap="$2">
+      <SurfaceCard tone="secondary" p="$4" gap="$3">
+        <Text fontSize={13} fontWeight="700" color="$textPrimary">
+          How your data is handled
+        </Text>
         {model.privacyHighlights.map((highlight) => (
-          <PrivacyHighlightCard
-            key={highlight.title}
-            title={highlight.title}
-            body={highlight.body}
-          />
+          <YStack key={highlight.title} gap="$1.5">
+            <Text fontSize={12} fontWeight="700" color="$textPrimary">
+              {highlight.title}
+            </Text>
+            <Text fontSize={11} color="$textSecondary">
+              {highlight.body}
+            </Text>
+          </YStack>
         ))}
-      </YStack>
+      </SurfaceCard>
 
       <YStack gap="$3">
         <UtilityCard
-          title="Privacy Policy"
-          body={
-            model.hasPrivacyPolicyUrl
-              ? 'Read the privacy policy for this version of MyGuest.'
-              : 'Read the in-app privacy policy.'
-          }
-          actionLabel={model.hasPrivacyPolicyUrl ? 'Open Privacy Policy' : 'Read Privacy Policy'}
-          icon={<Shield size={16} color="$accent" />}
+          title="Export My Data"
+          body="Download or share a ZIP of CSV files for clients, services, appointment logs, and color-chart data."
+          actionLabel="Export My Data"
+          icon={<Download size={16} color="$accentContrast" />}
+          isPrimary
+          isLoading={model.isExportingData}
           onPress={() => {
-            void model.handleOpenPrivacyPolicy()
+            void model.handleExportMyData()
           }}
         />
+
+        {model.hasPrivacyPolicyUrl ? (
+          <UtilityCard
+            title="Privacy Policy"
+            body="Open the public policy when you need the formal, shareable version."
+            actionLabel="Open Privacy Policy"
+            icon={<Shield size={16} color="$accent" />}
+            onPress={() => {
+              void model.handleOpenPrivacyPolicy()
+            }}
+          />
+        ) : null}
 
         <UtilityCard
           title="Support"
@@ -152,18 +148,6 @@ export function DataPrivacyContent({ model }: { model: DataPrivacyScreenModel })
           icon={<LifeBuoy size={16} color="$accent" />}
           onPress={() => {
             void model.handleOpenSupport()
-          }}
-        />
-
-        <UtilityCard
-          title="Export My Data"
-          body="Download or share a ZIP of CSV files for clients, services, appointment logs, and color-chart data."
-          actionLabel="Export My Data"
-          icon={<Download size={16} color="$accentContrast" />}
-          isPrimary
-          isLoading={model.isExportingData}
-          onPress={() => {
-            void model.handleExportMyData()
           }}
         />
       </YStack>
