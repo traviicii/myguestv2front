@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
+import { AppointmentDatePickerField } from 'components/appointments/shared/AppointmentDatePickerField'
 import { ScreenTopBar } from 'components/ui/ScreenTopBar'
 import {
   ErrorPulseBorder,
@@ -9,6 +10,7 @@ import {
   InsetSectionHeader,
   PrimaryButton,
   SecondaryButton,
+  SectionDivider,
   TextAreaField,
   TextField,
   ThemedHeadingText,
@@ -43,13 +45,13 @@ function EditClientHeader() {
         Edit Client
       </ThemedHeadingText>
       <Text fontSize={12} color="$textSecondary">
-        Update contact info and client notes.
+        Update core details, contact info, birthday, and client notes.
       </Text>
     </YStack>
   )
 }
 
-function EditClientNameSection({ model }: EditClientSectionProps) {
+function EditClientInfoSection({ model }: EditClientSectionProps) {
   return (
     <YStack
       gap="$3.5"
@@ -58,8 +60,8 @@ function EditClientNameSection({ model }: EditClientSectionProps) {
       }}
     >
       <InsetSectionHeader
-        title="Name"
-        subtitle="Keep the client name clean so search and lists stay readable."
+        title="Client Info"
+        subtitle="Keep the basics clean so search, contact actions, and birthday reminders stay reliable."
       />
       <InsetGroup
         onLayout={(event) => {
@@ -71,53 +73,67 @@ function EditClientNameSection({ model }: EditClientSectionProps) {
           py="$3"
           gap="$2"
           onLayout={(event) => {
-            model.handleKeyboardFieldLayout('name', event.nativeEvent.layout.y)
+            model.handleKeyboardFieldLayout('firstName', event.nativeEvent.layout.y)
           }}
         >
-          <FieldLabel>Name</FieldLabel>
+          <FieldLabel>First name</FieldLabel>
           <YStack position="relative">
             <TextField
-              ref={model.setInputRef('name')}
-              value={model.form.name}
-              placeholder="Client name"
+              ref={model.setInputRef('firstName')}
+              value={model.form.firstName}
+              placeholder="First name"
               inputAccessoryViewID={model.keyboardAccessoryId}
               returnKeyType="next"
               blurOnSubmit={false}
-              onFocus={() => model.handleKeyboardFieldFocus('name')}
+              onFocus={() => model.handleKeyboardFieldFocus('firstName')}
               onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
-              onChangeText={(text) => model.updateField('name', text)}
-              borderColor={model.showNameError ? '$red10' : '$borderSubtle'}
+              onChangeText={(text) => model.updateField('firstName', text)}
+              borderColor={model.showFirstNameError ? '$red10' : '$borderSubtle'}
             />
-            <ErrorPulseBorder active={model.showNameError} pulseKey={model.pulseKey} />
+            <ErrorPulseBorder active={model.showFirstNameError} pulseKey={model.pulseKey} />
           </YStack>
-          {model.showNameError ? (
+          {model.showFirstNameError ? (
             <Text fontSize={11} color="$red10">
-              Name is required.
+              First name is required.
             </Text>
           ) : null}
         </YStack>
-      </InsetGroup>
-    </YStack>
-  )
-}
 
-function EditClientContactSection({ model }: EditClientSectionProps) {
-  return (
-    <YStack
-      gap="$3.5"
-      onLayout={(event) => {
-        model.handleSectionLayout('contact', event.nativeEvent.layout.y)
-      }}
-    >
-      <InsetSectionHeader
-        title="Contact"
-        subtitle="Refine contact details without the form feeling heavy."
-      />
-      <InsetGroup
-        onLayout={(event) => {
-          model.handleGroupLayout('contact', event.nativeEvent.layout.y)
-        }}
-      >
+        <SectionDivider />
+
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleKeyboardFieldLayout('lastName', event.nativeEvent.layout.y)
+          }}
+        >
+          <FieldLabel>Last name</FieldLabel>
+          <YStack position="relative">
+            <TextField
+              ref={model.setInputRef('lastName')}
+              value={model.form.lastName}
+              placeholder="Last name"
+              inputAccessoryViewID={model.keyboardAccessoryId}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onFocus={() => model.handleKeyboardFieldFocus('lastName')}
+              onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
+              onChangeText={(text) => model.updateField('lastName', text)}
+              borderColor={model.showLastNameError ? '$red10' : '$borderSubtle'}
+            />
+            <ErrorPulseBorder active={model.showLastNameError} pulseKey={model.pulseKey} />
+          </YStack>
+          {model.showLastNameError ? (
+            <Text fontSize={11} color="$red10">
+              Last name is required.
+            </Text>
+          ) : null}
+        </YStack>
+
+        <SectionDivider />
+
         <YStack
           px="$4"
           py="$3"
@@ -140,12 +156,13 @@ function EditClientContactSection({ model }: EditClientSectionProps) {
             onChangeText={(text) => model.updateField('email', text)}
           />
         </YStack>
+
+        <SectionDivider />
+
         <YStack
           px="$4"
           py="$3"
           gap="$2"
-          borderTopWidth={1}
-          borderTopColor="$divider"
           onLayout={(event) => {
             model.handleKeyboardFieldLayout('phone', event.nativeEvent.layout.y)
           }}
@@ -163,6 +180,46 @@ function EditClientContactSection({ model }: EditClientSectionProps) {
             onSubmitEditing={() => model.focusAdjacentKeyboardField('next')}
             onChangeText={(text) => model.updateField('phone', formatPhoneForInput(text))}
           />
+        </YStack>
+
+        <SectionDivider />
+
+        <YStack
+          px="$4"
+          py="$3"
+          gap="$2"
+          onLayout={(event) => {
+            model.handleBirthdayLayout(event.nativeEvent.layout.y)
+          }}
+        >
+          <FieldLabel>Birthday</FieldLabel>
+          <AppointmentDatePickerField
+            datePanel={model.birthdayPanel}
+            displayValue={model.birthdayDisplayValue}
+            fieldBackground="$surfaceField"
+            onDateChange={model.handleBirthdayChange}
+            onFieldPress={model.handleBirthdayFieldPress}
+            onPickerDismiss={model.closeBirthdayPicker}
+            pickerDate={model.birthdayPickerDate}
+            placeholder="Select birthday"
+            pulseKey={0}
+            sheetTitle="Birthday"
+            showDateError={false}
+            showDatePicker={model.showBirthdayPicker}
+          />
+          {model.form.birthday ? (
+            <Text
+              color="$accent"
+              fontSize={11}
+              onPress={model.handleClearBirthday}
+            >
+              Clear birthday
+            </Text>
+          ) : (
+            <Text fontSize={11} color="$textSecondary">
+              Optional. Used for birthday reminders on Overview.
+            </Text>
+          )}
         </YStack>
       </InsetGroup>
     </YStack>
@@ -281,8 +338,7 @@ export function EditClientContent({ model }: EditClientSectionProps) {
     >
       <YStack px="$5" pt="$6" gap="$4">
         <EditClientHeader />
-        <EditClientNameSection model={model} />
-        <EditClientContactSection model={model} />
+        <EditClientInfoSection model={model} />
         <EditClientDetailsSection model={model} />
         <EditClientNotesSection model={model} />
         <EditClientActions model={model} />

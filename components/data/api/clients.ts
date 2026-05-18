@@ -68,6 +68,8 @@ function toClientModel(client: ApiClient): Client {
   const hasLastVisit = Boolean(client.last_service_at)
   return {
     id: String(client.id),
+    firstName: client.first_name,
+    lastName: client.last_name,
     name: `${client.first_name} ${client.last_name}`.trim(),
     email: client.email ?? '',
     phone: client.phone ?? '',

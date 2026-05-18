@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Keyboard, Platform } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { parseDateForPicker } from 'components/appointments/shared/datePicker'
 import type { ClientType } from 'components/data/models'
 import { useClients, useDeleteClient, useUpdateClient } from 'components/data/queries'
 import { useThemePrefs } from 'components/ThemePrefs'
+import { useExpandablePanel } from 'components/ui/useExpandablePanel'
+import { formatDateMMDDYYYY } from 'components/utils/date'
 import { successHaptic, warningHaptic } from 'components/utils/haptics'
 import { formatPhoneForInput } from 'components/utils/phone'
 
@@ -28,8 +32,10 @@ const splitDisplayName = (value: string) => {
 }
 
 type EditClientForm = {
+  birthday: string
   email: string
-  name: string
+  firstName: string
+  lastName: string
   notes: string
   phone: string
   type: ClientType
@@ -39,12 +45,13 @@ type ScrollTarget = {
   scrollTo: (options: { animated: boolean; y: number }) => void
 }
 
-type KeyboardField = 'name' | 'email' | 'phone' | 'notes'
+type KeyboardField = 'firstName' | 'lastName' | 'email' | 'phone' | 'notes'
+type FocusTarget = KeyboardField | 'birthday'
 type FocusableField = { focus?: () => void } | null
 
-type SectionKey = 'name' | 'contact' | 'notes'
+type SectionKey = 'name' | 'notes'
 
-const KEYBOARD_FIELDS: KeyboardField[] = ['name', 'email', 'phone', 'notes']
+const KEYBOARD_FIELDS: KeyboardField[] = ['firstName', 'lastName', 'email', 'phone', 'notes']
 const FOCUS_SCROLL_TOLERANCE = 24
 
 export function useEditClientScreenModel() {
@@ -62,34 +69,40 @@ export function useEditClientScreenModel() {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const keyboardVisible = useRef(false)
   const inputRefs = useRef<Record<KeyboardField, FocusableField>>({
-    name: null,
+    firstName: null,
+    lastName: null,
     email: null,
     phone: null,
     notes: null,
   })
-  const requiredY = useRef<{ name?: number }>({})
+  const requiredY = useRef<{ firstName?: number; lastName?: number }>({})
   const sectionY = useRef<Partial<Record<SectionKey, number>>>({})
   const groupY = useRef<Partial<Record<SectionKey, number>>>({})
-  const focusY = useRef<Partial<Record<KeyboardField, number>>>({})
+  const focusY = useRef<Partial<Record<FocusTarget, number>>>({})
   const activeField = useRef<KeyboardField | null>(null)
 
   const client = useMemo(() => clients.find((item) => item.id === id), [clients, id])
 
-  const initialForm = useMemo<EditClientForm>(
-    () => ({
-      name: client?.name ?? '',
+  const initialForm = useMemo<EditClientForm>(() => {
+    const displayNameParts = splitDisplayName(client?.name ?? '')
+
+    return {
+      firstName: client?.firstName ?? displayNameParts.firstName,
+      lastName: client?.lastName ?? displayNameParts.lastName,
       email: client?.email ?? '',
       phone: formatPhoneForInput(client?.phone ?? ''),
+      birthday: client?.birthday ?? '',
       type: client?.type ?? 'Cut',
       notes: client?.notes ?? '',
-    }),
-    [client]
-  )
+    }
+  }, [client])
 
   const [form, setForm] = useState(initialForm)
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
+  const [showBirthdayPicker, setShowBirthdayPicker] = useState(false)
   const [activeKeyboardField, setActiveKeyboardField] = useState<KeyboardField | null>(null)
+  const birthdayPanel = useExpandablePanel(showBirthdayPicker, { hideDelayMs: 260 })
 
   useEffect(() => {
     setForm(initialForm)
@@ -97,23 +110,34 @@ export function useEditClientScreenModel() {
 
   const isDirty = useMemo(
     () =>
-      form.name !== initialForm.name ||
+      form.firstName !== initialForm.firstName ||
+      form.lastName !== initialForm.lastName ||
       form.email !== initialForm.email ||
       form.phone !== initialForm.phone ||
+      form.birthday !== initialForm.birthday ||
       form.type !== initialForm.type ||
       form.notes !== initialForm.notes,
     [form, initialForm]
   )
 
-  const hasRequired = Boolean(form.name.trim())
+  const hasRequired = Boolean(form.firstName.trim() && form.lastName.trim())
   const canSave = isDirty && !deleteClient.isPending && !updateClient.isPending
-  const showNameError = attemptedSave && !form.name.trim()
+  const showFirstNameError = attemptedSave && !form.firstName.trim()
+  const showLastNameError = attemptedSave && !form.lastName.trim()
   const keyboardAccessoryId = 'client-edit-keyboard-dismiss'
   const keyboardDismissMode: 'interactive' | 'on-drag' =
     Platform.OS === 'ios' ? 'interactive' : 'on-drag'
   const isBootstrapping = clientsLoading && !clients.length
   const isMissingClient = !isBootstrapping && !client
   const contentBottomPadding = 40 + insets.bottom
+  const birthdayDisplayValue = useMemo(
+    () => (form.birthday ? formatDateMMDDYYYY(form.birthday) : ''),
+    [form.birthday]
+  )
+  const birthdayPickerDate = useMemo(() => {
+    const parsed = parseDateForPicker(birthdayDisplayValue)
+    return parsed ?? new Date(1990, 0, 1)
+  }, [birthdayDisplayValue])
 
   const clearPendingScroll = useCallback(() => {
     if (scrollTimeoutRef.current !== null) {
@@ -127,14 +151,17 @@ export function useEditClientScreenModel() {
     setActiveKeyboardField(field)
   }, [])
 
-  const resolveSectionForField = useCallback((field: KeyboardField): SectionKey => {
-    if (field === 'name') return 'name'
+  const closeBirthdayPicker = useCallback(() => {
+    setShowBirthdayPicker(false)
+  }, [])
+
+  const resolveSectionForField = useCallback((field: FocusTarget): SectionKey => {
     if (field === 'notes') return 'notes'
-    return 'contact'
+    return 'name'
   }, [])
 
   const resolveFieldTarget = useCallback(
-    (field: KeyboardField) => {
+    (field: FocusTarget) => {
       const fieldY = focusY.current[field]
       if (typeof fieldY !== 'number') return undefined
 
@@ -150,18 +177,21 @@ export function useEditClientScreenModel() {
     [resolveSectionForField]
   )
 
-  const getFocusOffset = useCallback((field: KeyboardField) => {
-    if (field === 'name') {
+  const getFocusOffset = useCallback((field: FocusTarget) => {
+    if (field === 'firstName' || field === 'lastName') {
       return Platform.OS === 'ios' ? 36 : 28
     }
     if (field === 'notes') {
       return Platform.OS === 'ios' ? 96 : 82
     }
+    if (field === 'birthday') {
+      return Platform.OS === 'ios' ? 132 : 108
+    }
     return Platform.OS === 'ios' ? 76 : 64
   }, [])
 
   const scrollFocusedFieldIntoView = useCallback(
-    (field: KeyboardField, options?: { delayMs?: number }) => {
+    (field: FocusTarget, options?: { delayMs?: number }) => {
       const targetY = resolveFieldTarget(field)
       if (typeof targetY !== 'number') return
 
@@ -210,12 +240,49 @@ export function useEditClientScreenModel() {
     groupY.current[section] = y
   }, [])
 
-  const handleKeyboardFieldLayout = useCallback((field: KeyboardField, y: number) => {
+  const handleKeyboardFieldLayout = useCallback((field: FocusTarget, y: number) => {
     focusY.current[field] = y
-    if (field === 'name') {
-      requiredY.current.name = y
+    if (field === 'firstName') {
+      requiredY.current.firstName = y
+    }
+    if (field === 'lastName') {
+      requiredY.current.lastName = y
     }
   }, [])
+
+  const handleBirthdayLayout = useCallback((y: number) => {
+    focusY.current.birthday = y
+  }, [])
+
+  const handleBirthdayFieldPress = useCallback(() => {
+    Keyboard.dismiss()
+    setFocusedKeyboardField(null)
+    scrollFocusedFieldIntoView('birthday')
+    if (Platform.OS === 'android') {
+      setShowBirthdayPicker(true)
+      return
+    }
+    setShowBirthdayPicker((current) => !current)
+  }, [scrollFocusedFieldIntoView, setFocusedKeyboardField])
+
+  const handleBirthdayChange = useCallback(
+    (_event: DateTimePickerEvent, selectedDate?: Date) => {
+      if (Platform.OS === 'android') {
+        setShowBirthdayPicker(false)
+      }
+      if (!selectedDate) return
+      const year = selectedDate.getFullYear()
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+      const day = String(selectedDate.getDate()).padStart(2, '0')
+      updateField('birthday', `${year}-${month}-${day}`)
+    },
+    [updateField]
+  )
+
+  const handleClearBirthday = useCallback(() => {
+    closeBirthdayPicker()
+    updateField('birthday', '')
+  }, [closeBirthdayPicker, updateField])
 
   const setInputRef = useCallback(
     (field: KeyboardField) => (instance: FocusableField) => {
@@ -230,12 +297,13 @@ export function useEditClientScreenModel() {
 
   const handleKeyboardFieldFocus = useCallback(
     (field: KeyboardField) => {
+      closeBirthdayPicker()
       setFocusedKeyboardField(field)
       if (keyboardVisible.current) {
         scrollFocusedFieldIntoView(field, { delayMs: 20 })
       }
     },
-    [scrollFocusedFieldIntoView, setFocusedKeyboardField]
+    [closeBirthdayPicker, scrollFocusedFieldIntoView, setFocusedKeyboardField]
   )
 
   const focusAdjacentKeyboardField = useCallback(
@@ -272,7 +340,9 @@ export function useEditClientScreenModel() {
     if (!hasRequired || !isDirty) {
       if (!hasRequired) {
         void warningHaptic()
-        const targetY = resolveFieldTarget('name')
+        const targetY = resolveFieldTarget(
+          !form.firstName.trim() ? 'firstName' : 'lastName'
+        )
         if (typeof targetY === 'number') {
           scrollRef.current?.scrollTo({
             y: Math.max(0, targetY - 12),
@@ -288,18 +358,14 @@ export function useEditClientScreenModel() {
 
     if (!client) return
 
-    const nextName = splitDisplayName(form.name)
-    const fallbackName = splitDisplayName(client.name)
-    const firstName = nextName.firstName || fallbackName.firstName
-    const lastName = nextName.lastName || fallbackName.lastName || firstName
-
     try {
       await updateClient.mutateAsync({
         clientId: client.id,
-        firstName,
-        lastName,
+        firstName: form.firstName,
+        lastName: form.lastName,
         email: form.email,
         phone: form.phone,
+        birthday: form.birthday,
         clientType: normalizeType(form.type, client.type),
         notes: form.notes,
       })
@@ -355,7 +421,8 @@ export function useEditClientScreenModel() {
   const handleScrollBeginDrag = useCallback(() => {
     setFocusedKeyboardField(null)
     Keyboard.dismiss()
-  }, [setFocusedKeyboardField])
+    closeBirthdayPicker()
+  }, [closeBirthdayPicker, setFocusedKeyboardField])
 
   useEffect(() => {
     const handleKeyboardShow = () => {
@@ -391,15 +458,23 @@ export function useEditClientScreenModel() {
     activeKeyboardFieldIndex >= 0 && activeKeyboardFieldIndex < KEYBOARD_FIELDS.length - 1
 
   return {
+    birthdayDisplayValue,
+    birthdayPanel,
+    birthdayPickerDate,
     canGoToNextKeyboardField,
     canGoToPreviousKeyboardField,
     canSave,
     client,
+    closeBirthdayPicker,
     confirmDelete,
     contentBottomPadding,
     focusAdjacentKeyboardField,
     form,
     handleBack,
+    handleBirthdayChange,
+    handleClearBirthday,
+    handleBirthdayFieldPress,
+    handleBirthdayLayout,
     handleGroupLayout,
     handleKeyboardFieldFocus,
     handleKeyboardFieldLayout,
@@ -418,7 +493,9 @@ export function useEditClientScreenModel() {
     scrollRef,
     setForm,
     setInputRef,
-    showNameError,
+    showBirthdayPicker,
+    showFirstNameError,
+    showLastNameError,
     topInset,
     updateField,
   }

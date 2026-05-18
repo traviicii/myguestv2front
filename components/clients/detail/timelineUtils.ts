@@ -2,7 +2,7 @@ import type {
   AppointmentHistory,
   ColorAnalysis,
 } from 'components/data/models'
-import { getServiceLabel, normalizeServiceName } from 'components/utils/services'
+import { getAppointmentServiceLabels } from 'components/utils/services'
 
 export type ClientTimelineEntry =
   | {
@@ -69,17 +69,6 @@ function buildPriceLabel(price: number) {
 function buildPhotoLabel(photoCount: number) {
   if (photoCount <= 0) return ''
   return `${photoCount} photo${photoCount === 1 ? '' : 's'}`
-}
-
-function getAppointmentServiceLabels(entry: AppointmentHistory) {
-  const normalizedLabels =
-    entry.serviceLabels
-      ?.map((label) => normalizeServiceName(label))
-      .filter(Boolean) ?? []
-
-  if (normalizedLabels.length > 0) return normalizedLabels
-
-  return [getServiceLabel(entry.services, entry.notes)]
 }
 
 function buildAdditionalServiceSummary(serviceLabels: string[]) {
@@ -172,7 +161,7 @@ export function buildClientTimelineEntries({
         kind: 'appointment',
         date: entry.date,
         eventLabel: 'Appointment log',
-        title: serviceLabels[0] ?? getServiceLabel(entry.services, entry.notes),
+        title: serviceLabels[0] ?? 'Service',
         supportingLine: buildAppointmentSupportingLine(entry, serviceLabels) || undefined,
         tertiaryLine: buildAppointmentTertiaryLine(entry, serviceLabels) || undefined,
         priceLabel: buildPriceLabel(entry.price),

@@ -9,19 +9,23 @@ const ANDROID_KEYBOARD_SETTLE_DELAY_MS = 48
 
 export function useKeyboardFormNavigation<Field extends string>({
   fields,
+  focusAdjacentAfterScrollDelayMs = 0,
   getFocusOffset,
   resolveFieldTarget,
 }: {
   fields: readonly Field[]
+  focusAdjacentAfterScrollDelayMs?: number
   getFocusOffset: (field: Field) => number
   resolveFieldTarget: (field: Field) => number | undefined
 }) {
   const scrollRef = useRef<any>(null)
   const scrollY = useRef(0)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const keyboardVisible = useRef(false)
   const inputRefs = useRef<Partial<Record<Field, FocusableField>>>({})
   const activeField = useRef<Field | null>(null)
+  const programmaticFocus = useRef(false)
   const [activeKeyboardField, setActiveKeyboardField] = useState<Field | null>(null)
 
   const keyboardDismissMode =
@@ -36,15 +40,27 @@ export function useKeyboardFormNavigation<Field extends string>({
     }
   }, [])
 
+  const clearPendingFocus = useCallback(() => {
+    if (focusTimeoutRef.current !== null) {
+      clearTimeout(focusTimeoutRef.current)
+      focusTimeoutRef.current = null
+    }
+  }, [])
+
   const setFocusedKeyboardField = useCallback((field: Field | null) => {
     activeField.current = field
     setActiveKeyboardField(field)
   }, [])
 
   const scrollFieldIntoView = useCallback(
-    (field: Field, options?: { delayMs?: number }) => {
+    (field: Field, options?: { animated?: boolean; delayMs?: number }) => {
       const targetY = resolveFieldTarget(field)
       if (typeof targetY !== 'number') return
+
+      const nextScrollY = Math.max(0, targetY - getFocusOffset(field))
+      if (Math.abs(scrollY.current - nextScrollY) < FOCUS_SCROLL_TOLERANCE) {
+        return false
+      }
 
       clearPendingScroll()
       const delay =
@@ -58,19 +74,14 @@ export function useKeyboardFormNavigation<Field extends string>({
             : 36)
 
       scrollTimeoutRef.current = setTimeout(() => {
-        const nextScrollY = Math.max(0, targetY - getFocusOffset(field))
-
-        if (Math.abs(scrollY.current - nextScrollY) < FOCUS_SCROLL_TOLERANCE) {
-          scrollTimeoutRef.current = null
-          return
-        }
-
         scrollRef.current?.scrollTo({
           y: nextScrollY,
-          animated: true,
+          animated: options?.animated ?? true,
         })
         scrollTimeoutRef.current = null
       }, delay)
+
+      return true
     },
     [clearPendingScroll, getFocusOffset, resolveFieldTarget]
   )
@@ -89,6 +100,10 @@ export function useKeyboardFormNavigation<Field extends string>({
   const handleKeyboardFieldFocus = useCallback(
     (field: Field) => {
       setFocusedKeyboardField(field)
+      if (programmaticFocus.current) {
+        programmaticFocus.current = false
+        return
+      }
       if (keyboardVisible.current) {
         scrollFieldIntoView(field, { delayMs: 20 })
       }
@@ -118,14 +133,45 @@ export function useKeyboardFormNavigation<Field extends string>({
       if (!targetField) return
 
       setFocusedKeyboardField(targetField)
-      setTimeout(() => {
+      clearPendingFocus()
+      clearPendingScroll()
+
+      const focusTargetField = () => {
+        programmaticFocus.current = true
         focusKeyboardField(targetField)
-        if (keyboardVisible.current) {
-          scrollFieldIntoView(targetField, { delayMs: 20 })
+        setTimeout(() => {
+          programmaticFocus.current = false
+        }, 80)
+      }
+
+      if (keyboardVisible.current && focusAdjacentAfterScrollDelayMs > 0) {
+        const didScroll = scrollFieldIntoView(targetField, { delayMs: 0 })
+        if (didScroll) {
+          focusTimeoutRef.current = setTimeout(() => {
+            focusTargetField()
+            focusTimeoutRef.current = null
+          }, focusAdjacentAfterScrollDelayMs)
+          return
         }
-      }, 0)
+      }
+
+      requestAnimationFrame(() => {
+        focusTargetField()
+        if (keyboardVisible.current) {
+          scrollFieldIntoView(targetField, { delayMs: 0 })
+        }
+      })
     },
-    [activeKeyboardField, fields, focusKeyboardField, scrollFieldIntoView, setFocusedKeyboardField]
+    [
+      activeKeyboardField,
+      clearPendingFocus,
+      clearPendingScroll,
+      fields,
+      focusAdjacentAfterScrollDelayMs,
+      focusKeyboardField,
+      scrollFieldIntoView,
+      setFocusedKeyboardField,
+    ]
   )
 
   const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
@@ -136,13 +182,15 @@ export function useKeyboardFormNavigation<Field extends string>({
     setFocusedKeyboardField(null)
     Keyboard.dismiss()
     clearPendingScroll()
-  }, [clearPendingScroll, setFocusedKeyboardField])
+    clearPendingFocus()
+  }, [clearPendingFocus, clearPendingScroll, setFocusedKeyboardField])
 
   useEffect(
     () => () => {
       clearPendingScroll()
+      clearPendingFocus()
     },
-    [clearPendingScroll]
+    [clearPendingFocus, clearPendingScroll]
   )
 
   useEffect(() => {
@@ -161,6 +209,7 @@ export function useKeyboardFormNavigation<Field extends string>({
       keyboardVisible.current = false
       setFocusedKeyboardField(null)
       clearPendingScroll()
+      clearPendingFocus()
     }
 
     const showSub = Keyboard.addListener('keyboardDidShow', handleKeyboardShow)
@@ -170,7 +219,7 @@ export function useKeyboardFormNavigation<Field extends string>({
       showSub.remove()
       hideSub.remove()
     }
-  }, [clearPendingScroll, scrollFieldIntoView, setFocusedKeyboardField])
+  }, [clearPendingFocus, clearPendingScroll, scrollFieldIntoView, setFocusedKeyboardField])
 
   const activeKeyboardFieldIndex = activeKeyboardField
     ? fields.indexOf(activeKeyboardField)

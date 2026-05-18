@@ -9,7 +9,7 @@ module.exports = {
   splash: {
     image: './assets/images/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#000000',
   },
   assetBundlePatterns: ['**/*'],
   ios: {
@@ -25,7 +25,7 @@ module.exports = {
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#000000',
     },
     package: 'com.travispeck.myguest',
     versionCode: 1,

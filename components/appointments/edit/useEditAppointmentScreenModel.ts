@@ -182,6 +182,7 @@ export function useEditAppointmentScreenModel() {
     setInputRef,
   } = useKeyboardFormNavigation<KeyboardField>({
     fields: KEYBOARD_FIELDS,
+    focusAdjacentAfterScrollDelayMs: Platform.OS === 'ios' ? 104 : 72,
     getFocusOffset: (field) =>
       field === 'notes'
         ? Platform.OS === 'ios'

@@ -10,6 +10,7 @@ import {
   SurfaceCard,
   ThemedHeadingText,
   cardSurfaceProps,
+  chipSurfaceProps,
 } from 'components/ui/controls'
 
 import { AppointmentGalleryPreviewModal } from './AppointmentGalleryPreviewModal'
@@ -89,6 +90,36 @@ function AppointmentHeroSection({ model }: AppointmentDetailSectionProps) {
           {model.formattedDate}
         </Text>
       </XStack>
+      <Text fontSize={12} color="$textSecondary">
+        {model.serviceCountLabel}
+      </Text>
+    </YStack>
+  )
+}
+
+function AppointmentServicesSection({ model }: AppointmentDetailSectionProps) {
+  if (!model.appointment) return null
+
+  return (
+    <YStack gap="$3">
+      <AppointmentSectionTitle>Services</AppointmentSectionTitle>
+      <AppointmentDetailCard model={model} rounded={model.cardRadius} p="$4" gap="$3">
+        <XStack gap="$2" flexWrap="wrap">
+          {model.serviceLabels.map((service) => (
+            <XStack
+              key={service}
+              {...chipSurfaceProps}
+              rounded={model.isCyberpunk ? 0 : 999}
+              px="$2.5"
+              py="$1.5"
+            >
+              <Text fontSize={12} color="$textPrimary" fontWeight="600">
+                {service}
+              </Text>
+            </XStack>
+          ))}
+        </XStack>
+      </AppointmentDetailCard>
     </YStack>
   )
 }
@@ -100,9 +131,9 @@ function AppointmentSummarySection({ model }: AppointmentDetailSectionProps) {
     <AppointmentDetailCard model={model} rounded={model.cardRadius} p="$4" gap="$3">
       <XStack items="center" justify="space-between">
         <Text fontSize={12} color="$textSecondary">
-          Service
+          Services
         </Text>
-        <Text fontSize={12}>{model.serviceLabel}</Text>
+        <Text fontSize={12}>{model.serviceCountLabel}</Text>
       </XStack>
       <XStack items="center" justify="space-between">
         <Text fontSize={12} color="$textSecondary">
@@ -190,6 +221,7 @@ export function AppointmentDetailContent({ model }: AppointmentDetailSectionProp
         <YStack px="$5" pt="$3" gap="$4">
           <AppointmentHeroSection model={model} />
           <SectionDivider />
+          <AppointmentServicesSection model={model} />
           <AppointmentSummarySection model={model} />
           <AppointmentNotesSection model={model} />
           <AppointmentPhotosSection model={model} />

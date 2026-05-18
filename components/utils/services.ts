@@ -83,3 +83,22 @@ export const getServiceLabel = (serviceType: string, notes: string) => {
   const normalizedFallback = normalizeServiceName(fallback)
   return normalizedFallback || normalizedService || 'Service'
 }
+
+export const getAppointmentServiceLabels = ({
+  notes,
+  serviceLabels,
+  services,
+}: {
+  notes: string
+  serviceLabels?: string[]
+  services: string
+}) => {
+  const normalizedLabels =
+    serviceLabels
+      ?.map((label) => normalizeServiceName(label))
+      .filter(Boolean) ?? []
+
+  if (normalizedLabels.length > 0) return normalizedLabels
+
+  return [getServiceLabel(services, notes)]
+}

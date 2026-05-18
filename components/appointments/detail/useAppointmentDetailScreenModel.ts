@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { useAppointmentDetail, useClients } from 'components/data/queries'
 import { formatDateByStyle } from 'components/utils/date'
-import { getServiceLabel } from 'components/utils/services'
+import { getAppointmentServiceLabels } from 'components/utils/services'
 import { useStudioStore } from 'components/state/studioStore'
 
 export function useAppointmentDetailScreenModel() {
@@ -41,7 +41,11 @@ export function useAppointmentDetailScreenModel() {
   const images = appointment?.images ?? []
   const canGoPrev = previewIndex !== null && previewIndex > 0
   const canGoNext = previewIndex !== null && previewIndex < images.length - 1
-  const serviceLabel = appointment ? getServiceLabel(appointment.services, appointment.notes) : ''
+  const serviceLabels = appointment ? getAppointmentServiceLabels(appointment) : []
+  const serviceLabel = serviceLabels[0] ?? ''
+  const serviceCountLabel = serviceLabels.length
+    ? `${serviceLabels.length} service${serviceLabels.length === 1 ? '' : 's'}`
+    : 'No services'
   const formattedDate = appointment
     ? formatDateByStyle(appointment.date, appSettings.dateDisplayFormat, {
         todayLabel: true,
@@ -167,7 +171,9 @@ export function useAppointmentDetailScreenModel() {
     previewIndex,
     previewScrollRef,
     previewWidth,
+    serviceCountLabel,
     serviceLabel,
+    serviceLabels,
     setPreviewIndex,
     showPreviewControls,
     thumbRadius,

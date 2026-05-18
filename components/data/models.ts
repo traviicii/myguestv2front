@@ -3,6 +3,8 @@ export type ClientType = 'Cut' | 'Color' | 'Cut & Color'
 export type Client = {
   id: string
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   phone: string
   birthday?: string | null
