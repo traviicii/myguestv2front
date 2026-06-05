@@ -1,5 +1,3 @@
-export type ClientType = 'Cut' | 'Color' | 'Cut & Color'
-
 export type NewClientFormState = {
   firstName: string
   lastName: string
@@ -21,13 +19,11 @@ export function buildNewClientInitialForm(): NewClientFormState {
 }
 
 export function hasNewClientDraftContent({
-  clientType,
-  defaultType,
   form,
+  selectedGroupIds,
 }: {
-  clientType: ClientType
-  defaultType: ClientType
   form: NewClientFormState
+  selectedGroupIds: number[]
 }) {
   const hasText =
     form.firstName.trim() ||
@@ -37,7 +33,7 @@ export function hasNewClientDraftContent({
     form.birthday.trim() ||
     form.notes.trim()
 
-  return Boolean(hasText) || clientType !== defaultType
+  return Boolean(hasText) || selectedGroupIds.length > 0
 }
 
 export function hasRequiredNewClientFields(form: NewClientFormState) {

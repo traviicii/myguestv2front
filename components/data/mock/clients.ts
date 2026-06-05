@@ -1,5 +1,36 @@
 import type { Client } from '../models'
 
+const CLIENT_GROUPS = {
+  cut: {
+    id: 1,
+    name: 'Cut',
+    normalizedName: 'cut',
+    sortOrder: 0,
+    archivedAt: null,
+  },
+  color: {
+    id: 2,
+    name: 'Color',
+    normalizedName: 'color',
+    sortOrder: 1,
+    archivedAt: null,
+  },
+  vip: {
+    id: 3,
+    name: 'VIP',
+    normalizedName: 'vip',
+    sortOrder: 2,
+    archivedAt: null,
+  },
+  consultation: {
+    id: 4,
+    name: 'Consultation',
+    normalizedName: 'consultation',
+    sortOrder: 3,
+    archivedAt: null,
+  },
+} as const
+
 export const MOCK_CLIENTS: Client[] = [
   {
     id: 'c-101',
@@ -10,6 +41,8 @@ export const MOCK_CLIENTS: Client[] = [
     createdAt: '2026-01-05',
     lastVisit: '2026-03-07',
     type: 'Cut & Color',
+    groupIds: [CLIENT_GROUPS.cut.id, CLIENT_GROUPS.color.id, CLIENT_GROUPS.vip.id],
+    groups: [CLIENT_GROUPS.cut, CLIENT_GROUPS.color, CLIENT_GROUPS.vip],
     revenueYtd: 610,
     tag: 'VIP',
     status: 'Active',
@@ -24,6 +57,8 @@ export const MOCK_CLIENTS: Client[] = [
     createdAt: '2025-10-12',
     lastVisit: '2026-02-22',
     type: 'Cut',
+    groupIds: [CLIENT_GROUPS.cut.id],
+    groups: [CLIENT_GROUPS.cut],
     revenueYtd: 225,
     tag: 'Cut',
     status: 'Active',
@@ -38,6 +73,8 @@ export const MOCK_CLIENTS: Client[] = [
     createdAt: '2026-02-02',
     lastVisit: '2026-03-03',
     type: 'Color',
+    groupIds: [CLIENT_GROUPS.color.id],
+    groups: [CLIENT_GROUPS.color],
     revenueYtd: 480,
     tag: 'Color',
     status: 'Active',
@@ -52,6 +89,8 @@ export const MOCK_CLIENTS: Client[] = [
     createdAt: '2025-08-19',
     lastVisit: 'No visits yet',
     type: 'Cut & Color',
+    groupIds: [CLIENT_GROUPS.cut.id, CLIENT_GROUPS.color.id, CLIENT_GROUPS.consultation.id],
+    groups: [CLIENT_GROUPS.cut, CLIENT_GROUPS.color, CLIENT_GROUPS.consultation],
     revenueYtd: 0,
     tag: 'New',
     status: 'Inactive',
@@ -66,6 +105,8 @@ export const MOCK_CLIENTS: Client[] = [
     createdAt: '2025-11-18',
     lastVisit: '2026-01-16',
     type: 'Cut',
+    groupIds: [CLIENT_GROUPS.cut.id],
+    groups: [CLIENT_GROUPS.cut],
     revenueYtd: 110,
     tag: 'Cut',
     status: 'Inactive',
@@ -80,6 +121,8 @@ export const MOCK_CLIENTS: Client[] = [
     createdAt: '2026-02-20',
     lastVisit: '2026-03-10',
     type: 'Cut & Color',
+    groupIds: [CLIENT_GROUPS.cut.id, CLIENT_GROUPS.color.id],
+    groups: [CLIENT_GROUPS.cut, CLIENT_GROUPS.color],
     revenueYtd: 325,
     tag: 'Return',
     status: 'Active',

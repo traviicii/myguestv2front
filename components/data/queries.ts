@@ -1,5 +1,6 @@
 export * from './queries/appointments'
 export * from './queries/clients'
+export * from './queries/clientGroups'
 export * from './queries/colorAnalysis'
 export * from './queries/exports'
 export * from './queries/metrics'

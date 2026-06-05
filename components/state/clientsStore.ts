@@ -3,14 +3,14 @@ import { persist } from 'zustand/middleware'
 import { zustandStorage } from './storage'
 
 type StatusFilter = 'All' | 'Active' | 'Inactive'
-type TypeFilter = 'All' | 'Cut' | 'Color' | 'Cut & Color'
+type GroupFilter = 'All' | string
 type VisitFilter = 'All' | 'Needs First Visit' | 'Returning'
 
 type ClientsStore = {
   searchText: string
   statusFilter: StatusFilter
   tagFilter: string
-  typeFilter: TypeFilter
+  groupFilter: GroupFilter
   visitFilter: VisitFilter
   showFilters: boolean
   closeFilters: () => void
@@ -19,7 +19,7 @@ type ClientsStore = {
   setSearchText: (text: string) => void
   setStatusFilter: (status: StatusFilter) => void
   setTagFilter: (tag: string) => void
-  setTypeFilter: (type: TypeFilter) => void
+  setGroupFilter: (group: GroupFilter) => void
   setVisitFilter: (visit: VisitFilter) => void
   toggleFilters: () => void
   resetFilters: () => void
@@ -33,7 +33,7 @@ export const useClientsStore = create<ClientsStore>()(
       searchText: '',
       statusFilter: 'All',
       tagFilter: 'All',
-      typeFilter: 'All',
+      groupFilter: 'All',
       visitFilter: 'All',
       showFilters: false,
       closeFilters: () => set({ showFilters: false }),
@@ -43,13 +43,13 @@ export const useClientsStore = create<ClientsStore>()(
           showFilters: state.showFilters,
           statusFilter: 'All',
           tagFilter: 'All',
-          typeFilter: 'All',
+          groupFilter: 'All',
           visitFilter: 'All',
         })),
       setSearchText: (text) => set({ searchText: text }),
       setStatusFilter: (status) => set({ statusFilter: status }),
       setTagFilter: (tag) => set({ tagFilter: tag }),
-      setTypeFilter: (type) => set({ typeFilter: type }),
+      setGroupFilter: (group) => set({ groupFilter: group }),
       setVisitFilter: (visit) => set({ visitFilter: visit }),
       toggleFilters: () => set((state) => ({ showFilters: !state.showFilters })),
       resetFilters: () =>
@@ -57,7 +57,7 @@ export const useClientsStore = create<ClientsStore>()(
           searchText: '',
           statusFilter: 'All',
           tagFilter: 'All',
-          typeFilter: 'All',
+          groupFilter: 'All',
           visitFilter: 'All',
           showFilters: false,
         }),
@@ -69,7 +69,7 @@ export const useClientsStore = create<ClientsStore>()(
         searchText: state.searchText,
         statusFilter: state.statusFilter,
         tagFilter: state.tagFilter,
-        typeFilter: state.typeFilter,
+        groupFilter: state.groupFilter,
         visitFilter: state.visitFilter,
       }),
     }

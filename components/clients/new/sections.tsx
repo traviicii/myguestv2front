@@ -15,7 +15,7 @@ import {
   TextField,
 } from 'components/ui/controls'
 import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
-import { ClientTypeOptions } from 'components/clients/shared/ClientTypeOptions'
+import { ClientGroupSelector } from 'components/clients/shared/ClientGroupSelector'
 import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { NewClientFormModel } from './useNewClientFormModel'
@@ -196,17 +196,27 @@ function ClientInfoSection({ model }: NewClientFormSectionProps) {
   )
 }
 
-function ClientTypeSection({ model }: NewClientFormSectionProps) {
+function ClientGroupsSection({ model }: NewClientFormSectionProps) {
   return (
     <YStack gap="$3.5">
       <InsetSectionHeader
-        title="Client Type"
-        subtitle="Choose the default relationship for this client so filtering and organization stay consistent."
+        title="Client Groups"
+        subtitle="Add flexible groups like Color, Extensions, VIP, or Blowouts so this client is easier to find later."
       />
       <InsetGroup p="$4">
         <YStack gap="$2.5">
-          <FieldLabel>Client Type</FieldLabel>
-          <ClientTypeOptions selectedType={model.clientType} onSelect={model.setClientType} />
+          <FieldLabel>Groups</FieldLabel>
+          <ClientGroupSelector
+            canCreate
+            createDraft={model.groupDraft}
+            createError={model.groupCreateError}
+            groups={model.clientGroups}
+            isCreating={model.createClientGroup.isPending}
+            onCreate={model.handleCreateClientGroup}
+            onCreateDraftChange={model.setGroupDraft}
+            onToggleGroup={model.toggleClientGroup}
+            selectedGroupIds={model.selectedGroupIds}
+          />
         </YStack>
       </InsetGroup>
     </YStack>
@@ -296,7 +306,7 @@ export function NewClientFormContent({ model }: NewClientFormSectionProps) {
       >
         <YStack pt="$2" gap="$4">
           <ClientInfoSection model={model} />
-          <ClientTypeSection model={model} />
+          <ClientGroupsSection model={model} />
           <ClientNotesSection model={model} />
           <ClientFormActions model={model} />
         </YStack>

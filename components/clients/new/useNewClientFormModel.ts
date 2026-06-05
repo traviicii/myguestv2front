@@ -5,17 +5,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Alert, Keyboard, Platform } from 'react-native'
 
 import { parseDateForPicker } from 'components/appointments/shared/datePicker'
-import { useCreateClient } from 'components/data/queries'
+import { useClientGroups, useCreateClient, useCreateClientGroup } from 'components/data/queries'
 import { useExpandablePanel } from 'components/ui/useExpandablePanel'
+import {
+  buildLegacyClientTypeFromGroups,
+  normalizeClientGroupName,
+} from 'components/utils/clientGroups'
 import { formatDateMMDDYYYY } from 'components/utils/date'
-import { successHaptic, warningHaptic } from 'components/utils/haptics'
+import { selectionHaptic, successHaptic, warningHaptic } from 'components/utils/haptics'
 
 import {
   buildNewClientInitialForm,
   getNewClientRequiredScrollTarget,
   hasNewClientDraftContent,
   hasRequiredNewClientFields,
-  type ClientType,
 } from './newClientFormUtils'
 
 type KeyboardField = 'firstName' | 'lastName' | 'email' | 'phone' | 'notes'
@@ -42,14 +45,16 @@ export function useNewClientFormModel() {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const keyboardVisible = useRef(false)
   const createClient = useCreateClient()
+  const createClientGroup = useCreateClientGroup()
+  const { data: clientGroups = [] } = useClientGroups('true')
   const requiredY = useRef<{ firstName?: number; lastName?: number; notes?: number }>({})
   const sectionY = useRef<{ identity?: number; notes?: number }>({})
   const groupY = useRef<{ identity?: number; notes?: number }>({})
   const focusY = useRef<Partial<Record<FocusTarget, number>>>({})
   const activeField = useRef<KeyboardField | null>(null)
-  const defaultType: ClientType = 'Cut & Color'
-
-  const [clientType, setClientType] = useState<ClientType>(defaultType)
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
+  const [groupDraft, setGroupDraft] = useState('')
+  const [groupCreateError, setGroupCreateError] = useState<string | null>(null)
   const [form, setForm] = useState(() => buildNewClientInitialForm())
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
@@ -67,11 +72,15 @@ export function useNewClientFormModel() {
   const isDirty = useMemo(
     () =>
       hasNewClientDraftContent({
-        clientType,
-        defaultType,
         form,
+        selectedGroupIds,
       }),
-    [clientType, defaultType, form]
+    [form, selectedGroupIds]
+  )
+
+  const selectedGroups = useMemo(
+    () => clientGroups.filter((group) => selectedGroupIds.includes(group.id)),
+    [clientGroups, selectedGroupIds]
   )
 
   const hasRequired = useMemo(() => hasRequiredNewClientFields(form), [form])
@@ -249,6 +258,49 @@ export function useNewClientFormModel() {
     }
   }, [closeBirthdayPicker, scrollFocusedFieldIntoView])
 
+  const toggleClientGroup = useCallback((groupId: number) => {
+    setSelectedGroupIds((current) =>
+      current.includes(groupId)
+        ? current.filter((id) => id !== groupId)
+        : [...current, groupId]
+    )
+  }, [])
+
+  const handleCreateClientGroup = useCallback(async () => {
+    const name = normalizeClientGroupName(groupDraft)
+    if (!name || createClientGroup.isPending) return
+
+    const normalizedName = name.toLowerCase()
+    const existing = clientGroups.find(
+      (group) => group.normalizedName === normalizedName || group.name.toLowerCase() === normalizedName
+    )
+    if (existing) {
+      setSelectedGroupIds((current) =>
+        current.includes(existing.id) ? current : [...current, existing.id]
+      )
+      setGroupDraft('')
+      setGroupCreateError(null)
+      void selectionHaptic()
+      return
+    }
+
+    try {
+      const group = await createClientGroup.mutateAsync({ name })
+      setSelectedGroupIds((current) =>
+        current.includes(group.id) ? current : [...current, group.id]
+      )
+      setGroupDraft('')
+      setGroupCreateError(null)
+      void successHaptic()
+    } catch (error) {
+      setGroupCreateError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to create this group right now.'
+      )
+    }
+  }, [clientGroups, createClientGroup, groupDraft])
+
   const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     scrollY.current = event.nativeEvent.contentOffset.y
   }, [])
@@ -363,7 +415,8 @@ export function useNewClientFormModel() {
         email: form.email,
         phone: form.phone,
         birthday: form.birthday,
-        clientType,
+        clientType: buildLegacyClientTypeFromGroups(selectedGroups) ?? undefined,
+        groupIds: selectedGroupIds,
         notes: form.notes,
       })
 
@@ -385,11 +438,14 @@ export function useNewClientFormModel() {
     canSave,
     canGoToNextKeyboardField,
     canGoToPreviousKeyboardField,
-    clientType,
+    clientGroups,
     closeBirthdayPicker,
+    createClientGroup,
     createClient,
     focusAdjacentKeyboardField,
     form,
+    groupCreateError,
+    groupDraft,
     insets,
     keyboardAccessoryId,
     keyboardDismissMode,
@@ -397,8 +453,9 @@ export function useNewClientFormModel() {
     requiredY,
     router,
     scrollRef,
-    setClientType,
+    selectedGroupIds,
     setForm,
+    setGroupDraft,
     showBirthdayPicker,
     showFirstNameError,
     showLastNameError,
@@ -417,8 +474,10 @@ export function useNewClientFormModel() {
     handleNotesSectionLayout,
     handleSave,
     handleScroll,
+    handleCreateClientGroup,
     onScrollBeginDrag: handleScrollBeginDrag,
     setInputRef,
+    toggleClientGroup,
   }
 }
 

@@ -10,6 +10,7 @@ import {
   TextField,
   cardSurfaceProps,
 } from 'components/ui/controls'
+import { getClientGroupSummary } from 'components/utils/clientGroups'
 
 import type { NewAppointmentClientPickerScreenModel } from './useNewAppointmentClientPickerScreenModel'
 
@@ -99,7 +100,7 @@ function AppointmentClientPickerList({ model }: NewAppointmentClientPickerSectio
                   {client.name}
                 </Text>
                 <Text fontSize={12} color="$textSecondary">
-                  {client.type} • Last visit{' '}
+                  {getClientGroupSummary(client)} • Last visit{' '}
                   {model.formatLastVisitLabel(
                     model.derivedLastVisitByClient[client.id] ?? client.lastVisit
                   )}

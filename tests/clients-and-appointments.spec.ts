@@ -35,8 +35,8 @@ test('client edit route loads existing client values in mock mode', async ({ pag
   await expect(page).toHaveURL(/\/client\/c-101\/edit$/)
 
   await expect(page.getByText('Edit Client')).toBeVisible()
-  await expect(page.getByRole('textbox').first()).toHaveValue('Avery Stone')
-  await expect(page.getByText('Client Type', { exact: true })).toBeVisible()
+  await expect(page.getByRole('textbox').first()).toHaveValue('Avery')
+  await expect(page.getByText('Client Groups', { exact: true })).toBeVisible()
   await expect(page.getByText('Delete Client')).toBeVisible()
 })
 
@@ -109,7 +109,6 @@ test('settings route opens grouped detail sheets and honors focus params in mock
   await expect(page.getByTestId('settings-row-overview-insights')).toBeVisible()
   await expect(page.getByTestId('settings-row-services-logs')).toBeVisible()
   await expect(page.getByTestId('settings-row-dates-formatting')).toBeVisible()
-  await expect(page.getByTestId('settings-row-account-privacy')).toBeVisible()
 
   await page.getByTestId('settings-row-services-logs').click()
   await expect(page).toHaveURL(/\/settings\/services-logs$/)
@@ -171,7 +170,7 @@ test('appointment client picker route filters clients and opens a client log flo
   await expect(page.getByPlaceholder('Search clients')).toBeVisible()
   await page.getByPlaceholder('Search clients').fill('Avery')
   await page
-    .getByRole('link', { name: 'Avery Stone Cut & Color • Last visit 03/07/2026 Select' })
+    .getByRole('link', { name: 'Avery Stone Cut + Color +1 • Last visit 03/07/2026 Select' })
     .click()
 
   await expect(page).toHaveURL(/\/client\/c-101\/new-appointment$/)

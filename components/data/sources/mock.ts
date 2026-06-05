@@ -2,6 +2,7 @@ import type {
   OverviewMetrics,
   OverviewMetricsInput,
 } from '../api/metrics'
+import type { ClientGroup } from '../api/clientGroups'
 import type { ServiceOption } from '../api/services'
 import {
   MOCK_APPOINTMENT_HISTORY,
@@ -76,6 +77,41 @@ export const MOCK_SERVICES: ServiceOption[] = [
   },
 ]
 
+export const MOCK_CLIENT_GROUPS: ClientGroup[] = [
+  {
+    id: 1,
+    name: 'Cut',
+    normalizedName: 'cut',
+    sortOrder: 0,
+    archivedAt: null,
+    clientCount: 5,
+  },
+  {
+    id: 2,
+    name: 'Color',
+    normalizedName: 'color',
+    sortOrder: 1,
+    archivedAt: null,
+    clientCount: 4,
+  },
+  {
+    id: 3,
+    name: 'VIP',
+    normalizedName: 'vip',
+    sortOrder: 2,
+    archivedAt: null,
+    clientCount: 1,
+  },
+  {
+    id: 4,
+    name: 'Consultation',
+    normalizedName: 'consultation',
+    sortOrder: 3,
+    archivedAt: null,
+    clientCount: 1,
+  },
+]
+
 const readOnlyError = (message: string) => {
   throw new Error(`Mock data mode is enabled. Set EXPO_PUBLIC_USE_MOCK_DATA=false to ${message}.`)
 }
@@ -130,8 +166,8 @@ const computeOverviewMetrics = (input: OverviewMetricsInput): OverviewMetrics =>
   }, {})
   const topService = Object.entries(serviceMixCounts).sort((left, right) => right[1] - left[1])[0]
 
-  const eligibleColorClients = MOCK_CLIENTS.filter(
-    (client) => client.type === 'Color' || client.type === 'Cut & Color'
+  const eligibleColorClients = MOCK_CLIENTS.filter((client) =>
+    (client.groups ?? []).some((group) => group.normalizedName === 'color')
   )
   const clientsWithColorData = eligibleColorClients.filter((client) => {
     const data = MOCK_COLOR_ANALYSIS_BY_CLIENT[client.id]
@@ -184,6 +220,11 @@ export const mockDataSource: DataSource = {
   fetchColorAnalysisByClient: async () => MOCK_COLOR_ANALYSIS_BY_CLIENT,
   fetchColorAnalysisForClient: async (clientId) => resolveMockColorAnalysis(clientId),
   fetchImagesByClient: async () => MOCK_IMAGES_BY_CLIENT,
+  fetchClientGroups: async (active) => {
+    if (active === 'all') return MOCK_CLIENT_GROUPS
+    if (active === 'false') return MOCK_CLIENT_GROUPS.filter((group) => group.archivedAt)
+    return MOCK_CLIENT_GROUPS.filter((group) => !group.archivedAt)
+  },
   fetchServices: async (active) => {
     if (active === 'all') return MOCK_SERVICES
     if (active === 'false') return MOCK_SERVICES.filter((service) => !service.isActive)
@@ -194,6 +235,10 @@ export const mockDataSource: DataSource = {
   deleteClient: async () => readOnlyError('delete clients in the v2 backend'),
   deleteAccount: async () => readOnlyError('delete your account'),
   updateClient: async () => readOnlyError('edit clients in the v2 backend'),
+  createClientGroup: async () => readOnlyError('manage client groups in the v2 backend'),
+  updateClientGroup: async () => readOnlyError('manage client groups in the v2 backend'),
+  archiveClientGroup: async () => readOnlyError('manage client groups in the v2 backend'),
+  reactivateClientGroup: async () => readOnlyError('manage client groups in the v2 backend'),
   createService: async () => readOnlyError('manage services in the v2 backend'),
   updateService: async () => readOnlyError('manage services in the v2 backend'),
   deactivateService: async () => readOnlyError('manage services in the v2 backend'),

@@ -6,6 +6,13 @@ import {
   fetchClientsFromApi,
   updateClientViaApi,
 } from '../api/clients'
+import {
+  archiveClientGroupViaApi,
+  createClientGroupViaApi,
+  fetchClientGroupsFromApi,
+  reactivateClientGroupViaApi,
+  updateClientGroupViaApi,
+} from '../api/clientGroups'
 import { exportMyDataViaApi } from '../api/exports'
 import {
   createFormulaViaApi,
@@ -40,12 +47,17 @@ export const apiDataSource: DataSource = {
   fetchColorAnalysisByClient: fetchColorAnalysisByClientFromApi,
   fetchColorAnalysisForClient: fetchColorAnalysisForClientFromApi,
   fetchImagesByClient: async () => ({}),
+  fetchClientGroups: fetchClientGroupsFromApi,
   fetchServices: fetchServicesFromApi,
   exportMyData: exportMyDataViaApi,
   createClient: createClientViaApi,
   deleteClient: deleteClientViaApi,
   deleteAccount: deleteAccountViaApi,
   updateClient: updateClientViaApi,
+  createClientGroup: createClientGroupViaApi,
+  updateClientGroup: updateClientGroupViaApi,
+  archiveClientGroup: archiveClientGroupViaApi,
+  reactivateClientGroup: reactivateClientGroupViaApi,
   createService: createServiceViaApi,
   updateService: updateServiceViaApi,
   deactivateService: deactivateServiceViaApi,

@@ -16,7 +16,15 @@ export function ClientsListHeader({ model }: ClientsSectionProps) {
     : 'Filters'
 
   return (
-    <YStack px="$5" pt={model.topInset} gap="$3">
+    <YStack
+      px="$5"
+      pt={model.topInset}
+      pb="$3"
+      gap="$3"
+      bg="$background"
+      borderBottomWidth={1}
+      borderBottomColor="$borderSubtle"
+    >
       <XStack items="center" justify="space-between">
         <ThemedHeadingText fontWeight="700" fontSize={16}>
           Client Index

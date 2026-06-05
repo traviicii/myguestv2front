@@ -199,9 +199,19 @@ export function ClientsAlphabetRail({ model }: ClientsAlphabetRailProps) {
   )
 
   const releaseRail = useCallback(() => {
+    const activeIndex = activeIndexRef.current
+    const activeLetterValue =
+      activeIndex === null ? null : model.alphaRailLetters[activeIndex]
+
     lastJumpLetterRef.current = null
     setIsRailDragging(false)
     model.handleAlphaRailInteractionEnd()
+
+    if (activeIndex !== null && activeLetterValue) {
+      setActiveLetter(activeLetterValue)
+      showHudAtIndex(activeIndex)
+      return
+    }
 
     if (model.alphaRailFocusedIndex !== null && model.alphaRailFocusedLetter) {
       activeIndexRef.current = model.alphaRailFocusedIndex

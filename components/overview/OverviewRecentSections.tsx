@@ -8,6 +8,7 @@ import {
   ThemedHeadingText,
 } from 'components/ui/controls'
 import { formatDateByStyle } from 'components/utils/date'
+import { getClientGroupSummary } from 'components/utils/clientGroups'
 import { getServiceLabel } from 'components/utils/services'
 
 import type { OverviewNavigableSectionProps } from './sectionTypes'
@@ -168,7 +169,7 @@ export function OverviewRecentClientsSection({
                         {client.name}
                       </Text>
                       <Text fontSize={12} color="$textSecondary" numberOfLines={1}>
-                        {client.type} • Last visit{' '}
+                        {getClientGroupSummary(client)} • Last visit{' '}
                         {model.formatLastVisitLabel(
                           model.resolveLastVisit(client.id, client.lastVisit)
                         )}

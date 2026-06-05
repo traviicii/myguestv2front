@@ -15,7 +15,7 @@ import {
   TextField,
   ThemedHeadingText,
 } from 'components/ui/controls'
-import { ClientTypeOptions } from 'components/clients/shared/ClientTypeOptions'
+import { ClientGroupSelector } from 'components/clients/shared/ClientGroupSelector'
 import { PHONE_INPUT_PLACEHOLDER, formatPhoneForInput } from 'components/utils/phone'
 
 import type { EditClientScreenModel } from './useEditClientScreenModel'
@@ -231,14 +231,21 @@ function EditClientDetailsSection({ model }: EditClientSectionProps) {
     <YStack gap="$3.5">
       <InsetSectionHeader
         title="Details"
-        subtitle="Adjust the client type to keep reporting and filters aligned."
+        subtitle="Keep flexible groups attached so filtering and client organization stay useful."
       />
       <InsetGroup p="$4">
         <YStack gap="$2.5">
-          <FieldLabel>Client Type</FieldLabel>
-          <ClientTypeOptions
-            selectedType={model.form.type}
-            onSelect={(type) => model.updateField('type', type)}
+          <FieldLabel>Client Groups</FieldLabel>
+          <ClientGroupSelector
+            canCreate
+            createDraft={model.groupDraft}
+            createError={model.groupCreateError}
+            groups={model.clientGroups}
+            isCreating={model.createClientGroup.isPending}
+            onCreate={model.handleCreateClientGroup}
+            onCreateDraftChange={model.setGroupDraft}
+            onToggleGroup={model.toggleClientGroup}
+            selectedGroupIds={model.selectedGroupIds}
           />
         </YStack>
       </InsetGroup>

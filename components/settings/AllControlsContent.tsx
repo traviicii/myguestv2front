@@ -13,9 +13,12 @@ import {
   InsetRow,
   InsetSectionFooter,
   InsetSectionHeader,
+  FieldLabel,
+  GhostButton,
   OptionChip,
   OptionChipLabel,
   SecondaryButton,
+  TextField,
   ThemedHeadingText,
   ThemedSwitch,
 } from 'components/ui/controls'
@@ -101,7 +104,12 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
 
   return (
     <YStack gap="$4">
-      <YStack gap="$2.5">
+      <YStack
+        gap="$2.5"
+        onLayout={(event) => {
+          model.handleClientGroupsSectionLayout(event.nativeEvent.layout.y)
+        }}
+      >
         <InsetSectionHeader
           title="Client status"
           subtitle="Set how activity labels appear across client surfaces."
@@ -188,6 +196,155 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
           </YStack>
         </>
       ) : null}
+
+      <YStack gap="$2.5">
+        <InsetSectionHeader
+          title="Client groups"
+          subtitle="Manage flexible groups like Color, Extensions, VIP, or Blowouts."
+        />
+        <InsetGroup>
+          <YStack px="$4" py="$4" gap="$4">
+            <YStack gap="$2">
+              <FieldLabel>Active groups</FieldLabel>
+              {model.activeClientGroups.length ? (
+                <YStack
+                  gap="$2"
+                  onLayout={(event) => {
+                    model.handleActiveClientGroupsListLayout(event.nativeEvent.layout.y)
+                  }}
+                >
+                  {model.activeClientGroups.map((group) => {
+                    const fieldId = `client-group:${group.id}` as const
+                    return (
+                      <YStack
+                        key={group.id}
+                        gap="$1.5"
+                        p="$3"
+                        rounded="$3"
+                        borderWidth={1}
+                        borderColor="$borderSubtle"
+                        bg="$surfaceField"
+                        onLayout={(event) => {
+                          model.handleClientGroupCardLayout(group.id, event.nativeEvent.layout.y)
+                        }}
+                      >
+                        <XStack gap="$2" items="center">
+                          <TextField
+                            ref={model.setClientGroupInputRef(fieldId)}
+                            flex={1}
+                            value={model.clientGroupRenameDrafts[group.id] ?? group.name}
+                            inputAccessoryViewID={model.keyboardAccessoryId}
+                            returnKeyType={model.getClientGroupFieldReturnKeyType(fieldId)}
+                            blurOnSubmit={false}
+                            onLayout={(event) => {
+                              model.handleClientGroupFieldLayout(
+                                fieldId,
+                                event.nativeEvent.layout.y
+                              )
+                            }}
+                            onFocus={() => model.handleClientGroupFieldFocus(fieldId)}
+                            onChangeText={(value) =>
+                              model.handleClientGroupRenameDraftChange(group.id, value)
+                            }
+                            onBlur={() => {
+                              void model.handleSaveClientGroupRename(group.id)
+                            }}
+                            onSubmitEditing={() => {
+                              void model.handleSaveClientGroupRename(group.id)
+                              model.handleClientGroupFieldSubmit(fieldId)
+                            }}
+                          />
+                          <GhostButton
+                            chromeless
+                            onPress={() => {
+                              void model.handleArchiveClientGroup(group.id)
+                            }}
+                          >
+                            Archive
+                          </GhostButton>
+                        </XStack>
+                        <Text fontSize={11} color="$textSecondary">
+                          {group.clientCount} client{group.clientCount === 1 ? '' : 's'}
+                        </Text>
+                      </YStack>
+                    )
+                  })}
+                </YStack>
+              ) : (
+                <Text fontSize={12} color="$textSecondary">
+                  No groups yet. Add your first group below.
+                </Text>
+              )}
+            </YStack>
+
+            <YStack gap="$2">
+              <FieldLabel>Add group</FieldLabel>
+              <XStack
+                gap="$2"
+                items="center"
+                onLayout={(event) => {
+                  model.handleAddClientGroupRowLayout(event.nativeEvent.layout.y)
+                }}
+              >
+                <TextField
+                  ref={model.setClientGroupInputRef('new-client-group')}
+                  flex={1}
+                  placeholder="Extensions, VIP, Blowouts..."
+                  value={model.clientGroupDraft}
+                  inputAccessoryViewID={model.keyboardAccessoryId}
+                  returnKeyType={model.getClientGroupFieldReturnKeyType('new-client-group')}
+                  onLayout={(event) => {
+                    model.handleClientGroupFieldLayout(
+                      'new-client-group',
+                      event.nativeEvent.layout.y
+                    )
+                  }}
+                  onFocus={() => model.handleClientGroupFieldFocus('new-client-group')}
+                  onChangeText={model.setClientGroupDraft}
+                  onSubmitEditing={() => {
+                    void model.handleAddClientGroup()
+                  }}
+                />
+                <SecondaryButton
+                  disabled={!model.canAddClientGroup || model.createClientGroup.isPending}
+                  opacity={
+                    model.canAddClientGroup && !model.createClientGroup.isPending ? 1 : 0.5
+                  }
+                  onPress={() => {
+                    void model.handleAddClientGroup()
+                  }}
+                >
+                  Add
+                </SecondaryButton>
+              </XStack>
+            </YStack>
+
+            {model.archivedClientGroups.length ? (
+              <YStack gap="$2">
+                <FieldLabel>Archived groups</FieldLabel>
+                <XStack gap="$2" flexWrap="wrap">
+                  {model.archivedClientGroups.map((group) => (
+                    <OptionChip
+                      key={group.id}
+                      active={false}
+                      onPress={() => {
+                        void model.handleReactivateClientGroup(group.id)
+                      }}
+                    >
+                      <OptionChipLabel active={false}>
+                        Restore {group.name}
+                      </OptionChipLabel>
+                    </OptionChip>
+                  ))}
+                </XStack>
+              </YStack>
+            ) : null}
+          </YStack>
+        </InsetGroup>
+        <InsetSectionFooter>
+          Groups can be assigned from Add Client or Edit Client and used in Clients filters.
+        </InsetSectionFooter>
+      </YStack>
     </YStack>
   )
 }
@@ -490,7 +647,7 @@ export function AllControlsContent({ model }: { model: SettingsScreenModel }) {
     {
       id: 'client-display' as const,
       title: 'Client Display',
-      subtitle: model.clientDisplaySummary,
+      subtitle: `${model.clientDisplaySummary} · ${model.activeClientGroups.length} groups`,
       icon: <Users size={16} color="$accent" />,
     },
     {
@@ -517,7 +674,7 @@ export function AllControlsContent({ model }: { model: SettingsScreenModel }) {
     <YStack px="$5" pt="$3" gap="$5">
       <SettingsSectionPageHeader
         title="Settings"
-        body="Adjust client display, Overview sections, appointment defaults, date formats, and account data."
+        body="Adjust client display, Overview sections, appointment defaults, date formats, and client groups."
       />
 
       <YStack gap="$2.5">

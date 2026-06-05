@@ -60,7 +60,7 @@ function PreferencesSection({ model }: ProfileSectionProps) {
     },
     {
       id: 'client-display',
-      title: 'Client Display',
+      title: 'Clients & Groups',
       subtitle: model.clientStatusSummary,
       icon: <Users size={16} color="$accent" />,
       onPress: () => router.push('/settings/client-display'),

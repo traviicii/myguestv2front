@@ -1,4 +1,13 @@
-export type ClientType = 'Cut' | 'Color' | 'Cut & Color'
+export type ClientType = string
+
+export type ClientGroup = {
+  id: number
+  name: string
+  normalizedName: string
+  sortOrder: number
+  archivedAt?: string | null
+  clientCount?: number
+}
 
 export type Client = {
   id: string
@@ -11,6 +20,8 @@ export type Client = {
   createdAt?: string
   lastVisit: string
   type: ClientType
+  groupIds?: number[]
+  groups?: ClientGroup[]
   revenueYtd: number
   tag: string
   status: 'Active' | 'Inactive'

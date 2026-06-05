@@ -35,6 +35,9 @@ type ServiceKeyboardField =
   | 'new-service-price'
   | 'new-service-return'
 
+type ClientGroupKeyboardField = `client-group:${number}` | 'new-client-group'
+type SettingsKeyboardField = ServiceKeyboardField | ClientGroupKeyboardField
+
 type FocusableField = { focus?: () => void } | null
 
 const FOCUS_SCROLL_TOLERANCE = 24
@@ -46,6 +49,7 @@ const ADD_SERVICE_FIELDS: ServiceKeyboardField[] = [
   'new-service-price',
   'new-service-return',
 ]
+const ADD_CLIENT_GROUP_FIELD: ClientGroupKeyboardField = 'new-client-group'
 
 function buildServiceFieldId(
   kind: 'rename' | 'price' | 'return',
@@ -54,12 +58,29 @@ function buildServiceFieldId(
   return `${kind}:${serviceId}` as ServiceKeyboardField
 }
 
-function isAddServiceField(field: ServiceKeyboardField) {
-  return ADD_SERVICE_FIELDS.includes(field)
+function buildClientGroupFieldId(groupId: number): ClientGroupKeyboardField {
+  return `client-group:${groupId}` as ClientGroupKeyboardField
 }
 
-function resolveServiceFieldParts(field: ServiceKeyboardField) {
-  if (isAddServiceField(field)) {
+function isServiceField(field: SettingsKeyboardField): field is ServiceKeyboardField {
+  return (
+    field.startsWith('rename:') ||
+    field.startsWith('price:') ||
+    field.startsWith('return:') ||
+    ADD_SERVICE_FIELDS.includes(field as ServiceKeyboardField)
+  )
+}
+
+function isAddServiceField(field: SettingsKeyboardField) {
+  return ADD_SERVICE_FIELDS.includes(field as ServiceKeyboardField)
+}
+
+function isClientGroupField(field: SettingsKeyboardField): field is ClientGroupKeyboardField {
+  return field === ADD_CLIENT_GROUP_FIELD || field.startsWith('client-group:')
+}
+
+function resolveServiceFieldParts(field: SettingsKeyboardField) {
+  if (!isServiceField(field) || isAddServiceField(field)) {
     return null
   }
 
@@ -70,7 +91,11 @@ function resolveServiceFieldParts(field: ServiceKeyboardField) {
   }
 }
 
-export function useSettingsServiceManagement() {
+export function useSettingsServiceManagement({
+  activeClientGroupIds = [],
+}: {
+  activeClientGroupIds?: number[]
+} = {}) {
   const toast = useToastController()
   const [serviceDraft, setServiceDraft] = useState('')
   const [servicePriceDraft, setServicePriceDraft] = useState('')
@@ -98,12 +123,16 @@ export function useSettingsServiceManagement() {
   const keyboardVisible = useRef(false)
   const activeServicesSectionY = useRef<number | null>(null)
   const addServiceSectionY = useRef<number | null>(null)
+  const clientGroupsSectionY = useRef<number | null>(null)
+  const activeClientGroupsListY = useRef<number | null>(null)
+  const addClientGroupRowY = useRef<number | null>(null)
   const activeServiceCardY = useRef<Record<number, number>>({})
-  const fieldY = useRef<Partial<Record<ServiceKeyboardField, number>>>({})
-  const activeField = useRef<ServiceKeyboardField | null>(null)
-  const inputRefs = useRef<Partial<Record<ServiceKeyboardField, FocusableField>>>({})
+  const activeClientGroupCardY = useRef<Record<number, number>>({})
+  const fieldY = useRef<Partial<Record<SettingsKeyboardField, number>>>({})
+  const activeField = useRef<SettingsKeyboardField | null>(null)
+  const inputRefs = useRef<Partial<Record<SettingsKeyboardField, FocusableField>>>({})
   const [activeKeyboardField, setActiveKeyboardField] =
-    useState<ServiceKeyboardField | null>(null)
+    useState<SettingsKeyboardField | null>(null)
 
   const { data: serviceCatalog = [] } = useServices('all')
   const createService = useCreateService()
@@ -136,7 +165,7 @@ export function useSettingsServiceManagement() {
   )
 
   const canAddService = Boolean(normalizeServiceName(serviceDraft))
-  const keyboardFields = useMemo<ServiceKeyboardField[]>(
+  const keyboardFields = useMemo<SettingsKeyboardField[]>(
     () => [
       ...activeServices.flatMap((service) => [
         buildServiceFieldId('rename', service.id),
@@ -144,8 +173,10 @@ export function useSettingsServiceManagement() {
         buildServiceFieldId('return', service.id),
       ]),
       ...ADD_SERVICE_FIELDS,
+      ...activeClientGroupIds.map((id) => buildClientGroupFieldId(id)),
+      ADD_CLIENT_GROUP_FIELD,
     ],
-    [activeServices]
+    [activeClientGroupIds, activeServices]
   )
 
   const clearPendingScroll = useCallback(() => {
@@ -155,15 +186,39 @@ export function useSettingsServiceManagement() {
     }
   }, [])
 
-  const setFocusedKeyboardField = useCallback((field: ServiceKeyboardField | null) => {
+  const setFocusedKeyboardField = useCallback((field: SettingsKeyboardField | null) => {
     activeField.current = field
     setActiveKeyboardField(field)
   }, [])
 
-  const resolveFieldTarget = useCallback((field: ServiceKeyboardField) => {
+  const resolveFieldTarget = useCallback((field: SettingsKeyboardField) => {
     const localFieldY = fieldY.current[field]
     if (typeof localFieldY !== 'number') {
       return undefined
+    }
+
+    if (field === ADD_CLIENT_GROUP_FIELD) {
+      const sectionY = clientGroupsSectionY.current
+      const rowY = addClientGroupRowY.current
+      if (typeof sectionY !== 'number' || typeof rowY !== 'number') {
+        return undefined
+      }
+      return sectionY + rowY + localFieldY
+    }
+
+    if (isClientGroupField(field)) {
+      const sectionY = clientGroupsSectionY.current
+      const listY = activeClientGroupsListY.current
+      const groupId = Number(field.split(':')[1])
+      const cardY = activeClientGroupCardY.current[groupId]
+      if (
+        typeof sectionY !== 'number' ||
+        typeof listY !== 'number' ||
+        typeof cardY !== 'number'
+      ) {
+        return undefined
+      }
+      return sectionY + listY + cardY + localFieldY
     }
 
     if (isAddServiceField(field)) {
@@ -188,15 +243,18 @@ export function useSettingsServiceManagement() {
     return sectionY + cardY + localFieldY
   }, [])
 
-  const getFocusOffset = useCallback((field: ServiceKeyboardField) => {
+  const getFocusOffset = useCallback((field: SettingsKeyboardField) => {
     if (field.startsWith('rename:')) {
       return Platform.OS === 'ios' ? 70 : 58
+    }
+    if (isClientGroupField(field)) {
+      return Platform.OS === 'ios' ? 96 : 84
     }
     return Platform.OS === 'ios' ? 88 : 76
   }, [])
 
   const scrollFocusedFieldIntoView = useCallback(
-    (field: ServiceKeyboardField, options?: { delayMs?: number }) => {
+    (field: SettingsKeyboardField, options?: { delayMs?: number }) => {
       const targetY = resolveFieldTarget(field)
       if (typeof targetY !== 'number') return
 
@@ -230,18 +288,18 @@ export function useSettingsServiceManagement() {
   )
 
   const setServiceInputRef = useCallback(
-    (field: ServiceKeyboardField) => (instance: FocusableField) => {
+    (field: SettingsKeyboardField) => (instance: FocusableField) => {
       inputRefs.current[field] = instance
     },
     []
   )
 
-  const focusKeyboardField = useCallback((field: ServiceKeyboardField) => {
+  const focusKeyboardField = useCallback((field: SettingsKeyboardField) => {
     inputRefs.current[field]?.focus?.()
   }, [])
 
   const handleServiceFieldFocus = useCallback(
-    (field: ServiceKeyboardField) => {
+    (field: SettingsKeyboardField) => {
       setFocusedKeyboardField(field)
       if (keyboardVisible.current) {
         scrollFocusedFieldIntoView(field, { delayMs: 20 })
@@ -258,8 +316,13 @@ export function useSettingsServiceManagement() {
       const currentIndex = keyboardFields.indexOf(currentField)
       if (currentIndex === -1) return
 
-      const nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1
-      const targetField = keyboardFields[nextIndex]
+      const step = direction === 'previous' ? -1 : 1
+      let nextIndex = currentIndex + step
+      let targetField = keyboardFields[nextIndex]
+      while (targetField && !inputRefs.current[targetField]?.focus) {
+        nextIndex += step
+        targetField = keyboardFields[nextIndex]
+      }
       if (!targetField) return
 
       setFocusedKeyboardField(targetField)
@@ -274,11 +337,12 @@ export function useSettingsServiceManagement() {
   )
 
   const handleServiceFieldSubmit = useCallback(
-    (field: ServiceKeyboardField) => {
-      const currentIndex = keyboardFields.indexOf(field)
+    (field: SettingsKeyboardField) => {
+      const mountedFields = keyboardFields.filter((item) => inputRefs.current[item]?.focus)
+      const currentIndex = mountedFields.indexOf(field)
       if (currentIndex === -1) return
 
-      if (currentIndex >= keyboardFields.length - 1) {
+      if (currentIndex >= mountedFields.length - 1) {
         setFocusedKeyboardField(null)
         Keyboard.dismiss()
         return
@@ -290,8 +354,11 @@ export function useSettingsServiceManagement() {
   )
 
   const getServiceFieldReturnKeyType = useCallback(
-    (field: ServiceKeyboardField) =>
-      keyboardFields[keyboardFields.length - 1] === field ? 'done' : 'next',
+    (field: SettingsKeyboardField) => {
+      const mountedFields = keyboardFields.filter((item) => inputRefs.current[item]?.focus)
+      const fields = mountedFields.length ? mountedFields : keyboardFields
+      return fields[fields.length - 1] === field ? 'done' : 'next'
+    },
     [keyboardFields]
   )
 
@@ -800,20 +867,39 @@ export function useSettingsServiceManagement() {
     addServiceSectionY.current = y
   }, [])
 
+  const handleClientGroupsSectionLayout = useCallback((y: number) => {
+    clientGroupsSectionY.current = y
+  }, [])
+
+  const handleActiveClientGroupsListLayout = useCallback((y: number) => {
+    activeClientGroupsListY.current = y
+  }, [])
+
+  const handleClientGroupCardLayout = useCallback((groupId: number, y: number) => {
+    activeClientGroupCardY.current[groupId] = y
+  }, [])
+
+  const handleAddClientGroupRowLayout = useCallback((y: number) => {
+    addClientGroupRowY.current = y
+  }, [])
+
   const handleActiveServiceCardLayout = useCallback((serviceId: number, y: number) => {
     activeServiceCardY.current[serviceId] = y
   }, [])
 
-  const handleServiceFieldLayout = useCallback((field: ServiceKeyboardField, y: number) => {
+  const handleServiceFieldLayout = useCallback((field: SettingsKeyboardField, y: number) => {
     fieldY.current[field] = y
   }, [])
 
+  const mountedKeyboardFields = keyboardFields.filter((field) => inputRefs.current[field]?.focus)
   const activeKeyboardFieldIndex = activeKeyboardField
-    ? keyboardFields.indexOf(activeKeyboardField)
+    ? (mountedKeyboardFields.length ? mountedKeyboardFields : keyboardFields).indexOf(activeKeyboardField)
     : -1
   const canGoToPreviousServiceField = activeKeyboardFieldIndex > 0
   const canGoToNextServiceField =
-    activeKeyboardFieldIndex >= 0 && activeKeyboardFieldIndex < keyboardFields.length - 1
+    activeKeyboardFieldIndex >= 0 &&
+    activeKeyboardFieldIndex <
+      (mountedKeyboardFields.length ? mountedKeyboardFields : keyboardFields).length - 1
 
   return {
     activeServices,
@@ -826,6 +912,13 @@ export function useSettingsServiceManagement() {
     handleActiveServiceCardLayout,
     handleActiveServicesSectionLayout,
     handleAddServiceSectionLayout,
+    handleActiveClientGroupsListLayout,
+    handleAddClientGroupRowLayout,
+    handleClientGroupCardLayout,
+    handleClientGroupFieldFocus: handleServiceFieldFocus,
+    handleClientGroupFieldLayout: handleServiceFieldLayout,
+    handleClientGroupFieldSubmit: handleServiceFieldSubmit,
+    handleClientGroupsSectionLayout,
     handleDeactivateService,
     handleServiceFieldFocus,
     handleServiceFieldLayout,
@@ -843,6 +936,7 @@ export function useSettingsServiceManagement() {
     handleReturnWeeksDraftChange,
     focusAdjacentKeyboardField,
     getServiceFieldReturnKeyType,
+    getClientGroupFieldReturnKeyType: getServiceFieldReturnKeyType,
     inactiveServices,
     isCreatingService: createService.isPending,
     isDeletingService: permanentlyDeleteService.isPending,
@@ -857,6 +951,7 @@ export function useSettingsServiceManagement() {
     renameDrafts,
     renameSaveStates,
     setServiceInputRef,
+    setClientGroupInputRef: setServiceInputRef,
     settingsScrollRef,
     serviceDraft,
     servicePriceDraft,

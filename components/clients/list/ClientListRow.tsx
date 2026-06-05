@@ -7,6 +7,7 @@ import {
   PreviewCard,
   cardSurfaceProps,
 } from 'components/ui/controls'
+import { getClientGroupSummary } from 'components/utils/clientGroups'
 
 import type { ClientsScreenModel } from '../useClientsScreenModel'
 import type { ClientRow } from './sectionTypes'
@@ -80,6 +81,8 @@ export function ClientListRow({
   onOpenClient,
   onNewAppointment,
 }: ClientListRowProps) {
+  const groupSummary = getClientGroupSummary(client)
+
   return (
     <YStack px="$5" mb="$3">
       <PreviewCard
@@ -95,14 +98,14 @@ export function ClientListRow({
               {client.name}
             </Text>
             <Text fontSize={12} color="$textSecondary">
-              {client.type} • Last visit{' '}
+              {groupSummary} • Last visit{' '}
               {model.formatLastVisitLabel(
                 model.resolveLastVisit(client.id, client.lastVisit)
               )}
             </Text>
             <XStack items="center" gap="$2">
               <ClientStatus model={model} client={client} />
-              {client.tag && client.tag !== client.type ? (
+              {client.tag && client.tag !== groupSummary ? (
                 <Text fontSize={11} color="$textMuted">
                   {client.tag}
                 </Text>

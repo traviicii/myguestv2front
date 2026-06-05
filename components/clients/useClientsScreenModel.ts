@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Keyboard } from 'react-native'
 import type { FlatList, ViewToken } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from 'tamagui'
 
 import { useThemePrefs } from 'components/ThemePrefs'
 import type { Client } from 'components/data/models'
-import { useAppointmentHistoryLite, useClients } from 'components/data/queries'
+import { useAppointmentHistoryLite, useClientGroups, useClients } from 'components/data/queries'
 import { useClientsStore } from 'components/state/clientsStore'
 import { useStudioStore } from 'components/state/studioStore'
 import { deriveLastVisitByClient } from 'components/utils/clientDerived'
@@ -16,7 +17,7 @@ import { impactLightHaptic } from 'components/utils/haptics'
 import { usePullToRefresh } from 'components/ui/usePullToRefresh'
 
 const ALPHA_RAIL_MIN_ITEMS = 12
-const ALPHA_RAIL_TOP_OFFSET = 72
+const ALPHA_RAIL_TOP_OFFSET = 126
 const ALPHA_RAIL_HIDE_DELAY_MS = 900
 const CLIENT_JUMP_VIEW_POSITION = 0.24
 const SCROLL_INDEX_FALLBACK_OFFSET = 140
@@ -70,13 +71,13 @@ export function useClientsScreenModel() {
   const debouncedSearchText = useDebouncedValue(searchText, 200)
   const statusFilter = useClientsStore((state) => state.statusFilter)
   const tagFilter = useClientsStore((state) => state.tagFilter)
-  const typeFilter = useClientsStore((state) => state.typeFilter)
+  const groupFilter = useClientsStore((state) => state.groupFilter)
   const visitFilter = useClientsStore((state) => state.visitFilter)
   const showFilters = useClientsStore((state) => state.showFilters)
   const setSearchText = useClientsStore((state) => state.setSearchText)
   const setStatusFilter = useClientsStore((state) => state.setStatusFilter)
   const setTagFilter = useClientsStore((state) => state.setTagFilter)
-  const setTypeFilter = useClientsStore((state) => state.setTypeFilter)
+  const setGroupFilter = useClientsStore((state) => state.setGroupFilter)
   const setVisitFilter = useClientsStore((state) => state.setVisitFilter)
   const openFilters = useClientsStore((state) => state.openFilters)
   const closeFilters = useClientsStore((state) => state.closeFilters)
@@ -88,6 +89,7 @@ export function useClientsScreenModel() {
   const scrollRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const alphaRailHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const alphaRailFocusedLetterRef = useRef<AlphaRailLetter | null>(null)
+  const alphaRailJumpFocusTargetRef = useRef<AlphaRailLetter | null>(null)
   const lastAlphaJumpHapticRef = useRef<AlphaRailLetter | null>(null)
   const [alphaRailVisible, setAlphaRailVisible] = useState(false)
   const [alphaRailFocusedLetter, setAlphaRailFocusedLetter] =
@@ -97,6 +99,7 @@ export function useClientsScreenModel() {
     data: clients = [],
     refetch: refetchClients,
   } = useClients()
+  const { data: clientGroups = [] } = useClientGroups('true')
   const {
     data: appointmentHistory = [],
     refetch: refetchAppointments,
@@ -183,7 +186,12 @@ export function useClientsScreenModel() {
         if (statusFilter !== 'All' && activeStatus !== statusFilter) return false
         if (visitFilter === 'Needs First Visit' && visitDate !== null) return false
         if (visitFilter === 'Returning' && visitDate === null) return false
-        if (typeFilter !== 'All' && client.type !== typeFilter) return false
+        if (
+          groupFilter !== 'All' &&
+          !(client.groupIds ?? []).includes(Number(groupFilter))
+        ) {
+          return false
+        }
         if (tagFilter !== 'All' && client.tag.trim() !== tagFilter) return false
 
         if (!normalizedSearch) return true
@@ -193,6 +201,7 @@ export function useClientsScreenModel() {
           client.phone,
           client.notes,
           client.tag,
+          ...(client.groups ?? []).map((group) => group.name),
         ]
           .filter(Boolean)
           .join(' ')
@@ -209,7 +218,7 @@ export function useClientsScreenModel() {
     searchText,
     statusFilter,
     tagFilter,
-    typeFilter,
+    groupFilter,
     visitFilter,
   ])
 
@@ -263,7 +272,7 @@ export function useClientsScreenModel() {
     : null
   const activeFilterCount =
     Number(statusFilter !== 'All') +
-    Number(typeFilter !== 'All') +
+    Number(groupFilter !== 'All') +
     Number(visitFilter !== 'All') +
     Number(tagFilter !== 'All')
 
@@ -290,6 +299,11 @@ export function useClientsScreenModel() {
     })
   }
 
+  const handleSearchSubmit = useCallback(() => {
+    searchInputRef.current?.blur?.()
+    Keyboard.dismiss()
+  }, [])
+
   const updateAlphaRailFocusedLetter = useCallback(
     (letter: AlphaRailLetter | null) => {
       if (alphaRailFocusedLetterRef.current === letter) return
@@ -300,6 +314,18 @@ export function useClientsScreenModel() {
     []
   )
 
+  const clearAlphaRailJumpFocusLock = useCallback(() => {
+    alphaRailJumpFocusTargetRef.current = null
+  }, [])
+
+  const lockAlphaRailFocusOnLetter = useCallback(
+    (letter: AlphaRailLetter) => {
+      alphaRailJumpFocusTargetRef.current = letter
+      updateAlphaRailFocusedLetter(letter)
+    },
+    [updateAlphaRailFocusedLetter]
+  )
+
   const clientsViewabilityConfig = useRef({
     itemVisiblePercentThreshold: 38,
     minimumViewTime: 60,
@@ -307,6 +333,12 @@ export function useClientsScreenModel() {
 
   const handleClientsViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const jumpTarget = alphaRailJumpFocusTargetRef.current
+      if (jumpTarget) {
+        updateAlphaRailFocusedLetter(jumpTarget)
+        return
+      }
+
       let firstVisibleIndex = Number.POSITIVE_INFINITY
       let firstVisibleName: string | null = null
 
@@ -384,14 +416,14 @@ export function useClientsScreenModel() {
       const index = alphaIndexMap[letter]
       if (index === undefined) return
 
-      updateAlphaRailFocusedLetter(letter)
+      lockAlphaRailFocusOnLetter(letter)
       if (lastAlphaJumpHapticRef.current !== letter) {
         lastAlphaJumpHapticRef.current = letter
         void impactLightHaptic()
       }
       jumpToClientIndex(index)
     },
-    [alphaIndexMap, jumpToClientIndex, updateAlphaRailFocusedLetter]
+    [alphaIndexMap, jumpToClientIndex, lockAlphaRailFocusOnLetter]
   )
 
   const handleScrollToIndexFailed = useCallback(
@@ -424,6 +456,13 @@ export function useClientsScreenModel() {
     [handleRefreshScroll, showAlphaRail]
   )
 
+  const handleClientsScrollBeginDrag = useCallback(() => {
+    clearAlphaRailJumpFocusLock()
+    searchInputRef.current?.blur?.()
+    Keyboard.dismiss()
+    showAlphaRail()
+  }, [clearAlphaRailJumpFocusLock, showAlphaRail])
+
   const handleClientsScrollRelease = useCallback(
     () => {
       handleRefreshScrollRelease()
@@ -434,11 +473,17 @@ export function useClientsScreenModel() {
 
   useEffect(() => {
     if (!shouldShowAlphaRail) {
+      clearAlphaRailJumpFocusLock()
       clearAlphaRailHideTimeout()
       setAlphaRailVisible(false)
       updateAlphaRailFocusedLetter(null)
     }
-  }, [clearAlphaRailHideTimeout, shouldShowAlphaRail, updateAlphaRailFocusedLetter])
+  }, [
+    clearAlphaRailHideTimeout,
+    clearAlphaRailJumpFocusLock,
+    shouldShowAlphaRail,
+    updateAlphaRailFocusedLetter,
+  ])
 
   useEffect(() => {
     if (!shouldShowAlphaRail) return
@@ -454,8 +499,9 @@ export function useClientsScreenModel() {
         clearTimeout(scrollRetryTimeoutRef.current)
       }
       clearAlphaRailHideTimeout()
+      clearAlphaRailJumpFocusLock()
     },
-    [clearAlphaRailHideTimeout]
+    [clearAlphaRailHideTimeout, clearAlphaRailJumpFocusLock]
   )
 
   return {
@@ -470,6 +516,7 @@ export function useClientsScreenModel() {
     availableTags,
     availableAlphaLetters,
     chipRadius,
+    clientGroups,
     clientListItems,
     clientsViewabilityConfig,
     closeFilterSheet: closeFilters,
@@ -482,9 +529,11 @@ export function useClientsScreenModel() {
     handleAlphaRailInteractionStart,
     handleClearSearch,
     handleClientsScroll,
+    handleClientsScrollBeginDrag,
     handleClientsScrollRelease,
     handleClientsViewableItemsChanged,
     handleRefresh,
+    handleSearchSubmit,
     handleScrollToIndexFailed,
     hasClients,
     hasActiveFilters: activeFilterCount > 0,
@@ -510,7 +559,7 @@ export function useClientsScreenModel() {
     setSearchText,
     setStatusFilter,
     setTagFilter,
-    setTypeFilter,
+    setGroupFilter,
     setVisitFilter,
     showFilters,
     showStatus,
@@ -519,7 +568,7 @@ export function useClientsScreenModel() {
     tagFilter,
     toggleFilters,
     topInset,
-    typeFilter,
+    groupFilter,
     visitFilter,
   }
 }

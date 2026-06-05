@@ -3,6 +3,7 @@ import { ArrowRight } from '@tamagui/lucide-icons'
 import { Text, XStack, YStack } from 'tamagui'
 
 import { PreviewCard, ThemedHeadingText } from 'components/ui/controls'
+import { getClientGroupSummary } from 'components/utils/clientGroups'
 
 import type { OverviewSectionProps } from './sectionTypes'
 
@@ -27,7 +28,7 @@ export function OverviewPinnedClientsSection({ model }: OverviewSectionProps) {
                       {client.name}
                     </Text>
                     <Text fontSize={12} color="$textSecondary">
-                      {client.type} • Last visit{' '}
+                      {getClientGroupSummary(client)} • Last visit{' '}
                       {model.formatLastVisitLabel(
                         model.resolveLastVisit(client.id, client.lastVisit)
                       )}

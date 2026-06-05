@@ -3,6 +3,11 @@ import type {
   DeleteAccountInput,
   UpdateClientInput,
 } from '../api/clients'
+import type {
+  ClientGroup,
+  CreateClientGroupInput,
+  UpdateClientGroupInput,
+} from '../api/clientGroups'
 import type { CreateFormulaInput, UpdateFormulaInput } from '../api/appointments'
 import type { UpsertColorChartInput } from '../api/colorCharts'
 import type { DataExportResult } from '../api/exports'
@@ -22,12 +27,17 @@ export type DataSource = {
   fetchColorAnalysisByClient: () => Promise<Record<string, ColorAnalysis>>
   fetchColorAnalysisForClient: (clientId: string) => Promise<ColorAnalysis | null>
   fetchImagesByClient: () => Promise<Record<string, number>>
+  fetchClientGroups: (active: 'true' | 'false' | 'all') => Promise<ClientGroup[]>
   fetchServices: (active: 'true' | 'false' | 'all') => Promise<ServiceOption[]>
   exportMyData: () => Promise<DataExportResult>
   createClient: (input: CreateClientInput) => Promise<Client>
   deleteClient: (clientId: string) => Promise<void>
   deleteAccount: (input: DeleteAccountInput) => Promise<unknown>
   updateClient: (input: UpdateClientInput) => Promise<Client>
+  createClientGroup: (input: CreateClientGroupInput) => Promise<ClientGroup>
+  updateClientGroup: (input: UpdateClientGroupInput) => Promise<ClientGroup>
+  archiveClientGroup: (groupId: number) => Promise<void>
+  reactivateClientGroup: (groupId: number) => Promise<ClientGroup>
   createService: (input: CreateServiceInput) => Promise<ServiceOption>
   updateService: (input: UpdateServiceInput) => Promise<ServiceOption>
   deactivateService: (serviceId: number) => Promise<void>

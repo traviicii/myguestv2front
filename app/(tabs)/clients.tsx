@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { FlatList } from 'react-native'
+import { FlatList, Platform } from 'react-native'
 import { YStack } from 'tamagui'
 
 import { AmbientBackdrop } from 'components/AmbientBackdrop'
@@ -41,6 +41,7 @@ export default function ClientsScreen() {
         ListHeaderComponentStyle={{
           paddingBottom: 12,
         }}
+        stickyHeaderIndices={[0]}
         refreshControl={
           <ThemedRefreshControl
             refreshing={model.isRefreshing}
@@ -49,6 +50,7 @@ export default function ClientsScreen() {
           />
         }
         onScroll={model.handleClientsScroll}
+        onScrollBeginDrag={model.handleClientsScrollBeginDrag}
         onScrollEndDrag={model.handleClientsScrollRelease}
         onMomentumScrollEnd={model.handleClientsScrollRelease}
         onScrollToIndexFailed={model.handleScrollToIndexFailed}
@@ -56,6 +58,7 @@ export default function ClientsScreen() {
         viewabilityConfig={model.clientsViewabilityConfig}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         alwaysBounceVertical
         ListHeaderComponent={<ClientsListHeader model={model} />}
         ListEmptyComponent={

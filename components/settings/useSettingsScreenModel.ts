@@ -21,6 +21,7 @@ import {
   getSettingsCardTone,
 } from './settingsModelUtils'
 import type { PreviewCountSettingKey } from './settingsModelTypes'
+import { useSettingsClientGroupManagement } from './useSettingsClientGroupManagement'
 import { useSettingsServiceManagement } from './useSettingsServiceManagement'
 
 export function useSettingsScreenModel() {
@@ -30,7 +31,12 @@ export function useSettingsScreenModel() {
   const cardTone = getSettingsCardTone(aesthetic)
   const { appSettings, setAppSettings } = useStudioStore()
 
-  const serviceManagement = useSettingsServiceManagement()
+  const clientGroupManagement = useSettingsClientGroupManagement()
+  const activeClientGroupIds = useMemo(
+    () => clientGroupManagement.activeClientGroups.map((group) => group.id),
+    [clientGroupManagement.activeClientGroups]
+  )
+  const serviceManagement = useSettingsServiceManagement({ activeClientGroupIds })
 
   const displayRows = useMemo(
     () =>
@@ -65,6 +71,7 @@ export function useSettingsScreenModel() {
   })
   const datesFormattingSummary = buildDatesFormattingSummary(appSettings)
   return {
+    ...clientGroupManagement,
     ...serviceManagement,
     appSettings,
     appointmentDateOptions,

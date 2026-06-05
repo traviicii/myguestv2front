@@ -19,7 +19,6 @@ import type { ClientsSectionProps } from './sectionTypes'
 
 const STATUS_FILTERS = ['All', 'Active', 'Inactive'] as const
 const VISIT_FILTERS = ['All', 'Needs First Visit', 'Returning'] as const
-const TYPE_FILTERS = ['All', 'Cut', 'Color', 'Cut & Color'] as const
 
 function FilterChipGroup<T extends string>({
   activeValue,
@@ -50,6 +49,48 @@ function FilterChipGroup<T extends string>({
   )
 }
 
+function GroupFilterChipGroup({
+  activeValue,
+  groups,
+  onSelect,
+}: {
+  activeValue: string
+  groups: ClientsSectionProps['model']['clientGroups']
+  onSelect: (value: string) => void
+}) {
+  return (
+    <InsetGroup>
+      <XStack px="$4" py="$4" gap="$2" flexWrap="wrap">
+        <OptionChip
+          active={activeValue === 'All'}
+          onPress={() => {
+            void selectionHaptic()
+            onSelect('All')
+          }}
+        >
+          <OptionChipLabel active={activeValue === 'All'}>All</OptionChipLabel>
+        </OptionChip>
+        {groups.map((group) => {
+          const value = String(group.id)
+          const active = activeValue === value
+          return (
+            <OptionChip
+              key={group.id}
+              active={active}
+              onPress={() => {
+                void selectionHaptic()
+                onSelect(value)
+              }}
+            >
+              <OptionChipLabel active={active}>{group.name}</OptionChipLabel>
+            </OptionChip>
+          )
+        })}
+      </XStack>
+    </InsetGroup>
+  )
+}
+
 export function ClientsSearchBar({ model }: ClientsSectionProps) {
   return (
     <XStack gap="$3" items="center">
@@ -73,6 +114,9 @@ export function ClientsSearchBar({ model }: ClientsSectionProps) {
           placeholder="Search clients, tags, notes"
           value={model.searchText}
           onChangeText={model.setSearchText}
+          onSubmitEditing={model.handleSearchSubmit}
+          returnKeyType="search"
+          blurOnSubmit
           fontSize={12}
           color="$color"
           placeholderTextColor="$textMuted"
@@ -122,7 +166,7 @@ export function ClientsFilterPanel({ model }: ClientsSectionProps) {
               Refine your client list
             </Text>
             <Text fontSize={11} color="$textSecondary">
-              Filter by activity, visit history, service type, and saved labels. Changes apply as soon as you tap.
+              Filter by activity, visit history, client groups, and saved labels. Changes apply as soon as you tap.
             </Text>
             <Text fontSize={11} color="$accent">
               {model.activeFilterCount === 0
@@ -157,13 +201,13 @@ export function ClientsFilterPanel({ model }: ClientsSectionProps) {
 
           <YStack gap="$2.5">
             <InsetSectionHeader
-              title="Client Type"
-              subtitle="Narrow the list by the client service category you track."
+              title="Client Groups"
+              subtitle="Narrow the list by flexible groups like Color, Extensions, VIP, or Blowouts."
             />
-            <FilterChipGroup
-              activeValue={model.typeFilter}
-              options={TYPE_FILTERS}
-              onSelect={model.setTypeFilter}
+            <GroupFilterChipGroup
+              activeValue={model.groupFilter}
+              groups={model.clientGroups}
+              onSelect={model.setGroupFilter}
             />
           </YStack>
 

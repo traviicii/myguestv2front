@@ -6,7 +6,7 @@ import {
   useThemePrefs,
 } from 'components/ThemePrefs'
 import { useAuth } from 'components/auth/AuthProvider'
-import { useServices } from 'components/data/queries'
+import { useClientGroups, useServices } from 'components/data/queries'
 import { useOverviewStore } from 'components/state/overviewStore'
 import { useStudioStore } from 'components/state/studioStore'
 import {
@@ -63,6 +63,7 @@ export function useProfileScreenModel() {
   const selectedMetrics = useOverviewStore((state) => state.selectedMetrics)
   const { user, signOutUser, canUseFirebaseAuth } = useAuth()
   const { data: activeServices = [] } = useServices('true')
+  const { data: activeClientGroups = [] } = useClientGroups('true')
   const [isEditing, setIsEditing] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [draftProfile, setDraftProfile] = useState(() => ({
@@ -116,10 +117,14 @@ export function useProfileScreenModel() {
   const showPhone = Boolean(displayPhone)
 
   const clientStatusSummary = !appSettings.clientsShowStatus
-    ? 'Activity labels are off'
+    ? `${activeClientGroups.length} client ${
+        activeClientGroups.length === 1 ? 'group' : 'groups'
+      } · Activity labels off`
     : `${appSettings.activeStatusMonths}-month active window · ${
         appSettings.clientsShowStatusList ? 'List on' : 'List off'
-      } · ${appSettings.clientsShowStatusDetails ? 'Profiles on' : 'Profiles off'}`
+      } · ${activeClientGroups.length} ${
+        activeClientGroups.length === 1 ? 'group' : 'groups'
+      }`
 
   const visibleSectionLabels = Object.entries(appSettings.overviewSections)
     .filter(([, enabled]) => enabled)
@@ -167,6 +172,7 @@ export function useProfileScreenModel() {
 
   return {
     activeServices,
+    activeClientGroups,
     aesthetic,
     appSettings,
     canSaveProfile: isProfileDirty,

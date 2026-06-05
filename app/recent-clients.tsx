@@ -9,6 +9,7 @@ import { useStudioStore } from 'components/state/studioStore'
 import { sortClientsByNewest } from 'components/utils/clientSort'
 import { formatDateByStyle } from 'components/utils/date'
 import { deriveLastVisitByClient } from 'components/utils/clientDerived'
+import { getClientGroupSummary } from 'components/utils/clientGroups'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function RecentClientsScreen() {
@@ -69,7 +70,7 @@ export default function RecentClientsScreen() {
                     {client.name}
                   </Text>
                   <Text fontSize={12} color="$textSecondary">
-                    {client.type} • Last visit{' '}
+                    {getClientGroupSummary(client)} • Last visit{' '}
                     {formatLastVisitLabel(
                       derivedLastVisitByClient[client.id] ?? client.lastVisit
                     )}

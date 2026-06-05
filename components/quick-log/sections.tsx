@@ -14,6 +14,7 @@ import {
   ThemedHeadingText,
 } from 'components/ui/controls'
 import { KeyboardDismissAccessory } from 'components/ui/KeyboardDismissAccessory'
+import { getClientGroupSummary } from 'components/utils/clientGroups'
 
 import type { QuickLogScreenModel } from './useQuickLogScreenModel'
 
@@ -87,7 +88,7 @@ function QuickLogClientList({ model }: QuickLogSectionProps) {
             {client.name}
           </Text>
           <Text fontSize={12} color="$textSecondary">
-            {client.type}
+            {getClientGroupSummary(client)}
           </Text>
         </PreviewCard>
       ))}

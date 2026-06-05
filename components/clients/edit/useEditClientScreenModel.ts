@@ -5,21 +5,23 @@ import { type DateTimePickerEvent } from '@react-native-community/datetimepicker
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { parseDateForPicker } from 'components/appointments/shared/datePicker'
-import type { ClientType } from 'components/data/models'
-import { useClients, useDeleteClient, useUpdateClient } from 'components/data/queries'
+import {
+  useClientGroups,
+  useClients,
+  useCreateClientGroup,
+  useDeleteClient,
+  useUpdateClient,
+} from 'components/data/queries'
 import { useThemePrefs } from 'components/ThemePrefs'
 import { useExpandablePanel } from 'components/ui/useExpandablePanel'
+import {
+  areClientGroupIdsEqual,
+  buildLegacyClientTypeFromGroups,
+  normalizeClientGroupName,
+} from 'components/utils/clientGroups'
 import { formatDateMMDDYYYY } from 'components/utils/date'
-import { successHaptic, warningHaptic } from 'components/utils/haptics'
+import { selectionHaptic, successHaptic, warningHaptic } from 'components/utils/haptics'
 import { formatPhoneForInput } from 'components/utils/phone'
-
-const normalizeType = (value: string, fallback: ClientType) => {
-  const trimmed = value.trim()
-  if (trimmed === 'Cut' || trimmed === 'Color' || trimmed === 'Cut & Color') {
-    return trimmed
-  }
-  return fallback
-}
 
 const splitDisplayName = (value: string) => {
   const normalized = value.trim().replace(/\s+/g, ' ')
@@ -38,7 +40,6 @@ type EditClientForm = {
   lastName: string
   notes: string
   phone: string
-  type: ClientType
 }
 
 type ScrollTarget = {
@@ -62,6 +63,8 @@ export function useEditClientScreenModel() {
   const isGlass = aesthetic === 'glass'
   const { id } = useLocalSearchParams<{ id: string }>()
   const { data: clients = [], isLoading: clientsLoading } = useClients()
+  const { data: clientGroups = [] } = useClientGroups('true')
+  const createClientGroup = useCreateClientGroup()
   const deleteClient = useDeleteClient()
   const updateClient = useUpdateClient()
   const scrollRef = useRef<ScrollTarget | null>(null)
@@ -92,12 +95,16 @@ export function useEditClientScreenModel() {
       email: client?.email ?? '',
       phone: formatPhoneForInput(client?.phone ?? ''),
       birthday: client?.birthday ?? '',
-      type: client?.type ?? 'Cut',
       notes: client?.notes ?? '',
     }
   }, [client])
 
+  const initialGroupIds = useMemo(() => client?.groupIds ?? [], [client])
+
   const [form, setForm] = useState(initialForm)
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>(initialGroupIds)
+  const [groupDraft, setGroupDraft] = useState('')
+  const [groupCreateError, setGroupCreateError] = useState<string | null>(null)
   const [attemptedSave, setAttemptedSave] = useState(false)
   const [pulseKey, setPulseKey] = useState(0)
   const [showBirthdayPicker, setShowBirthdayPicker] = useState(false)
@@ -108,6 +115,15 @@ export function useEditClientScreenModel() {
     setForm(initialForm)
   }, [initialForm])
 
+  useEffect(() => {
+    setSelectedGroupIds(initialGroupIds)
+  }, [initialGroupIds])
+
+  const selectedGroups = useMemo(
+    () => clientGroups.filter((group) => selectedGroupIds.includes(group.id)),
+    [clientGroups, selectedGroupIds]
+  )
+
   const isDirty = useMemo(
     () =>
       form.firstName !== initialForm.firstName ||
@@ -115,9 +131,9 @@ export function useEditClientScreenModel() {
       form.email !== initialForm.email ||
       form.phone !== initialForm.phone ||
       form.birthday !== initialForm.birthday ||
-      form.type !== initialForm.type ||
-      form.notes !== initialForm.notes,
-    [form, initialForm]
+      form.notes !== initialForm.notes ||
+      !areClientGroupIdsEqual(selectedGroupIds, initialGroupIds),
+    [form, initialForm, initialGroupIds, selectedGroupIds]
   )
 
   const hasRequired = Boolean(form.firstName.trim() && form.lastName.trim())
@@ -284,6 +300,49 @@ export function useEditClientScreenModel() {
     updateField('birthday', '')
   }, [closeBirthdayPicker, updateField])
 
+  const toggleClientGroup = useCallback((groupId: number) => {
+    setSelectedGroupIds((current) =>
+      current.includes(groupId)
+        ? current.filter((id) => id !== groupId)
+        : [...current, groupId]
+    )
+  }, [])
+
+  const handleCreateClientGroup = useCallback(async () => {
+    const name = normalizeClientGroupName(groupDraft)
+    if (!name || createClientGroup.isPending) return
+
+    const normalizedName = name.toLowerCase()
+    const existing = clientGroups.find(
+      (group) => group.normalizedName === normalizedName || group.name.toLowerCase() === normalizedName
+    )
+    if (existing) {
+      setSelectedGroupIds((current) =>
+        current.includes(existing.id) ? current : [...current, existing.id]
+      )
+      setGroupDraft('')
+      setGroupCreateError(null)
+      void selectionHaptic()
+      return
+    }
+
+    try {
+      const group = await createClientGroup.mutateAsync({ name })
+      setSelectedGroupIds((current) =>
+        current.includes(group.id) ? current : [...current, group.id]
+      )
+      setGroupDraft('')
+      setGroupCreateError(null)
+      void successHaptic()
+    } catch (error) {
+      setGroupCreateError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to create this group right now.'
+      )
+    }
+  }, [clientGroups, createClientGroup, groupDraft])
+
   const setInputRef = useCallback(
     (field: KeyboardField) => (instance: FocusableField) => {
       inputRefs.current[field] = instance
@@ -366,7 +425,8 @@ export function useEditClientScreenModel() {
         email: form.email,
         phone: form.phone,
         birthday: form.birthday,
-        clientType: normalizeType(form.type, client.type),
+        clientType: buildLegacyClientTypeFromGroups(selectedGroups) ?? undefined,
+        groupIds: selectedGroupIds,
         notes: form.notes,
       })
       void successHaptic()
@@ -379,7 +439,18 @@ export function useEditClientScreenModel() {
           : 'Unable to save this client right now. Please try again.'
       )
     }
-  }, [client, form, hasRequired, isDirty, pulseNameError, resolveFieldTarget, router, updateClient])
+  }, [
+    client,
+    form,
+    hasRequired,
+    isDirty,
+    pulseNameError,
+    resolveFieldTarget,
+    router,
+    selectedGroupIds,
+    selectedGroups,
+    updateClient,
+  ])
 
   const confirmDelete = useCallback(() => {
     if (!client || deleteClient.isPending) return
@@ -465,14 +536,19 @@ export function useEditClientScreenModel() {
     canGoToPreviousKeyboardField,
     canSave,
     client,
+    clientGroups,
     closeBirthdayPicker,
     confirmDelete,
     contentBottomPadding,
+    createClientGroup,
     focusAdjacentKeyboardField,
     form,
+    groupCreateError,
+    groupDraft,
     handleBack,
     handleBirthdayChange,
     handleClearBirthday,
+    handleCreateClientGroup,
     handleBirthdayFieldPress,
     handleBirthdayLayout,
     handleGroupLayout,
@@ -491,12 +567,15 @@ export function useEditClientScreenModel() {
     keyboardDismissMode,
     pulseKey,
     scrollRef,
+    selectedGroupIds,
     setForm,
+    setGroupDraft,
     setInputRef,
     showBirthdayPicker,
     showFirstNameError,
     showLastNameError,
     topInset,
+    toggleClientGroup,
     updateField,
   }
 }

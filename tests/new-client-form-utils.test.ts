@@ -21,17 +21,15 @@ test('new client helpers build the initial form and track draft content', async 
 
   expect(
     hasNewClientDraftContent({
-      clientType: 'Cut & Color',
-      defaultType: 'Cut & Color',
       form: initialForm,
+      selectedGroupIds: [],
     })
   ).toBe(false)
 
   expect(
     hasNewClientDraftContent({
-      clientType: 'Cut',
-      defaultType: 'Cut & Color',
       form: initialForm,
+      selectedGroupIds: [1],
     })
   ).toBe(true)
 })

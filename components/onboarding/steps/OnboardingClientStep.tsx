@@ -46,7 +46,7 @@ export function OnboardingClientStep({ model }: OnboardingSectionProps) {
         }
       />
       <YStack gap="$2">
-        <FieldLabel>Client Type</FieldLabel>
+        <FieldLabel>Starter Groups</FieldLabel>
       </YStack>
       <XStack gap="$2" flexWrap="wrap">
         {ONBOARDING_CLIENT_TYPES.map((type) => (

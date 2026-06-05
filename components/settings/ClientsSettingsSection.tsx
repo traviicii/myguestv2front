@@ -3,7 +3,11 @@ import { Text, XStack, YStack } from 'tamagui'
 import {
   OptionChip,
   OptionChipLabel,
+  FieldLabel,
+  GhostButton,
+  SecondaryButton,
   SurfaceCard,
+  TextField,
   ThemedSwitch,
 } from 'components/ui/controls'
 
@@ -117,6 +121,123 @@ export function ClientsSettingsSection({ model }: SettingsSectionProps) {
             </XStack>
           </YStack>
         ) : null}
+      </SurfaceCard>
+
+      <SurfaceCard mode="section" tone={model.cardTone}>
+        <XStack items="center" justify="space-between">
+          <YStack gap="$0.5" flex={1} pr="$3">
+            <XStack items="center" gap="$2">
+              <Text fontSize={13}>Client groups</Text>
+              <SettingsInfoButton
+                title="Client groups"
+                message="Create flexible groups like Color, Extensions, VIP, or Blowouts. Groups can be attached to any client and used to filter the client list."
+                onShowInfo={model.showInfo}
+              />
+            </XStack>
+            <Text fontSize={11} color="$textSecondary">
+              Manage the labels available when adding or editing clients.
+            </Text>
+          </YStack>
+        </XStack>
+
+        <YStack gap="$3">
+          <YStack gap="$2">
+            <FieldLabel>Active groups</FieldLabel>
+            {model.activeClientGroups.length ? (
+              <YStack gap="$2">
+                {model.activeClientGroups.map((group) => (
+                  <YStack
+                    key={group.id}
+                    gap="$1.5"
+                    p="$3"
+                    rounded="$3"
+                    borderWidth={1}
+                    borderColor="$borderSubtle"
+                    bg="$surfaceField"
+                  >
+                    <XStack gap="$2" items="center">
+                      <TextField
+                        flex={1}
+                        value={model.clientGroupRenameDrafts[group.id] ?? group.name}
+                        returnKeyType="done"
+                        onChangeText={(value) =>
+                          model.handleClientGroupRenameDraftChange(group.id, value)
+                        }
+                        onBlur={() => {
+                          void model.handleSaveClientGroupRename(group.id)
+                        }}
+                        onSubmitEditing={() => {
+                          void model.handleSaveClientGroupRename(group.id)
+                        }}
+                      />
+                      <GhostButton
+                        chromeless
+                        onPress={() => {
+                          void model.handleArchiveClientGroup(group.id)
+                        }}
+                      >
+                        Archive
+                      </GhostButton>
+                    </XStack>
+                    <Text fontSize={11} color="$textSecondary">
+                      {group.clientCount} client{group.clientCount === 1 ? '' : 's'}
+                    </Text>
+                  </YStack>
+                ))}
+              </YStack>
+            ) : (
+              <Text fontSize={12} color="$textSecondary">
+                No groups yet. Add your first group below.
+              </Text>
+            )}
+          </YStack>
+
+          <YStack gap="$2">
+            <FieldLabel>Add group</FieldLabel>
+            <XStack gap="$2" items="center">
+              <TextField
+                flex={1}
+                placeholder="Extensions, VIP, Blowouts..."
+                value={model.clientGroupDraft}
+                returnKeyType="done"
+                onChangeText={model.setClientGroupDraft}
+                onSubmitEditing={() => {
+                  void model.handleAddClientGroup()
+                }}
+              />
+              <SecondaryButton
+                disabled={!model.canAddClientGroup || model.createClientGroup.isPending}
+                opacity={
+                  model.canAddClientGroup && !model.createClientGroup.isPending ? 1 : 0.5
+                }
+                onPress={() => {
+                  void model.handleAddClientGroup()
+                }}
+              >
+                Add
+              </SecondaryButton>
+            </XStack>
+          </YStack>
+
+          {model.archivedClientGroups.length ? (
+            <YStack gap="$2">
+              <FieldLabel>Archived groups</FieldLabel>
+              <XStack gap="$2" flexWrap="wrap">
+                {model.archivedClientGroups.map((group) => (
+                  <OptionChip
+                    key={group.id}
+                    active={false}
+                    onPress={() => {
+                      void model.handleReactivateClientGroup(group.id)
+                    }}
+                  >
+                    <OptionChipLabel active={false}>Restore {group.name}</OptionChipLabel>
+                  </OptionChip>
+                ))}
+              </XStack>
+            </YStack>
+          ) : null}
+        </YStack>
       </SurfaceCard>
     </SettingsSection>
   )

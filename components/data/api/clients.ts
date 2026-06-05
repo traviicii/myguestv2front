@@ -1,4 +1,4 @@
-import type { Client, ClientType } from '../models'
+import type { Client, ClientGroup, ClientType } from '../models'
 import { normalizePhoneForStorage } from 'components/utils/phone'
 
 import { request, toClientIdString } from './core'
@@ -14,7 +14,20 @@ type ApiClient = {
   phone: string | null
   birthday: string | null
   client_type: string | null
+  groups?: ApiClientGroup[] | null
   notes: string | null
+}
+
+type ApiClientGroup = {
+  id: number
+  owner_user_id: number
+  name: string
+  normalized_name: string
+  sort_order: number
+  archived_at?: string | null
+  client_count?: number | null
+  created_at?: string
+  updated_at?: string
 }
 
 type ApiClientListResponse = {
@@ -37,7 +50,8 @@ export type CreateClientInput = {
   email?: string
   phone?: string
   birthday?: string
-  clientType: ClientType
+  clientType?: ClientType
+  groupIds?: number[]
   notes?: string
 }
 
@@ -49,6 +63,7 @@ export type UpdateClientInput = {
   phone?: string | null
   birthday?: string | null
   clientType?: ClientType
+  groupIds?: number[]
   notes?: string | null
 }
 
@@ -57,14 +72,30 @@ export type DeleteAccountInput = {
 }
 
 function normalizeClientType(rawType: string | null | undefined): ClientType {
-  const normalized = (rawType ?? '').trim().toLowerCase()
-  if (normalized === 'cut') return 'Cut'
-  if (normalized === 'color') return 'Color'
-  return 'Cut & Color'
+  return (rawType ?? '').trim()
+}
+
+function toClientGroup(group: ApiClientGroup): ClientGroup {
+  return {
+    id: group.id,
+    name: group.name,
+    normalizedName: group.normalized_name,
+    sortOrder: group.sort_order,
+    archivedAt: group.archived_at ?? null,
+    clientCount: group.client_count ?? 0,
+  }
+}
+
+function summarizeClientGroups(groups: ClientGroup[], fallbackType: string) {
+  if (groups.length === 0) return fallbackType || 'Ungrouped'
+  if (groups.length === 1) return groups[0]?.name ?? fallbackType ?? 'Ungrouped'
+  if (groups.length === 2) return groups.map((group) => group.name).join(' + ')
+  return `${groups[0]?.name ?? 'Group'} +${groups.length - 1}`
 }
 
 function toClientModel(client: ApiClient): Client {
-  const clientType = normalizeClientType(client.client_type)
+  const groups = (client.groups ?? []).map(toClientGroup)
+  const clientType = summarizeClientGroups(groups, normalizeClientType(client.client_type))
   const hasLastVisit = Boolean(client.last_service_at)
   return {
     id: String(client.id),
@@ -77,6 +108,8 @@ function toClientModel(client: ApiClient): Client {
     createdAt: client.created_at ?? undefined,
     lastVisit: hasLastVisit ? (client.last_service_at as string) : 'No visits yet',
     type: clientType,
+    groupIds: groups.map((group) => group.id),
+    groups,
     revenueYtd: 0,
     tag: '',
     status: 'Inactive',
@@ -111,7 +144,8 @@ export async function createClientViaApi(input: CreateClientInput): Promise<Clie
     email: input.email?.trim() || null,
     phone: normalizePhoneForStorage(input.phone ?? '') || null,
     birthday: input.birthday?.trim() || null,
-    client_type: input.clientType,
+    client_type: input.clientType?.trim() || null,
+    group_ids: input.groupIds ?? [],
     notes: input.notes?.trim() || null,
   }
 
@@ -148,7 +182,8 @@ export async function updateClientViaApi(input: UpdateClientInput): Promise<Clie
     payload.phone = normalizePhoneForStorage(input.phone ?? '') || null
   }
   if (input.birthday !== undefined) payload.birthday = input.birthday?.trim() || null
-  if (input.clientType !== undefined) payload.client_type = input.clientType
+  if (input.clientType !== undefined) payload.client_type = input.clientType?.trim() || null
+  if (input.groupIds !== undefined) payload.group_ids = input.groupIds
   if (input.notes !== undefined) payload.notes = input.notes?.trim() || null
 
   if (Object.keys(payload).length === 0) {
