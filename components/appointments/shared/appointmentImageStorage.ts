@@ -1,5 +1,10 @@
 import { File } from 'expo-file-system'
-import { getStorage, ref as storageRef, uploadBytes } from 'firebase/storage'
+import {
+  getDownloadURL,
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+} from 'firebase/storage'
 
 import { getFirebaseAuth, getFirebaseApp } from 'components/auth/firebaseClient'
 import type { FormulaImageInput } from 'components/data/api/appointments'
@@ -60,6 +65,7 @@ const toDurableImageInput = (image: AppointmentImageRef): FormulaImageInput => {
   if (image.storageProvider === 'firebase' && image.objectKey) {
     return {
       storageProvider: 'firebase',
+      publicUrl: image.publicUrl ?? undefined,
       objectKey: image.objectKey,
       fileName: image.fileName,
     }
@@ -85,6 +91,7 @@ const uploadLocalAppointmentImage = async (
 
   const fileName = deriveImageFileName(uri, index)
   const objectKey = createAppointmentImageObjectKey({ fileName, index, uid })
+  let publicUrl: string | undefined
   try {
     const storage = getStorage(getFirebaseApp())
     const imageRef = storageRef(storage, objectKey)
@@ -98,6 +105,8 @@ const uploadLocalAppointmentImage = async (
         source: 'myguest-appointment-log',
       },
     })
+
+    publicUrl = await getDownloadURL(imageRef)
   } catch (error) {
     const details = error instanceof Error && error.message ? ` ${error.message}` : ''
     throw new Error(
@@ -107,6 +116,7 @@ const uploadLocalAppointmentImage = async (
 
   return {
     storageProvider: 'firebase',
+    publicUrl,
     objectKey,
     fileName,
   }

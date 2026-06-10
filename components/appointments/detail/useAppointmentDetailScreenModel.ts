@@ -8,10 +8,14 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useThemePrefs } from 'components/ThemePrefs'
+import { resolveAppointmentImageUris } from 'components/appointments/shared/appointmentImageResolver'
 import { useAppointmentDetail, useClients } from 'components/data/queries'
 import { formatDateByStyle } from 'components/utils/date'
 import { getAppointmentServiceLabels } from 'components/utils/services'
 import { useStudioStore } from 'components/state/studioStore'
+
+const arraysEqual = (left: string[], right: string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index])
 
 export function useAppointmentDetailScreenModel() {
   const { aesthetic } = useThemePrefs()
@@ -38,7 +42,28 @@ export function useAppointmentDetailScreenModel() {
   const isBootstrapping = (appointmentLoading || clientsLoading) && !appointment
   const isMissingAppointment = !isBootstrapping && !appointment
   const client = clients.find((item) => item.id === appointment?.clientId)
-  const images = useMemo(() => appointment?.images ?? [], [appointment?.images])
+  const fallbackImages = useMemo(() => appointment?.images ?? [], [appointment?.images])
+  const imageRefsSignature = useMemo(
+    () =>
+      JSON.stringify(
+        appointment?.imageRefs?.map((image) => ({
+          storageProvider: image.storageProvider,
+          publicUrl: image.publicUrl,
+          objectKey: image.objectKey,
+          fileName: image.fileName,
+        })) ?? []
+      ),
+    [appointment?.imageRefs]
+  )
+  const imageResolutionKey = `${appointment?.id ?? ''}|${imageRefsSignature}`
+  const [resolvedImageState, setResolvedImageState] = useState<{
+    images: string[]
+    key: string
+  }>({ images: [], key: '' })
+  const images =
+    resolvedImageState.key === imageResolutionKey
+      ? resolvedImageState.images
+      : fallbackImages
   const canGoPrev = previewIndex !== null && previewIndex > 0
   const canGoNext = previewIndex !== null && previewIndex < images.length - 1
   const serviceLabels = appointment ? getAppointmentServiceLabels(appointment) : []
@@ -52,6 +77,47 @@ export function useAppointmentDetailScreenModel() {
         includeWeekday: appSettings.dateLongIncludeWeekday,
       })
     : ''
+
+  useEffect(() => {
+    let isActive = true
+    const imageRefs = appointment?.imageRefs ?? []
+    const currentFallbackImages = appointment?.images ?? []
+
+    setResolvedImageState((current) =>
+      current.key === imageResolutionKey && arraysEqual(current.images, currentFallbackImages)
+        ? current
+        : { images: currentFallbackImages, key: imageResolutionKey }
+    )
+
+    if (!imageRefs.length) {
+      return () => {
+        isActive = false
+      }
+    }
+
+    resolveAppointmentImageUris(imageRefs)
+      .then((resolvedImages) => {
+        if (!isActive) return
+        const nextImages = resolvedImages.length ? resolvedImages : currentFallbackImages
+        setResolvedImageState((current) =>
+          current.key === imageResolutionKey && arraysEqual(current.images, nextImages)
+            ? current
+            : { images: nextImages, key: imageResolutionKey }
+        )
+      })
+      .catch(() => {
+        if (!isActive) return
+        setResolvedImageState((current) =>
+          current.key === imageResolutionKey && arraysEqual(current.images, currentFallbackImages)
+            ? current
+            : { images: currentFallbackImages, key: imageResolutionKey }
+        )
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [appointment?.imageRefs, appointment?.images, imageResolutionKey])
 
   useEffect(() => {
     if (!__DEV__ || !appointment) return
