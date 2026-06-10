@@ -43,6 +43,56 @@ const getImageContentType = (fileName: string) => {
   }
 }
 
+const hasImageSignature = (bytes: Uint8Array) => {
+  if (bytes.length < 12) return false
+
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+  const isPng =
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  const isWebp =
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  const isHeicOrHeif =
+    bytes[4] === 0x66 &&
+    bytes[5] === 0x74 &&
+    bytes[6] === 0x79 &&
+    bytes[7] === 0x70 &&
+    bytes[8] === 0x68 &&
+    bytes[9] === 0x65 &&
+    bytes[10] === 0x69 &&
+    (bytes[11] === 0x63 || bytes[11] === 0x66)
+
+  return isJpeg || isPng || isWebp || isHeicOrHeif
+}
+
+const readLocalImageData = async (uri: string) => {
+  const imageFile = new File(uri)
+  const bytes = await imageFile.bytes()
+  if (!hasImageSignature(bytes)) {
+    throw new Error('The selected photo could not be read as valid image data.')
+  }
+
+  const response = await fetch(uri)
+  const blob = await response.blob()
+  if (blob.size <= 0) {
+    throw new Error('The selected photo could not be prepared for upload.')
+  }
+
+  return {
+    blob,
+    byteCount: bytes.byteLength,
+  }
+}
+
 const createAppointmentImageObjectKey = ({
   fileName,
   index,
@@ -95,9 +145,9 @@ const uploadLocalAppointmentImage = async (
   try {
     const storage = getStorage(getFirebaseApp())
     const imageRef = storageRef(storage, objectKey)
-    const imageFile = new File(uri)
+    const imageData = await readLocalImageData(uri)
 
-    await uploadBytes(imageRef, imageFile, {
+    await uploadBytes(imageRef, imageData.blob, {
       cacheControl: 'private, max-age=31536000',
       contentType: getImageContentType(fileName),
       customMetadata: {
@@ -107,6 +157,14 @@ const uploadLocalAppointmentImage = async (
     })
 
     publicUrl = await getDownloadURL(imageRef)
+    if (__DEV__) {
+      console.log('[appointment-image-upload:complete]', {
+        byteCount: imageData.byteCount,
+        contentType: getImageContentType(fileName),
+        fileName,
+        objectKey,
+      })
+    }
   } catch (error) {
     const details = error instanceof Error && error.message ? ` ${error.message}` : ''
     throw new Error(

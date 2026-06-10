@@ -301,6 +301,7 @@ export function AppointmentDetailContent({ model }: AppointmentDetailSectionProp
         onGoPrev={model.goToPreviousPreview}
         onLayoutWidth={model.handlePreviewLayout}
         onMomentumScrollEnd={model.handlePreviewScrollEnd}
+        onToggleControls={model.handlePreviewToggleControls}
         previewIndex={model.previewIndex}
         previewScrollRef={model.previewScrollRef}
         previewWidth={model.previewWidth}

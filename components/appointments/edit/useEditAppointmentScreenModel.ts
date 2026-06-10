@@ -323,6 +323,34 @@ export function useEditAppointmentScreenModel() {
         imageUris: images,
         existingRefs: appointment.imageRefs ?? [],
       })
+      const initialImageUris = appointment.images ?? []
+      const shouldClearBeforeReplacingImages =
+        initialImageUris.length > 0 &&
+        imageInputs.length > 0 &&
+        initialImageUris.every((uri) => !images.includes(uri))
+
+      if (__DEV__) {
+        console.log('[appointment-edit:save-images]', {
+          appointmentId: appointment.id,
+          clearBeforeReplace: shouldClearBeforeReplacingImages,
+          draftImageCount: images.length,
+          imageInputCount: imageInputs.length,
+          existingRefCount: appointment.imageRefs?.length ?? 0,
+          existingRefs: appointment.imageRefs?.map((image) => ({
+            storageProvider: image.storageProvider,
+            hasPublicUrl: Boolean(image.publicUrl),
+            hasObjectKey: Boolean(image.objectKey),
+            fileName: image.fileName,
+          })) ?? [],
+        })
+      }
+
+      if (shouldClearBeforeReplacingImages) {
+        await updateAppointmentLog.mutateAsync({
+          formulaId: appointment.id,
+          images: [],
+        })
+      }
 
       await updateAppointmentLog.mutateAsync(
         buildEditAppointmentUpdateInput({

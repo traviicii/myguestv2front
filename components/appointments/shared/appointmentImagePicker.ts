@@ -1,10 +1,20 @@
 import { Alert, Linking, type AlertButton } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 
-const appointmentImagePickerOptions: ImagePicker.ImagePickerOptions = {
+const MAX_LIBRARY_IMAGE_SELECTION = 20
+
+const cameraImagePickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   allowsEditing: true,
   quality: 0.8,
+}
+
+const libraryImagePickerOptions: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ['images'],
+  allowsMultipleSelection: true,
+  orderedSelection: true,
+  quality: 0.8,
+  selectionLimit: MAX_LIBRARY_IMAGE_SELECTION,
 }
 
 const mapResultUris = (result: ImagePicker.ImagePickerResult) =>
@@ -54,7 +64,7 @@ export async function pickAppointmentImagesFromCamera() {
       return []
     }
 
-    const result = await ImagePicker.launchCameraAsync(appointmentImagePickerOptions)
+    const result = await ImagePicker.launchCameraAsync(cameraImagePickerOptions)
     return mapResultUris(result)
   } catch {
     Alert.alert(
@@ -76,6 +86,6 @@ export async function pickAppointmentImagesFromLibrary() {
     return []
   }
 
-  const result = await ImagePicker.launchImageLibraryAsync(appointmentImagePickerOptions)
+  const result = await ImagePicker.launchImageLibraryAsync(libraryImagePickerOptions)
   return mapResultUris(result)
 }

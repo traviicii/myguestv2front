@@ -51,7 +51,12 @@ export function useUpdateAppointmentLog() {
 
   return useMutation({
     mutationFn: (input: UpdateFormulaInput) => dataSource.updateAppointmentLog(input),
-    onSuccess: async () => {
+    onSuccess: async (appointment) => {
+      queryClient.setQueryData(
+        ['appointment-detail', DATA_SOURCE_KIND, appointment.id],
+        appointment
+      )
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
