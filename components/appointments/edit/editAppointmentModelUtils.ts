@@ -1,8 +1,10 @@
-import type { UpdateFormulaInput } from 'components/data/api/appointments'
+import type {
+  FormulaImageInput,
+  UpdateFormulaInput,
+} from 'components/data/api/appointments'
 import type { ServiceOption } from 'components/data/api/services'
 import type { AppointmentHistory } from 'components/data/models'
 import { parseAppointmentPrice } from 'components/appointments/shared/appointmentFormUtils'
-import { buildFormulaImageInputs } from 'components/utils/formulaImages'
 import { formatDateMMDDYYYY } from 'components/utils/date'
 import { normalizeServiceName } from 'components/utils/services'
 
@@ -128,14 +130,14 @@ export function getEditAppointmentRequiredDateScrollTarget(requiredDateY?: numbe
 export function buildEditAppointmentUpdateInput({
   appointment,
   form,
-  images,
+  imageInputs,
   initialServiceIds,
   selectedServiceIds,
   selectedServices,
 }: {
   appointment: AppointmentHistory
   form: EditAppointmentForm
-  images: string[]
+  imageInputs: FormulaImageInput[]
   initialServiceIds: number[]
   selectedServiceIds: number[]
   selectedServices: Pick<ServiceOption, 'name'>[]
@@ -152,6 +154,6 @@ export function buildEditAppointmentUpdateInput({
     notes: form.notes,
     price: parseAppointmentPrice(form.price),
     date: form.date,
-    images: buildFormulaImageInputs(images, appointment.imageRefs ?? []),
+    images: imageInputs,
   }
 }

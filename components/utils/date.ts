@@ -47,6 +47,18 @@ const parseYmd = (dateString: string): Ymd | null => {
   return null
 }
 
+export const getCalendarDateKey = (dateString: string) => {
+  const ymd = parseYmd(dateString)
+  if (!ymd) return null
+  return `${ymd.y}-${pad(ymd.m)}-${pad(ymd.d)}`
+}
+
+export const getDateKey = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+
+export const isSameCalendarDate = (dateString: string, comparisonDate = new Date()) =>
+  getCalendarDateKey(dateString) === getDateKey(comparisonDate)
+
 export const formatDateMMDDYYYY = (dateString: string) => {
   const ymd = parseYmd(dateString)
   if (!ymd) return (dateString || '—').trim()

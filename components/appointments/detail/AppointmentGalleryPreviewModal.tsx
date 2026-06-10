@@ -1,9 +1,32 @@
 import type { RefObject } from 'react'
-import { Animated, Image, Modal, Pressable, ScrollView as RNScrollView } from 'react-native'
+import {
+  Animated,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView as RNScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { ChevronLeft, ChevronRight, X } from '@tamagui/lucide-icons'
-import { YStack } from 'tamagui'
 
 import { FALLBACK_COLORS } from 'components/utils/color'
+
+function logGalleryImageEvent(
+  status: 'loaded' | 'failed',
+  uri: string,
+  detail?: string
+) {
+  if (!__DEV__) return
+  const preview = uri.length > 140 ? `${uri.slice(0, 140)}...` : uri
+  const message = `[appointment-gallery-image:${status}] ${preview}`
+  if (status === 'failed') {
+    console.warn(message, detail ?? '')
+    return
+  }
+  console.log(message)
+}
 
 type AppointmentGalleryPreviewModalProps = {
   canGoNext: boolean
@@ -15,7 +38,6 @@ type AppointmentGalleryPreviewModalProps = {
   onGoPrev: () => void
   onLayoutWidth: (width: number) => void
   onMomentumScrollEnd: (offsetX: number) => void
-  onToggleControls: () => void
   previewIndex: number | null
   previewScrollRef: RefObject<RNScrollView | null>
   previewWidth: number
@@ -32,7 +54,6 @@ export function AppointmentGalleryPreviewModal({
   onGoPrev,
   onLayoutWidth,
   onMomentumScrollEnd,
-  onToggleControls,
   previewIndex,
   previewScrollRef,
   previewWidth,
@@ -45,22 +66,15 @@ export function AppointmentGalleryPreviewModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable
-        style={{
-          flex: 1,
-          backgroundColor: FALLBACK_COLORS.overlayStrong,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-        }}
-        onPress={onClose}
-      >
+      <View style={styles.container}>
         <Pressable
-          onPress={(event) => {
-            event?.stopPropagation?.()
-            onToggleControls()
-          }}
-          style={{ width: '100%', maxWidth: 420, height: '70%' }}
+          accessibilityRole="button"
+          accessibilityLabel="Close photo preview"
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+        />
+        <View
+          style={styles.stage}
           onLayout={(event) => onLayoutWidth(event.nativeEvent.layout.width)}
         >
           {previewIndex !== null ? (
@@ -69,24 +83,27 @@ export function AppointmentGalleryPreviewModal({
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               ref={previewScrollRef}
+              bounces={false}
+              decelerationRate="fast"
               onMomentumScrollEnd={(event) => {
                 onMomentumScrollEnd(event.nativeEvent.contentOffset.x)
               }}
             >
               {images.map((uri, index) => (
-                <YStack
+                <View
                   key={`${uri}-preview-${index}`}
-                  width={previewWidth || 1}
-                  height="100%"
-                  items="center"
-                  justify="center"
+                  style={[styles.page, { width: previewWidth || 1 }]}
                 >
                   <Image
                     source={{ uri }}
-                    style={{ width: '100%', height: '100%' }}
+                    style={styles.image}
                     resizeMode="contain"
+                    onLoad={() => logGalleryImageEvent('loaded', uri)}
+                    onError={(event) =>
+                      logGalleryImageEvent('failed', uri, event.nativeEvent.error)
+                    }
                   />
-                </YStack>
+                </View>
               ))}
             </RNScrollView>
           ) : null}
@@ -133,24 +150,71 @@ export function AppointmentGalleryPreviewModal({
               </Pressable>
             </Animated.View>
           ) : null}
-        </Pressable>
+        </View>
+        {previewIndex !== null && images.length > 1 ? (
+          <View style={styles.counterPill} pointerEvents="none">
+            <Text style={styles.counterText}>
+              {previewIndex + 1} / {images.length}
+            </Text>
+          </View>
+        ) : null}
         <Pressable
           onPress={onClose}
-          style={{
-            position: 'absolute',
-            top: 48,
-            right: 24,
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: FALLBACK_COLORS.overlayMedium,
-          }}
+          style={styles.closeButton}
         >
           <X size={16} color="white" />
         </Pressable>
-      </Pressable>
+      </View>
     </Modal>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    backgroundColor: FALLBACK_COLORS.overlayStrong,
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  stage: {
+    height: '70%',
+    maxWidth: 420,
+    width: '100%',
+  },
+  page: {
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'center',
+  },
+  image: {
+    height: '100%',
+    width: '100%',
+  },
+  closeButton: {
+    alignItems: 'center',
+    backgroundColor: FALLBACK_COLORS.overlayMedium,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 24,
+    top: 48,
+    width: 36,
+  },
+  counterPill: {
+    alignItems: 'center',
+    backgroundColor: FALLBACK_COLORS.overlayMedium,
+    borderRadius: 999,
+    bottom: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    position: 'absolute',
+  },
+  counterText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+})

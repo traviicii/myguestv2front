@@ -6,12 +6,18 @@ import { useTheme } from 'tamagui'
 
 import { useThemePrefs } from 'components/ThemePrefs'
 import type { Client } from 'components/data/models'
-import { useAppointmentHistoryLite, useClientGroups, useClients } from 'components/data/queries'
+import {
+  useAppointmentHistoryLite,
+  useClientGroups,
+  useClients,
+  useServices,
+} from 'components/data/queries'
 import { useClientsStore } from 'components/state/clientsStore'
 import { useStudioStore } from 'components/state/studioStore'
 import { deriveLastVisitByClient } from 'components/utils/clientDerived'
 import { FALLBACK_COLORS, toNativeColor } from 'components/utils/color'
 import { formatDateByStyle } from 'components/utils/date'
+import { buildRebookingRecommendationMap } from 'components/utils/rebooking'
 import { useDebouncedValue } from 'components/utils/useDebouncedValue'
 import { impactLightHaptic } from 'components/utils/haptics'
 import { usePullToRefresh } from 'components/ui/usePullToRefresh'
@@ -73,12 +79,14 @@ export function useClientsScreenModel() {
   const tagFilter = useClientsStore((state) => state.tagFilter)
   const groupFilter = useClientsStore((state) => state.groupFilter)
   const visitFilter = useClientsStore((state) => state.visitFilter)
+  const followUpFilter = useClientsStore((state) => state.followUpFilter)
   const showFilters = useClientsStore((state) => state.showFilters)
   const setSearchText = useClientsStore((state) => state.setSearchText)
   const setStatusFilter = useClientsStore((state) => state.setStatusFilter)
   const setTagFilter = useClientsStore((state) => state.setTagFilter)
   const setGroupFilter = useClientsStore((state) => state.setGroupFilter)
   const setVisitFilter = useClientsStore((state) => state.setVisitFilter)
+  const setFollowUpFilter = useClientsStore((state) => state.setFollowUpFilter)
   const openFilters = useClientsStore((state) => state.openFilters)
   const closeFilters = useClientsStore((state) => state.closeFilters)
   const toggleFilters = useClientsStore((state) => state.toggleFilters)
@@ -99,11 +107,12 @@ export function useClientsScreenModel() {
     data: clients = [],
     refetch: refetchClients,
   } = useClients()
-  const { data: clientGroups = [] } = useClientGroups('true')
+  const { data: clientGroups = [], refetch: refetchClientGroups } = useClientGroups('true')
   const {
     data: appointmentHistory = [],
     refetch: refetchAppointments,
   } = useAppointmentHistoryLite()
+  const { data: serviceCatalog = [], refetch: refetchServices } = useServices('all')
 
   const showStatus = useStudioStore(
     (state) =>
@@ -164,6 +173,16 @@ export function useClientsScreenModel() {
 
   const isActive = (clientId: string) => activeClientIds.has(clientId)
 
+  const rebookingByClient = useMemo(
+    () =>
+      buildRebookingRecommendationMap({
+        appointmentHistory,
+        clients,
+        serviceCatalog,
+      }),
+    [appointmentHistory, clients, serviceCatalog]
+  )
+
   const availableTags = useMemo(() => {
     return Array.from(
       new Set(
@@ -186,10 +205,15 @@ export function useClientsScreenModel() {
         if (statusFilter !== 'All' && activeStatus !== statusFilter) return false
         if (visitFilter === 'Needs First Visit' && visitDate !== null) return false
         if (visitFilter === 'Returning' && visitDate === null) return false
-        if (
-          groupFilter !== 'All' &&
-          !(client.groupIds ?? []).includes(Number(groupFilter))
-        ) {
+        const rebooking = rebookingByClient[client.id]
+        if (followUpFilter === 'Overdue' && rebooking?.status !== 'overdue') {
+          return false
+        }
+        if (followUpFilter === 'Due This Week' && rebooking?.status !== 'dueThisWeek') {
+          return false
+        }
+        const clientGroupIds = client.groupIds ?? client.groups?.map((group) => group.id) ?? []
+        if (groupFilter !== 'All' && !clientGroupIds.includes(Number(groupFilter))) {
           return false
         }
         if (tagFilter !== 'All' && client.tag.trim() !== tagFilter) return false
@@ -201,6 +225,7 @@ export function useClientsScreenModel() {
           client.phone,
           client.notes,
           client.tag,
+          client.type,
           ...(client.groups ?? []).map((group) => group.name),
         ]
           .filter(Boolean)
@@ -219,6 +244,8 @@ export function useClientsScreenModel() {
     statusFilter,
     tagFilter,
     groupFilter,
+    followUpFilter,
+    rebookingByClient,
     visitFilter,
   ])
 
@@ -273,6 +300,7 @@ export function useClientsScreenModel() {
   const activeFilterCount =
     Number(statusFilter !== 'All') +
     Number(groupFilter !== 'All') +
+    Number(followUpFilter !== 'All') +
     Number(visitFilter !== 'All') +
     Number(tagFilter !== 'All')
 
@@ -287,7 +315,12 @@ export function useClientsScreenModel() {
     pullProgress: refreshPullProgress,
   } = usePullToRefresh({
     onRefreshAction: async () => {
-      await Promise.all([refetchClients(), refetchAppointments()])
+      await Promise.all([
+        refetchClients(),
+        refetchAppointments(),
+        refetchClientGroups(),
+        refetchServices(),
+      ])
     },
   })
 
@@ -472,6 +505,15 @@ export function useClientsScreenModel() {
   )
 
   useEffect(() => {
+    if (groupFilter === 'All') return
+
+    const hasSelectedGroup = clientGroups.some((group) => group.id === Number(groupFilter))
+    if (!hasSelectedGroup) {
+      setGroupFilter('All')
+    }
+  }, [clientGroups, groupFilter, setGroupFilter])
+
+  useEffect(() => {
     if (!shouldShowAlphaRail) {
       clearAlphaRailJumpFocusLock()
       clearAlphaRailHideTimeout()
@@ -539,6 +581,7 @@ export function useClientsScreenModel() {
     hasActiveFilters: activeFilterCount > 0,
     hasFilteredClients,
     filterSheetOpen: showFilters,
+    followUpFilter,
     insets,
     isActive,
     isGlass,
@@ -560,6 +603,7 @@ export function useClientsScreenModel() {
     setStatusFilter,
     setTagFilter,
     setGroupFilter,
+    setFollowUpFilter,
     setVisitFilter,
     showFilters,
     showStatus,

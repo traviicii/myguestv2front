@@ -33,6 +33,7 @@ export const useOverviewStore = create<OverviewStore>()(
         })),
       toggleLayoutEditor: () =>
         set((state) => ({ showLayoutEditor: !state.showLayoutEditor })),
+      setLayoutEditorOpen: (open) => set({ showLayoutEditor: open }),
       setMetricSelection: (id, selected) =>
         set((state) => ({
           selectedMetrics: applyMetricSelection(state.selectedMetrics, id, selected),

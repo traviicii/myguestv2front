@@ -20,6 +20,21 @@ type AppointmentDetailSectionProps = {
   model: AppointmentDetailScreenModel
 }
 
+function logAppointmentImageEvent(
+  status: 'loaded' | 'failed',
+  uri: string,
+  detail?: string
+) {
+  if (!__DEV__) return
+  const preview = uri.length > 140 ? `${uri.slice(0, 140)}...` : uri
+  const message = `[appointment-image:${status}] ${preview}`
+  if (status === 'failed') {
+    console.warn(message, detail ?? '')
+    return
+  }
+  console.log(message)
+}
+
 function AppointmentDetailCard({
   model,
   children,
@@ -81,16 +96,16 @@ export function AppointmentDetailStateMessage({ message }: { message: string }) 
 function AppointmentHeroSection({ model }: AppointmentDetailSectionProps) {
   return (
     <YStack gap="$2">
-      <Text fontSize={20} fontWeight="700">
+      <Text fontSize={20} fontWeight="700" selectable>
         {model.serviceLabel}
       </Text>
       <XStack items="center" gap="$2">
         <CalendarDays size={14} color="$textSecondary" />
-        <Text fontSize={12} color="$textSecondary">
+        <Text fontSize={12} color="$textSecondary" selectable>
           {model.formattedDate}
         </Text>
       </XStack>
-      <Text fontSize={12} color="$textSecondary">
+      <Text fontSize={12} color="$textSecondary" selectable>
         {model.serviceCountLabel}
       </Text>
     </YStack>
@@ -113,7 +128,7 @@ function AppointmentServicesSection({ model }: AppointmentDetailSectionProps) {
               px="$2.5"
               py="$1.5"
             >
-              <Text fontSize={12} color="$textPrimary" fontWeight="600">
+              <Text fontSize={12} color="$textPrimary" fontWeight="600" selectable>
                 {service}
               </Text>
             </XStack>
@@ -133,19 +148,19 @@ function AppointmentSummarySection({ model }: AppointmentDetailSectionProps) {
         <Text fontSize={12} color="$textSecondary">
           Services
         </Text>
-        <Text fontSize={12}>{model.serviceCountLabel}</Text>
+        <Text fontSize={12} selectable>{model.serviceCountLabel}</Text>
       </XStack>
       <XStack items="center" justify="space-between">
         <Text fontSize={12} color="$textSecondary">
           Price
         </Text>
-        <Text fontSize={12}>${model.appointment.price}</Text>
+        <Text fontSize={12} selectable>${model.appointment.price}</Text>
       </XStack>
       <XStack items="center" justify="space-between">
         <Text fontSize={12} color="$textSecondary">
           Client
         </Text>
-        <Text fontSize={12}>{model.client?.name ?? 'Client'}</Text>
+        <Text fontSize={12} selectable>{model.client?.name ?? 'Client'}</Text>
       </XStack>
     </AppointmentDetailCard>
   )
@@ -158,7 +173,7 @@ function AppointmentNotesSection({ model }: AppointmentDetailSectionProps) {
     <YStack gap="$3">
       <AppointmentSectionTitle>Formula / Notes</AppointmentSectionTitle>
       <AppointmentDetailCard model={model} rounded={model.cardRadius} p="$4">
-        <Text fontSize={12} color="$textSecondary">
+        <Text fontSize={12} color="$textSecondary" selectable>
           {model.appointment.notes || 'No notes recorded.'}
         </Text>
       </AppointmentDetailCard>
@@ -185,7 +200,14 @@ function AppointmentPhotosSection({ model }: AppointmentDetailSectionProps) {
                   cursor="pointer"
                   pressStyle={{ opacity: 0.85 }}
                 >
-                  <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
+                  <Image
+                    source={{ uri }}
+                    style={{ width: '100%', height: '100%' }}
+                    onLoad={() => logAppointmentImageEvent('loaded', uri)}
+                    onError={(event) =>
+                      logAppointmentImageEvent('failed', uri, event.nativeEvent.error)
+                    }
+                  />
                 </YStack>
               ))}
             </XStack>
@@ -238,7 +260,6 @@ export function AppointmentDetailContent({ model }: AppointmentDetailSectionProp
         onGoPrev={model.goToPreviousPreview}
         onLayoutWidth={model.handlePreviewLayout}
         onMomentumScrollEnd={model.handlePreviewScrollEnd}
-        onToggleControls={model.handlePreviewToggleControls}
         previewIndex={model.previewIndex}
         previewScrollRef={model.previewScrollRef}
         previewWidth={model.previewWidth}

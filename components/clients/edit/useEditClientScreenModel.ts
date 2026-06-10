@@ -53,6 +53,7 @@ type FocusableField = { focus?: () => void } | null
 type SectionKey = 'name' | 'notes'
 
 const KEYBOARD_FIELDS: KeyboardField[] = ['firstName', 'lastName', 'email', 'phone', 'notes']
+const QUICK_INSERT_CHARACTERS = ['/', '+', '%', ':', '-', ','] as const
 const FOCUS_SCROLL_TOLERANCE = 24
 
 export function useEditClientScreenModel() {
@@ -109,6 +110,7 @@ export function useEditClientScreenModel() {
   const [pulseKey, setPulseKey] = useState(0)
   const [showBirthdayPicker, setShowBirthdayPicker] = useState(false)
   const [activeKeyboardField, setActiveKeyboardField] = useState<KeyboardField | null>(null)
+  const [notesSelection, setNotesSelection] = useState({ start: 0, end: 0 })
   const birthdayPanel = useExpandablePanel(showBirthdayPicker, { hideDelayMs: 260 })
 
   useEffect(() => {
@@ -354,6 +356,36 @@ export function useEditClientScreenModel() {
     inputRefs.current[field]?.focus?.()
   }, [])
 
+  const handleNotesSelectionChange = useCallback(
+    (event: { nativeEvent: { selection: { start: number; end: number } } }) => {
+      setNotesSelection(event.nativeEvent.selection)
+    },
+    []
+  )
+
+  const insertQuickCharacter = useCallback(
+    (character: string) => {
+      if (activeKeyboardField !== 'notes') return
+
+      const { start, end } = notesSelection
+      const safeStart = Math.max(0, Math.min(start, form.notes.length))
+      const safeEnd = Math.max(safeStart, Math.min(end, form.notes.length))
+      const nextNotes =
+        form.notes.slice(0, safeStart) +
+        character +
+        form.notes.slice(safeEnd)
+      const nextCursor = safeStart + character.length
+
+      updateField('notes', nextNotes)
+      setNotesSelection({ start: nextCursor, end: nextCursor })
+
+      setTimeout(() => {
+        focusKeyboardField('notes')
+      }, 0)
+    },
+    [activeKeyboardField, focusKeyboardField, form.notes, notesSelection, updateField]
+  )
+
   const handleKeyboardFieldFocus = useCallback(
     (field: KeyboardField) => {
       closeBirthdayPicker()
@@ -527,6 +559,7 @@ export function useEditClientScreenModel() {
   const canGoToPreviousKeyboardField = activeKeyboardFieldIndex > 0
   const canGoToNextKeyboardField =
     activeKeyboardFieldIndex >= 0 && activeKeyboardFieldIndex < KEYBOARD_FIELDS.length - 1
+  const canInsertQuickCharacter = activeKeyboardField === 'notes'
 
   return {
     birthdayDisplayValue,
@@ -534,6 +567,7 @@ export function useEditClientScreenModel() {
     birthdayPickerDate,
     canGoToNextKeyboardField,
     canGoToPreviousKeyboardField,
+    canInsertQuickCharacter,
     canSave,
     client,
     clientGroups,
@@ -554,6 +588,7 @@ export function useEditClientScreenModel() {
     handleGroupLayout,
     handleKeyboardFieldFocus,
     handleKeyboardFieldLayout,
+    handleNotesSelectionChange,
     handleSave,
     handleScroll,
     handleScrollBeginDrag,
@@ -563,9 +598,12 @@ export function useEditClientScreenModel() {
     isMissingClient,
     isSaving: updateClient.isPending,
     isDeleting: deleteClient.isPending,
+    insertQuickCharacter,
     keyboardAccessoryId,
     keyboardDismissMode,
+    notesSelection,
     pulseKey,
+    quickInsertCharacters: QUICK_INSERT_CHARACTERS,
     scrollRef,
     selectedGroupIds,
     setForm,

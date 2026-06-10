@@ -51,7 +51,13 @@ test('new appointment helpers build create payloads consistently', async () => {
       },
       selectedServiceIds: [7],
       selectedServices: [{ name: 'Cut & Color' }],
-      images: ['file:///one.jpg'],
+      imageInputs: [
+        {
+          storageProvider: 'firebase',
+          objectKey: 'appointment-images/user/one.jpg',
+          fileName: 'one.jpg',
+        },
+      ],
     })
   ).toEqual({
     clientId: 'c-101',
@@ -62,8 +68,8 @@ test('new appointment helpers build create payloads consistently', async () => {
     date: '03/13/2026',
     images: [
       {
-        storageProvider: 'device_local',
-        publicUrl: 'file:///one.jpg',
+        storageProvider: 'firebase',
+        objectKey: 'appointment-images/user/one.jpg',
         fileName: 'one.jpg',
       },
     ],

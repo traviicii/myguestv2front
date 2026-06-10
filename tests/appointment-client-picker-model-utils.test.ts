@@ -15,6 +15,16 @@ const clients: Client[] = [
     createdAt: '2026-01-01',
     lastVisit: '2026-03-01',
     type: 'Color',
+    groupIds: [2],
+    groups: [
+      {
+        id: 2,
+        name: 'Color',
+        normalizedName: 'color',
+        sortOrder: 1,
+        archivedAt: null,
+      },
+    ],
     revenueYtd: 0,
     tag: 'Highlights',
     status: 'Active',
@@ -28,6 +38,23 @@ const clients: Client[] = [
     createdAt: '2026-01-01',
     lastVisit: '2026-03-07',
     type: 'Cut & Color',
+    groupIds: [1, 3],
+    groups: [
+      {
+        id: 1,
+        name: 'Cut',
+        normalizedName: 'cut',
+        sortOrder: 0,
+        archivedAt: null,
+      },
+      {
+        id: 3,
+        name: 'VIP',
+        normalizedName: 'vip',
+        sortOrder: 2,
+        archivedAt: null,
+      },
+    ],
     revenueYtd: 0,
     tag: 'Loyal',
     status: 'Active',
@@ -45,6 +72,13 @@ test('appointment client picker filters and sorts clients deterministically', as
   ])
   expect(filterAppointmentPickerClients(clients, 'loyal').map((client) => client.id)).toEqual([
     'c-1',
+  ])
+  expect(filterAppointmentPickerClients(clients, 'vip').map((client) => client.id)).toEqual([
+    'c-1',
+  ])
+  expect(filterAppointmentPickerClients(clients, 'color').map((client) => client.id)).toEqual([
+    'c-1',
+    'c-2',
   ])
 })
 

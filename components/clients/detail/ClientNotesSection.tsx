@@ -10,7 +10,7 @@ export function ClientNotesSection({ model }: ClientDetailSectionProps) {
     <YStack gap="$3">
       <ClientDetailSectionTitle>Notes</ClientDetailSectionTitle>
       <ClientDetailCard model={model} rounded={model.cardRadius} p="$4">
-        <Text fontSize={12} color="$textSecondary">
+        <Text fontSize={12} color="$textSecondary" selectable>
           {model.client.notes?.trim() || 'No standing client notes saved yet.'}
         </Text>
       </ClientDetailCard>

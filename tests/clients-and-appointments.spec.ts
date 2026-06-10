@@ -158,7 +158,73 @@ test('clients screen search and filters narrow results in mock mode', async ({ p
   await expect(page.getByTestId('clients-filter-sheet')).toBeVisible()
   await expect(page.getByText('Marco Vale')).toBeVisible()
   await expect(searchInput).toHaveValue('Marco')
+
+  await page.getByTestId('clients-filter-group-color').click()
+  await expect(page.getByText('No clients match your search or filters.')).toBeVisible()
+
+  await page.getByTestId('clients-filter-group-cut').click()
+  await expect(page.getByText('Marco Vale')).toBeVisible()
+
+  await page.getByTestId('clients-filter-group-all').click()
+  await expect(page.getByText('Marco Vale')).toBeVisible()
+
+  await page.getByText('Overdue', { exact: true }).last().click()
+  await expect(page.getByText('Marco Vale')).toBeVisible()
+
+  await page.getByText('Due This Week', { exact: true }).last().click()
+  await expect(page.getByText('No clients match your search or filters.')).toBeVisible()
+
   await dismissSheet(page, 'clients-filter-sheet')
+})
+
+test('client add and edit flows persist client group assignments in mock mode', async ({
+  page,
+}) => {
+  await page.goto('/clients/new', { waitUntil: 'networkidle' })
+
+  await page.getByPlaceholder('First name').fill('Sasha')
+  await page.getByPlaceholder('Last name').fill('Reed')
+  await page.getByTestId('client-group-chip-color').click()
+  await page.getByTestId('client-group-create-input').fill('Blowouts')
+  await page.getByTestId('client-group-create-button').click()
+  await expect(page.getByTestId('client-group-chip-blowouts')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Save Client' }).click()
+  await expect(page).toHaveURL(/\/clients$/)
+
+  const searchInput = page.getByPlaceholder('Search clients, tags, notes')
+  await searchInput.fill('Sasha')
+  await expect(page.getByText('Sasha Reed', { exact: true }).last()).toBeVisible()
+  await expect(page.getByText(/Color \+ Blowouts/).last()).toBeVisible()
+
+  await page.getByText('Sasha Reed', { exact: true }).last().click()
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await expect(page).toHaveURL(/\/client\/c-\d+\/edit$/)
+
+  await page.getByTestId('client-group-chip-vip').click()
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await expect(page.getByText('Sasha Reed', { exact: true }).last()).toBeVisible()
+  await expect(page.getByText('Color', { exact: true }).last()).toBeVisible()
+  await expect(page.getByText('VIP', { exact: true }).last()).toBeVisible()
+  await expect(page.getByText('Blowouts', { exact: true }).last()).toBeVisible()
+})
+
+test('settings manages client groups in mock mode', async ({ page }) => {
+  await page.goto('/settings/client-display', { waitUntil: 'networkidle' })
+
+  await expect(page.getByTestId('settings-screen-client-display')).toBeVisible()
+  await expect(page.getByTestId('settings-client-group-restore-extensions')).toBeVisible()
+
+  await page.getByTestId('settings-client-group-restore-extensions').click()
+  await expect(page.getByTestId('settings-client-group-card-extensions')).toBeVisible()
+
+  await page.getByTestId('settings-client-group-add-input').fill('Blowouts')
+  await page.getByTestId('settings-client-group-add-button').click()
+  await expect(page.getByTestId('settings-client-group-card-blowouts')).toBeVisible()
+
+  await page.getByTestId('settings-client-group-archive-blowouts').click()
+  await expect(page.getByTestId('settings-client-group-restore-blowouts')).toBeVisible()
 })
 
 test('appointment client picker route filters clients and opens a client log flow in mock mode', async ({

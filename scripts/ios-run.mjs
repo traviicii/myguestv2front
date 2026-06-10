@@ -245,6 +245,41 @@ const runAndCapture = (command, commandArgs) =>
     })
   })
 
+const getAvailablePhysicalIphones = async () => {
+  let stdout
+  try {
+    ;({ stdout } = await runAndCapture('xcrun', ['xcdevice', 'list']))
+  } catch {
+    return []
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(stdout)
+  } catch {
+    return []
+  }
+
+  if (!Array.isArray(parsed)) {
+    return []
+  }
+
+  return parsed
+    .filter(
+      (device) =>
+        device &&
+        device.simulator === false &&
+        device.available === true &&
+        device.platform === 'com.apple.platform.iphoneos' &&
+        typeof device.name === 'string' &&
+        typeof device.identifier === 'string'
+    )
+    .map((device) => ({
+      displayName: device.name,
+      target: device.identifier,
+    }))
+}
+
 const syncDevelopmentTeamOverride = async () => {
   if (target !== 'device') {
     return
@@ -296,11 +331,39 @@ const syncDevelopmentTeamOverride = async () => {
   )
 }
 
-const resolveRequestedDeviceName = async () => {
+const resolveRequestedDevice = async () => {
+  const requestedDeviceId =
+    process.env.IOS_DEVICE_UDID?.trim() || process.env.IOS_DEVICE_ID?.trim()
   const requestedDeviceName = process.env.IOS_DEVICE_NAME?.trim()
 
+  if (requestedDeviceId) {
+    return {
+      displayName: requestedDeviceName || requestedDeviceId,
+      target: requestedDeviceId,
+    }
+  }
+
   if (requestedDeviceName) {
-    return requestedDeviceName
+    return {
+      displayName: requestedDeviceName,
+      target: requestedDeviceName,
+    }
+  }
+
+  const availableIphones = await getAvailablePhysicalIphones()
+
+  if (availableIphones.length === 1) {
+    return availableIphones[0]
+  }
+
+  if (availableIphones.length > 1) {
+    console.error(
+      'Multiple connected iPhones were detected. Set IOS_DEVICE_UDID or IOS_DEVICE_NAME to the device you want to use.'
+    )
+    availableIphones.forEach((device) =>
+      console.error(`  - ${device.displayName} [${device.target}]`)
+    )
+    throw new Error('Could not automatically choose a connected physical iPhone.')
   }
 
   let stdout
@@ -311,21 +374,34 @@ const resolveRequestedDeviceName = async () => {
   }
 
   const physicalDeviceSection = stdout.split('== Simulators ==')[0] ?? ''
-  const iphoneNames = physicalDeviceSection
+  const iphoneDevices = physicalDeviceSection
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.includes('iPhone') && !line.includes('Simulator'))
-    .map((line) => line.match(/^(.*) \([^)]+\) \([0-9A-F-]+\)$/)?.[1] ?? '')
+    .map((line) => {
+      const match = line.match(/^(.*) \([^)]+\) \(([0-9A-F-]+)\)$/)
+
+      if (!match) {
+        return null
+      }
+
+      return {
+        displayName: match[1],
+        target: match[2],
+      }
+    })
     .filter(Boolean)
 
-  if (iphoneNames.length === 1) {
-    return iphoneNames[0]
-  }
-
-  if (iphoneNames.length > 1) {
-    console.error('Multiple physical iPhones were detected. Set IOS_DEVICE_NAME to the device name you want to use.')
-    iphoneNames.forEach((name) => console.error(`  - ${name}`))
-    throw new Error('Could not automatically choose a physical iPhone.')
+  if (iphoneDevices.length > 0) {
+    console.error(
+      'Xcode can see remembered iPhones, but none are currently available to install to.'
+    )
+    console.error('Connect and unlock the phone, tap "Trust" if prompted, then open Xcode > Window > Devices and Simulators once.')
+    console.error('If MyGuest Dev is already installed, you can skip the rebuild and just run `npm run dev`.')
+    iphoneDevices.forEach((device) =>
+      console.error(`  - remembered: ${device.displayName} [${device.target}]`)
+    )
+    throw new Error('No connected physical iPhone is currently available.')
   }
 
   return undefined
@@ -416,10 +492,11 @@ await syncDevelopmentTeamOverride()
 const expoRunArgs = ['expo', 'run:ios']
 
 if (target === 'device') {
-  const deviceName = await resolveRequestedDeviceName()
+  const device = await resolveRequestedDevice()
 
-  if (deviceName) {
-    expoRunArgs.push('--device', deviceName)
+  if (device) {
+    console.log(`Targeting iPhone: ${device.displayName}`)
+    expoRunArgs.push('--device', device.target)
   } else {
     expoRunArgs.push('--device')
   }

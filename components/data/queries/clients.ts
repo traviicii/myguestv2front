@@ -24,6 +24,7 @@ export function useCreateClient() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['client-groups'] }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['metrics', 'overview'] }),
       ])
@@ -39,6 +40,7 @@ export function useUpdateClient() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['client-groups'] }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['metrics', 'overview'] }),
       ])
@@ -54,6 +56,7 @@ export function useDeleteClient() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['client-groups'] }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['color-analysis'] }),
         queryClient.invalidateQueries({ queryKey: ['color-analysis-client'] }),

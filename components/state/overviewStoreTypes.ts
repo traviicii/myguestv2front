@@ -6,6 +6,7 @@ export type OverviewStore = {
   sectionOrder: OverviewSectionId[]
   selectedMetrics: string[]
   setMetricSelection: (id: string, selected: boolean) => void
+  setLayoutEditorOpen: (open: boolean) => void
   setSectionOrder: (order: OverviewSectionId[]) => void
   setSelectedMetrics: (metrics: string[]) => void
   showLayoutEditor: boolean

@@ -58,7 +58,16 @@ export function buildQuickLogFollowUpMessage(
   return `Hi ${firstName}, just checking in to see if you'd like to book your next appointment.`
 }
 
-export function filterQuickLogClients<T extends { name?: string | null; email?: string | null; phone?: string | null }>(
+export function filterQuickLogClients<
+  T extends {
+    email?: string | null
+    groups?: { name?: string | null }[] | null
+    name?: string | null
+    phone?: string | null
+    tag?: string | null
+    type?: string | null
+  }
+>(
   clients: T[],
   searchText: string,
   debouncedSearchText: string
@@ -68,7 +77,14 @@ export function filterQuickLogClients<T extends { name?: string | null; email?: 
   if (!normalized) return clients
 
   return clients.filter((client) => {
-    const haystack = [client.name, client.email, client.phone]
+    const haystack = [
+      client.name,
+      client.email,
+      client.phone,
+      client.tag,
+      client.type,
+      ...(client.groups ?? []).map((group) => group.name),
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()

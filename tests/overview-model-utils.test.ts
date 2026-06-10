@@ -4,6 +4,7 @@ import {
   buildOverviewAppearance,
   buildOverviewAttentionCards,
   buildOverviewMetricCards,
+  buildTodayAppointments,
   getQuickActionLayout,
 } from '../components/overview/overviewModelUtils'
 
@@ -112,5 +113,57 @@ test('buildOverviewAttentionCards returns upcoming cards in priority order with 
     '0 clients past the suggested return window',
     '0 clients due in the next 7 days',
     '0 birthdays in the next 14 days',
+  ])
+})
+
+test('buildTodayAppointments returns appointment logs dated today', () => {
+  const todayAppointments = buildTodayAppointments({
+    today: new Date('2026-06-07T12:00:00'),
+    clients: [
+      {
+        id: 'client-1',
+        name: 'Avery Stone',
+        email: '',
+        phone: '',
+        lastVisit: 'No visits yet',
+        type: 'Color',
+        revenueYtd: 0,
+        tag: '',
+        status: 'Active',
+        notes: '',
+      },
+    ],
+    appointmentHistory: [
+      {
+        id: 'h-1',
+        clientId: 'client-1',
+        date: '2026-06-07T00:00:00Z',
+        services: 'Color',
+        serviceLabels: ['Color', 'Gloss'],
+        price: 220,
+        notes: 'Root touch-up and glaze.',
+        images: ['file:///photo.jpg'],
+      },
+      {
+        id: 'h-2',
+        clientId: 'client-1',
+        date: '2026-06-08',
+        services: 'Cut',
+        price: 90,
+        notes: '',
+      },
+    ],
+  })
+
+  expect(todayAppointments).toEqual([
+    {
+      id: 'h-1',
+      clientId: 'client-1',
+      clientName: 'Avery Stone',
+      noteSnippet: 'Root touch-up and glaze.',
+      photoCount: 1,
+      priceLabel: '$220',
+      serviceLabel: 'Color + 1',
+    },
   ])
 })

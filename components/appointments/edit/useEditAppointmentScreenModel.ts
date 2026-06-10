@@ -14,6 +14,7 @@ import {
   pickAppointmentImagesFromCamera,
   pickAppointmentImagesFromLibrary,
 } from 'components/appointments/shared/appointmentImagePicker'
+import { buildDurableAppointmentImageInputs } from 'components/appointments/shared/appointmentImageStorage'
 import {
   formatPriceFromCents,
   getSelectedServiceSummary,
@@ -131,23 +132,34 @@ export function useEditAppointmentScreenModel() {
     [selectedServices]
   )
 
+  const hasDeviceLocalImages = useMemo(
+    () => appointment?.imageRefs?.some((image) => image.storageProvider === 'device_local') ?? false,
+    [appointment?.imageRefs]
+  )
+
   const hasRequired = useMemo(() => Boolean(form.date.trim()), [form.date])
   const canSave = useMemo(
-    () =>
-      hasEditAppointmentChanges({
+    () => {
+      const hasChanges = hasEditAppointmentChanges({
         form,
         images,
         initialForm,
         initialImages: appointment?.images ?? [],
         initialServiceIds: initialServiceIdsRef.current,
         selectedServiceIds,
-      }) &&
-      !updateAppointmentLog.isPending &&
-      !deleteAppointmentLog.isPending,
+      })
+
+      return (
+        (hasChanges || hasDeviceLocalImages) &&
+        !updateAppointmentLog.isPending &&
+        !deleteAppointmentLog.isPending
+      )
+    },
     [
       appointment?.images,
       deleteAppointmentLog.isPending,
       form,
+      hasDeviceLocalImages,
       images,
       initialForm,
       selectedServiceIds,
@@ -307,11 +319,16 @@ export function useEditAppointmentScreenModel() {
     if (!appointment) return
 
     try {
+      const imageInputs = await buildDurableAppointmentImageInputs({
+        imageUris: images,
+        existingRefs: appointment.imageRefs ?? [],
+      })
+
       await updateAppointmentLog.mutateAsync(
         buildEditAppointmentUpdateInput({
           appointment,
           form,
-          images,
+          imageInputs,
           initialServiceIds: initialServiceIdsRef.current,
           selectedServiceIds,
           selectedServices,

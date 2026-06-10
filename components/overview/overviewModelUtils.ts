@@ -4,16 +4,18 @@ import type { AppointmentHistory, Client } from 'components/data/models'
 import type { ServiceOption } from 'components/data/api/services'
 import type { AppSettings, OverviewSectionId, QuickActionId } from 'components/state/studioStore'
 import { sortClientsByNewest } from 'components/utils/clientSort'
-import { formatDateByStyle } from 'components/utils/date'
+import { formatDateByStyle, isSameCalendarDate } from 'components/utils/date'
 import {
   buildRebookingAttentionLists,
   buildRebookingRecommendationMap,
 } from 'components/utils/rebooking'
+import { getAppointmentServiceLabels, getServiceLabel } from 'components/utils/services'
 
 import type {
   OverviewAttentionCard,
   OverviewMetricCard,
   OverviewQuickAction,
+  OverviewTodayAppointment,
 } from './overviewModelTypes'
 
 const QUICK_ACTION_COLUMNS = 2
@@ -63,6 +65,60 @@ export function buildRecentHistory(history: AppointmentHistory[], count: number)
     .filter((entry) => entry.date)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, count)
+}
+
+const buildAppointmentServiceSummary = (entry: AppointmentHistory) => {
+  const serviceLabels = getAppointmentServiceLabels({
+    notes: entry.notes,
+    serviceLabels: entry.serviceLabels,
+    services: entry.services,
+  })
+  const [primaryService, ...additionalServices] = serviceLabels
+  if (!primaryService) return getServiceLabel(entry.services, entry.notes)
+  if (!additionalServices.length) return primaryService
+  return `${primaryService} + ${additionalServices.length}`
+}
+
+const buildNoteSnippet = (notes: string) => {
+  const firstLine = notes.trim().split('\n')[0]?.trim()
+  if (!firstLine) return null
+  return firstLine.length > 72 ? `${firstLine.slice(0, 69)}...` : firstLine
+}
+
+export function buildTodayAppointments({
+  appointmentHistory,
+  clients,
+  today = new Date(),
+}: {
+  appointmentHistory: AppointmentHistory[]
+  clients: Client[]
+  today?: Date
+}): OverviewTodayAppointment[] {
+  const clientMap = new Map(clients.map((client) => [client.id, client]))
+
+  return appointmentHistory
+    .filter((entry) => entry.date && isSameCalendarDate(entry.date, today))
+    .map((entry) => {
+      const imageCount = Math.max(
+        entry.images?.length ?? 0,
+        entry.imageRefs?.length ?? 0
+      )
+
+      return {
+        id: entry.id,
+        clientId: entry.clientId,
+        clientName: clientMap.get(entry.clientId)?.name ?? 'Client',
+        noteSnippet: buildNoteSnippet(entry.notes),
+        photoCount: imageCount,
+        priceLabel: `$${entry.price}`,
+        serviceLabel: buildAppointmentServiceSummary(entry),
+      }
+    })
+    .sort((a, b) => {
+      const clientSort = a.clientName.localeCompare(b.clientName)
+      if (clientSort !== 0) return clientSort
+      return a.serviceLabel.localeCompare(b.serviceLabel)
+    })
 }
 
 export function buildOverviewCutoffs(

@@ -282,6 +282,8 @@ function EditClientNotesSection({ model }: EditClientSectionProps) {
             value={model.form.notes}
             inputAccessoryViewID={model.keyboardAccessoryId}
             onFocus={() => model.handleKeyboardFieldFocus('notes')}
+            selection={model.notesSelection}
+            onSelectionChange={model.handleNotesSelectionChange}
             onChangeText={(text) => model.updateField('notes', text)}
             placeholder="Client preferences, color history, personal notes..."
           />

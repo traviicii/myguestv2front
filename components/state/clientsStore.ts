@@ -5,6 +5,7 @@ import { zustandStorage } from './storage'
 type StatusFilter = 'All' | 'Active' | 'Inactive'
 type GroupFilter = 'All' | string
 type VisitFilter = 'All' | 'Needs First Visit' | 'Returning'
+type FollowUpFilter = 'All' | 'Overdue' | 'Due This Week'
 
 type ClientsStore = {
   searchText: string
@@ -12,6 +13,7 @@ type ClientsStore = {
   tagFilter: string
   groupFilter: GroupFilter
   visitFilter: VisitFilter
+  followUpFilter: FollowUpFilter
   showFilters: boolean
   closeFilters: () => void
   openFilters: () => void
@@ -21,6 +23,7 @@ type ClientsStore = {
   setTagFilter: (tag: string) => void
   setGroupFilter: (group: GroupFilter) => void
   setVisitFilter: (visit: VisitFilter) => void
+  setFollowUpFilter: (followUp: FollowUpFilter) => void
   toggleFilters: () => void
   resetFilters: () => void
 }
@@ -35,6 +38,7 @@ export const useClientsStore = create<ClientsStore>()(
       tagFilter: 'All',
       groupFilter: 'All',
       visitFilter: 'All',
+      followUpFilter: 'All',
       showFilters: false,
       closeFilters: () => set({ showFilters: false }),
       openFilters: () => set({ showFilters: true }),
@@ -45,12 +49,14 @@ export const useClientsStore = create<ClientsStore>()(
           tagFilter: 'All',
           groupFilter: 'All',
           visitFilter: 'All',
+          followUpFilter: 'All',
         })),
       setSearchText: (text) => set({ searchText: text }),
       setStatusFilter: (status) => set({ statusFilter: status }),
       setTagFilter: (tag) => set({ tagFilter: tag }),
       setGroupFilter: (group) => set({ groupFilter: group }),
       setVisitFilter: (visit) => set({ visitFilter: visit }),
+      setFollowUpFilter: (followUp) => set({ followUpFilter: followUp }),
       toggleFilters: () => set((state) => ({ showFilters: !state.showFilters })),
       resetFilters: () =>
         set({
@@ -59,6 +65,7 @@ export const useClientsStore = create<ClientsStore>()(
           tagFilter: 'All',
           groupFilter: 'All',
           visitFilter: 'All',
+          followUpFilter: 'All',
           showFilters: false,
         }),
     }),
@@ -71,6 +78,7 @@ export const useClientsStore = create<ClientsStore>()(
         tagFilter: state.tagFilter,
         groupFilter: state.groupFilter,
         visitFilter: state.visitFilter,
+        followUpFilter: state.followUpFilter,
       }),
     }
   )

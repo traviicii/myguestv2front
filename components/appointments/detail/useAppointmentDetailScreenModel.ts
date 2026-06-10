@@ -38,7 +38,7 @@ export function useAppointmentDetailScreenModel() {
   const isBootstrapping = (appointmentLoading || clientsLoading) && !appointment
   const isMissingAppointment = !isBootstrapping && !appointment
   const client = clients.find((item) => item.id === appointment?.clientId)
-  const images = appointment?.images ?? []
+  const images = useMemo(() => appointment?.images ?? [], [appointment?.images])
   const canGoPrev = previewIndex !== null && previewIndex > 0
   const canGoNext = previewIndex !== null && previewIndex < images.length - 1
   const serviceLabels = appointment ? getAppointmentServiceLabels(appointment) : []
@@ -52,6 +52,24 @@ export function useAppointmentDetailScreenModel() {
         includeWeekday: appSettings.dateLongIncludeWeekday,
       })
     : ''
+
+  useEffect(() => {
+    if (!__DEV__ || !appointment) return
+    console.log('[appointment-detail:images]', {
+      appointmentId,
+      imageCount: images.length,
+      imageRefCount: appointment.imageRefs?.length ?? 0,
+      imagePreview: images.map((uri) =>
+        uri.length > 140 ? `${uri.slice(0, 140)}...` : uri
+      ),
+      imageRefs: appointment.imageRefs?.map((image) => ({
+        storageProvider: image.storageProvider,
+        hasPublicUrl: Boolean(image.publicUrl),
+        hasObjectKey: Boolean(image.objectKey),
+        fileName: image.fileName,
+      })) ?? [],
+    })
+  }, [appointment, appointmentId, images])
 
   const editHref = useMemo<Href | null>(
     () => (appointmentId ? { pathname: '/appointment/[id]/edit', params: { id: appointmentId } } : null),

@@ -14,7 +14,14 @@ export function filterAppointmentPickerClients(
   }
 
   return sortedClients.filter((client) => {
-    const haystack = [client.name, client.email, client.phone, client.tag]
+    const haystack = [
+      client.name,
+      client.email,
+      client.phone,
+      client.tag,
+      client.type,
+      ...(client.groups ?? []).map((group) => group.name),
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()

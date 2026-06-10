@@ -26,13 +26,47 @@ test('quick log helpers build follow-up messages and filter clients', async () =
   expect(
     filterQuickLogClients(
       [
-        { name: 'Avery Stone', email: 'avery@example.com', phone: '111' },
-        { name: 'Marco Vale', email: 'marco@example.com', phone: '222' },
+        {
+          name: 'Avery Stone',
+          email: 'avery@example.com',
+          phone: '111',
+          groups: [{ name: 'VIP' }],
+          tag: 'Loyal',
+          type: 'Cut & Color',
+        },
+        {
+          name: 'Marco Vale',
+          email: 'marco@example.com',
+          phone: '222',
+          groups: [{ name: 'Cut' }],
+          tag: 'Lunch',
+          type: 'Cut',
+        },
       ],
       'avery',
       'avery'
     )
-  ).toEqual([{ name: 'Avery Stone', email: 'avery@example.com', phone: '111' }])
+  ).toEqual([
+    {
+      name: 'Avery Stone',
+      email: 'avery@example.com',
+      phone: '111',
+      groups: [{ name: 'VIP' }],
+      tag: 'Loyal',
+      type: 'Cut & Color',
+    },
+  ])
+
+  expect(
+    filterQuickLogClients(
+      [
+        { name: 'Avery Stone', email: 'avery@example.com', phone: '111', groups: [{ name: 'VIP' }] },
+        { name: 'Marco Vale', email: 'marco@example.com', phone: '222', groups: [{ name: 'Cut' }] },
+      ],
+      'vip',
+      'vip'
+    ).map((client) => client.name)
+  ).toEqual(['Avery Stone'])
 })
 
 test('quick log helpers resolve the next service id from recent history', async () => {

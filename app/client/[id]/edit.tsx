@@ -22,6 +22,9 @@ export default function EditClientScreen() {
         canGoNext={model.canGoToNextKeyboardField}
         onPrevious={() => model.focusAdjacentKeyboardField('previous')}
         onNext={() => model.focusAdjacentKeyboardField('next')}
+        quickInsertKeys={[...model.quickInsertCharacters]}
+        onInsertKey={model.insertQuickCharacter}
+        canInsertText={model.canInsertQuickCharacter}
       />
       {model.isBootstrapping ? (
         <EditClientStateMessage message="Loading client..." />

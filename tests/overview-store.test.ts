@@ -13,6 +13,7 @@ const createCurrentStore = (): OverviewStore => ({
   sectionOrder: defaultSectionOrder,
   selectedMetrics: defaultMetrics,
   setMetricSelection: () => {},
+  setLayoutEditorOpen: () => {},
   setSectionOrder: () => {},
   setSelectedMetrics: () => {},
   showLayoutEditor: false,
@@ -27,6 +28,7 @@ test('normalizeOverviewSectionOrder keeps known sections unique and appends miss
   expect(normalizeOverviewSectionOrder(['recentClients', 'metrics', 'metrics'])).toEqual([
     'recentClients',
     'metrics',
+    'today',
     'needsAttention',
     'quickActions',
     'pinnedClients',
@@ -57,6 +59,7 @@ test('mergeOverviewStoreState preserves editor flags and normalizes persisted se
   expect(merged.sectionOrder).toEqual([
     'metrics',
     'recentClients',
+    'today',
     'needsAttention',
     'quickActions',
     'pinnedClients',

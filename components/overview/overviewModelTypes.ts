@@ -25,6 +25,16 @@ export type OverviewAttentionCard = {
   previewItems: OverviewAttentionPreviewItem[]
 }
 
+export type OverviewTodayAppointment = {
+  id: string
+  clientId: string
+  clientName: string
+  noteSnippet: string | null
+  photoCount: number
+  priceLabel: string
+  serviceLabel: string
+}
+
 type OverviewQuickActionIcon = typeof UserPlus
 
 export type OverviewQuickAction = {

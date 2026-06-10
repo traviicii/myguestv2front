@@ -23,6 +23,11 @@ export const photoCoverageOptions: Option<PhotoCoverageRange>[] = [
 
 export const overviewSectionOptions: OverviewSectionOption[] = [
   {
+    id: 'today',
+    label: 'Today',
+    help: 'Show appointment logs dated today, including logs added ahead of time.',
+  },
+  {
     id: 'needsAttention',
     label: 'Upcoming',
     help: 'Show follow-up timing and upcoming birthdays on Overview.',

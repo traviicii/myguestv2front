@@ -5,6 +5,7 @@ export const defaultMetrics = ['revenueYtd', 'totalClients', 'activeClients', 'a
 
 // Default layout order. New sections are appended in the merge function below.
 export const defaultSectionOrder: OverviewSectionId[] = [
+  'today',
   'needsAttention',
   'quickActions',
   'metrics',

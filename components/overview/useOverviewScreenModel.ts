@@ -52,6 +52,7 @@ export function useOverviewScreenModel() {
     (state) => state.toggleQuickActionEditor
   )
   const toggleLayoutEditor = useOverviewStore((state) => state.toggleLayoutEditor)
+  const setLayoutEditorOpen = useOverviewStore((state) => state.setLayoutEditorOpen)
   const setMetricSelection = useOverviewStore((state) => state.setMetricSelection)
   const setSectionOrder = useOverviewStore((state) => state.setSectionOrder)
 
@@ -111,6 +112,7 @@ export function useOverviewScreenModel() {
     recentClients,
     recentHistory,
     shouldCenterQuickActionRow,
+    todayAppointments,
     visibleSections,
   } = useOverviewContentData({
     appSettings,
@@ -139,10 +141,10 @@ export function useOverviewScreenModel() {
   } = useOverviewEditorState({
     isFocused,
     sectionOrder,
+    setLayoutEditorOpen,
     setSectionOrder,
     showLayoutEditor,
     showQuickActionEditor,
-    toggleLayoutEditor,
     visibleSections,
   })
 
@@ -233,11 +235,13 @@ export function useOverviewScreenModel() {
     setQuickActionEnabled,
     setQuickActionOrder,
     setIsQuickActionDragging,
+    setLayoutEditorOpen,
     shouldCenterQuickActionRow,
     showLayoutEditor,
     showMetricEditor,
     showQuickActionEditor,
     tabBarHeight,
+    todayAppointments,
     toggleLayoutEditor,
     toggleMetricEditor,
     toggleQuickActionEditor,

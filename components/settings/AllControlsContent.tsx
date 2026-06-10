@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { type Href, useRouter } from 'expo-router'
 import {
+  Archive,
   BarChart3,
   CalendarDays,
   Scissors,
@@ -208,30 +209,34 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
               <FieldLabel>Active groups</FieldLabel>
               {model.activeClientGroups.length ? (
                 <YStack
-                  gap="$2"
+                  gap="$0"
                   onLayout={(event) => {
                     model.handleActiveClientGroupsListLayout(event.nativeEvent.layout.y)
                   }}
                 >
-                  {model.activeClientGroups.map((group) => {
+                  {model.activeClientGroups.map((group, index) => {
                     const fieldId = `client-group:${group.id}` as const
                     return (
-                      <YStack
+                      <XStack
                         key={group.id}
-                        gap="$1.5"
-                        p="$3"
-                        rounded="$3"
-                        borderWidth={1}
-                        borderColor="$borderSubtle"
-                        bg="$surfaceField"
+                        testID={`settings-client-group-card-${group.normalizedName}`}
+                        items="center"
+                        gap="$2.5"
+                        py="$2"
+                        borderBottomWidth={
+                          index < model.activeClientGroups.length - 1 ? 1 : 0
+                        }
+                        borderBottomColor="$divider"
                         onLayout={(event) => {
                           model.handleClientGroupCardLayout(group.id, event.nativeEvent.layout.y)
                         }}
                       >
-                        <XStack gap="$2" items="center">
+                        <YStack flex={1} minW={0} gap="$1">
                           <TextField
                             ref={model.setClientGroupInputRef(fieldId)}
-                            flex={1}
+                            testID={`settings-client-group-rename-${group.normalizedName}`}
+                            height={38}
+                            fontSize={13}
                             value={model.clientGroupRenameDrafts[group.id] ?? group.name}
                             inputAccessoryViewID={model.keyboardAccessoryId}
                             returnKeyType={model.getClientGroupFieldReturnKeyType(fieldId)}
@@ -254,19 +259,24 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
                               model.handleClientGroupFieldSubmit(fieldId)
                             }}
                           />
-                          <GhostButton
-                            chromeless
-                            onPress={() => {
-                              void model.handleArchiveClientGroup(group.id)
-                            }}
-                          >
-                            Archive
-                          </GhostButton>
-                        </XStack>
-                        <Text fontSize={11} color="$textSecondary">
-                          {group.clientCount} client{group.clientCount === 1 ? '' : 's'}
-                        </Text>
-                      </YStack>
+                          <Text fontSize={11} color="$textSecondary">
+                            {group.clientCount} client{group.clientCount === 1 ? '' : 's'}
+                          </Text>
+                        </YStack>
+                        <SecondaryButton
+                          testID={`settings-client-group-archive-${group.normalizedName}`}
+                          size="$2"
+                          width={36}
+                          height={36}
+                          minW={36}
+                          px="$0"
+                          icon={<Archive size={14} />}
+                          accessibilityLabel={`Archive ${group.name}`}
+                          onPress={() => {
+                            void model.handleArchiveClientGroup(group.id)
+                          }}
+                        />
+                      </XStack>
                     )
                   })}
                 </YStack>
@@ -288,6 +298,7 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
               >
                 <TextField
                   ref={model.setClientGroupInputRef('new-client-group')}
+                  testID="settings-client-group-add-input"
                   flex={1}
                   placeholder="Extensions, VIP, Blowouts..."
                   value={model.clientGroupDraft}
@@ -306,6 +317,7 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
                   }}
                 />
                 <SecondaryButton
+                  testID="settings-client-group-add-button"
                   disabled={!model.canAddClientGroup || model.createClientGroup.isPending}
                   opacity={
                     model.canAddClientGroup && !model.createClientGroup.isPending ? 1 : 0.5
@@ -326,6 +338,7 @@ function ClientDisplayDetail({ model }: { model: SettingsScreenModel }) {
                   {model.archivedClientGroups.map((group) => (
                     <OptionChip
                       key={group.id}
+                      testID={`settings-client-group-restore-${group.normalizedName}`}
                       active={false}
                       onPress={() => {
                         void model.handleReactivateClientGroup(group.id)

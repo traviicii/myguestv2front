@@ -5,6 +5,7 @@ import { OverviewNeedsAttentionSection } from './OverviewNeedsAttentionSection'
 import { OverviewMetricsSection } from './OverviewMetricsSection'
 import { OverviewPinnedClientsSection } from './OverviewPinnedClientsSection'
 import { OverviewQuickActionsSection } from './OverviewQuickActionsSection'
+import { OverviewTodaySection } from './OverviewTodaySection'
 import {
   OverviewRecentAppointmentsSection,
   OverviewRecentClientsSection,
@@ -25,6 +26,10 @@ export function OverviewSectionRenderer({
 }) {
   if (sectionId === 'quickActions') {
     return <OverviewQuickActionsSection model={model} onNavigate={onNavigate} />
+  }
+
+  if (sectionId === 'today') {
+    return <OverviewTodaySection model={model} onNavigate={onNavigate} />
   }
 
   if (sectionId === 'needsAttention') {

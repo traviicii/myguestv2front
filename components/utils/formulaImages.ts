@@ -4,6 +4,8 @@ import type { AppointmentImageRef } from 'components/data/models'
 const fallbackFileName = (index: number) => `image-${index + 1}.jpg`
 
 const isHttpUrl = (value: string) => /^https?:\/\//i.test(value)
+const isLocalImageUri = (value: string) =>
+  /^(file:\/\/|content:\/\/|ph:\/\/|assets-library:\/\/)/i.test(value)
 const isDisplayableUri = (value: string) =>
   /^(https?:\/\/|file:\/\/|content:\/\/|ph:\/\/|assets-library:\/\/)/i.test(value)
 
@@ -44,6 +46,10 @@ export const buildFormulaImageInputs = (
     if (!trimmed) return
 
     const existing = existingByUri.get(trimmed)
+    if (!existing && isLocalImageUri(trimmed)) {
+      throw new Error('Local appointment images must be uploaded before building the API payload.')
+    }
+
     const payload: FormulaImageInput = existing
       ? {
           storageProvider: existing.storageProvider,
@@ -51,9 +57,9 @@ export const buildFormulaImageInputs = (
           objectKey: existing.objectKey ?? undefined,
           fileName: existing.fileName,
         }
-      : isHttpUrl(trimmed) || trimmed.startsWith('file://')
+      : isHttpUrl(trimmed)
         ? {
-            storageProvider: isHttpUrl(trimmed) ? 'remote_url' : 'device_local',
+            storageProvider: 'remote_url',
             publicUrl: trimmed,
             fileName: deriveImageFileName(trimmed, index),
           }

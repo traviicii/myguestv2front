@@ -7,9 +7,9 @@ type UseOverviewEditorStateInput = {
   isFocused: boolean
   sectionOrder: OverviewSectionId[]
   setSectionOrder: (order: OverviewSectionId[]) => void
+  setLayoutEditorOpen: (open: boolean) => void
   showLayoutEditor: boolean
   showQuickActionEditor: boolean
-  toggleLayoutEditor: () => void
   visibleSections: OverviewSectionId[]
 }
 
@@ -17,9 +17,9 @@ export function useOverviewEditorState({
   isFocused,
   sectionOrder,
   setSectionOrder,
+  setLayoutEditorOpen,
   showLayoutEditor,
   showQuickActionEditor,
-  toggleLayoutEditor,
   visibleSections,
 }: UseOverviewEditorStateInput) {
   const [layoutDraft, setLayoutDraft] = useState<OverviewSectionId[]>([])
@@ -37,12 +37,12 @@ export function useOverviewEditorState({
   const handleSaveLayout = () => {
     const hiddenSections = sectionOrder.filter((id) => !visibleSections.includes(id))
     setSectionOrder([...layoutDraft, ...hiddenSections])
-    toggleLayoutEditor()
+    setLayoutEditorOpen(false)
   }
 
   const handleCancelLayout = () => {
     setLayoutDraft(visibleSections)
-    toggleLayoutEditor()
+    setLayoutEditorOpen(false)
   }
 
   useEffect(() => {
@@ -64,8 +64,8 @@ export function useOverviewEditorState({
   useEffect(() => {
     if (isFocused || !showLayoutEditor) return
     setLayoutDraft(visibleSections)
-    toggleLayoutEditor()
-  }, [isFocused, showLayoutEditor, toggleLayoutEditor, visibleSections])
+    setLayoutEditorOpen(false)
+  }, [isFocused, setLayoutEditorOpen, showLayoutEditor, visibleSections])
 
   const iconOpacity = layoutAnim.interpolate({
     inputRange: [0, 1],

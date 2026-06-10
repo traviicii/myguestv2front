@@ -1,5 +1,6 @@
 import type { Client, ClientGroup, ClientType } from '../models'
 import { normalizePhoneForStorage } from 'components/utils/phone'
+import { sortClientGroupsForDisplay } from 'components/utils/clientGroups'
 
 import { request, toClientIdString } from './core'
 
@@ -87,14 +88,15 @@ function toClientGroup(group: ApiClientGroup): ClientGroup {
 }
 
 function summarizeClientGroups(groups: ClientGroup[], fallbackType: string) {
-  if (groups.length === 0) return fallbackType || 'Ungrouped'
-  if (groups.length === 1) return groups[0]?.name ?? fallbackType ?? 'Ungrouped'
-  if (groups.length === 2) return groups.map((group) => group.name).join(' + ')
-  return `${groups[0]?.name ?? 'Group'} +${groups.length - 1}`
+  const sortedGroups = sortClientGroupsForDisplay(groups)
+  if (sortedGroups.length === 0) return fallbackType || 'Ungrouped'
+  if (sortedGroups.length === 1) return sortedGroups[0]?.name ?? fallbackType ?? 'Ungrouped'
+  if (sortedGroups.length === 2) return sortedGroups.map((group) => group.name).join(' + ')
+  return `${sortedGroups[0]?.name ?? 'Group'} +${sortedGroups.length - 1}`
 }
 
 function toClientModel(client: ApiClient): Client {
-  const groups = (client.groups ?? []).map(toClientGroup)
+  const groups = sortClientGroupsForDisplay((client.groups ?? []).map(toClientGroup))
   const clientType = summarizeClientGroups(groups, normalizeClientType(client.client_type))
   const hasLastVisit = Boolean(client.last_service_at)
   return {

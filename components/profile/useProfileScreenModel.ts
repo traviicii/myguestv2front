@@ -30,6 +30,8 @@ const METRIC_LABELS: Record<string, string> = {
 }
 
 const OVERVIEW_SECTION_LABELS: Record<string, string> = {
+  today: 'Today',
+  needsAttention: 'Upcoming',
   quickActions: 'Quick Actions',
   metrics: 'Metrics',
   recentAppointments: 'Recent Appointments',

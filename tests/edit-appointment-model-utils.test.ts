@@ -163,7 +163,14 @@ test('edit appointment helpers filter picker services, toggle selections, and bu
         ],
       },
       form: { date: '03/13/2026', price: '120', notes: 'updated' },
-      images: ['https://example.com/original.jpg'],
+      imageInputs: [
+        {
+          storageProvider: 'remote_url',
+          publicUrl: 'https://example.com/original.jpg',
+          objectKey: undefined,
+          fileName: 'original.jpg',
+        },
+      ],
       initialServiceIds: [],
       selectedServiceIds: [7],
       selectedServices: [{ name: 'Cut & Color' }],

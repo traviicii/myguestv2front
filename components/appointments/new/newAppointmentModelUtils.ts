@@ -1,7 +1,9 @@
-import type { CreateFormulaInput } from 'components/data/api/appointments'
+import type {
+  CreateFormulaInput,
+  FormulaImageInput,
+} from 'components/data/api/appointments'
 import type { ServiceOption } from 'components/data/api/services'
 import { parseAppointmentPrice } from 'components/appointments/shared/appointmentFormUtils'
-import { buildFormulaImageInputs } from 'components/utils/formulaImages'
 import { normalizeServiceName } from 'components/utils/services'
 
 export type NewAppointmentForm = {
@@ -52,13 +54,13 @@ export function getRequiredDateScrollTarget(requiredDateY?: number) {
 export function buildNewAppointmentCreateInput({
   clientId,
   form,
-  images,
+  imageInputs,
   selectedServiceIds,
   selectedServices,
 }: {
   clientId: string
   form: NewAppointmentForm
-  images: string[]
+  imageInputs: FormulaImageInput[]
   selectedServiceIds: number[]
   selectedServices: Pick<ServiceOption, 'name'>[]
 }): CreateFormulaInput {
@@ -71,6 +73,6 @@ export function buildNewAppointmentCreateInput({
     notes: form.notes,
     price: parseAppointmentPrice(form.price),
     date: form.date,
-    images: buildFormulaImageInputs(images),
+    images: imageInputs,
   }
 }

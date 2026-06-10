@@ -69,7 +69,7 @@ export default function TabOneScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={{
-            paddingBottom: Math.max(24, model.tabBarHeight + model.insets.bottom + 12),
+            paddingBottom: Math.max(72, model.tabBarHeight + model.insets.bottom + 36),
           }}
           refreshControl={
             <ThemedRefreshControl
@@ -130,7 +130,10 @@ export default function TabOneScreen() {
                     items="center"
                     justify="center"
                     pressStyle={{ opacity: 0.7 }}
-                    onPress={model.toggleLayoutEditor}
+                    onPress={() => model.setLayoutEditorOpen(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reorder Overview sections"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <LayoutGrid size={18} color="$accent" />
                   </XStack>

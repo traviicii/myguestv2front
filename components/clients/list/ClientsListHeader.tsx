@@ -21,7 +21,7 @@ export function ClientsListHeader({ model }: ClientsSectionProps) {
       pt={model.topInset}
       pb="$3"
       gap="$3"
-      bg="$background"
+      bg={model.isGlass ? '$surfacePage' : '$background'}
       borderBottomWidth={1}
       borderBottomColor="$borderSubtle"
     >

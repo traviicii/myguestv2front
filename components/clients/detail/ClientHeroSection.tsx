@@ -14,7 +14,7 @@ export function ClientHeroSection({ model }: ClientDetailSectionProps) {
 
   return (
     <YStack gap="$2">
-      <Text fontSize={20} fontWeight="700">
+      <Text fontSize={20} fontWeight="700" selectable>
         {model.client.name}
       </Text>
       <YStack gap="$1.5">
@@ -29,33 +29,39 @@ export function ClientHeroSection({ model }: ClientDetailSectionProps) {
                 py="$1"
                 maxW="100%"
               >
-                <Text fontSize={11} fontWeight="600" color="$textSecondary" numberOfLines={1}>
+                <Text
+                  fontSize={11}
+                  fontWeight="600"
+                  color="$textSecondary"
+                  numberOfLines={1}
+                  selectable
+                >
                   {group.name}
                 </Text>
               </XStack>
             ))}
           </XStack>
         ) : (
-          <Text fontSize={12} color="$textSecondary">
+          <Text fontSize={12} color="$textSecondary" selectable>
             {groupSummary}
           </Text>
         )}
         {model.showStatus || shouldShowClientTag ? (
           <XStack items="center" gap="$2" flexWrap="wrap">
             {model.showStatus ? (
-              <Text fontSize={11} color={model.statusColor}>
+              <Text fontSize={11} color={model.statusColor} selectable>
                 {model.statusLabel}
               </Text>
             ) : null}
             {shouldShowClientTag ? (
-              <Text fontSize={11} color="$textMuted">
+              <Text fontSize={11} color="$textMuted" selectable>
                 {model.client.tag}
               </Text>
             ) : null}
           </XStack>
         ) : null}
       </YStack>
-      <Text fontSize={12} color="$textSecondary">
+      <Text fontSize={12} color="$textSecondary" selectable>
         Last visit {model.formatLastVisitLabel(model.latestHistoryDate ?? model.client.lastVisit)}
       </Text>
     </YStack>

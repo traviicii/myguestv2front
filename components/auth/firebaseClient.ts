@@ -13,6 +13,11 @@ const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY?.trim(),
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim(),
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID?.trim(),
+  storageBucket:
+    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
+    (process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID?.trim()
+      ? `${process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID.trim()}.appspot.com`
+      : undefined),
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID?.trim(),
 }
 
@@ -56,7 +61,7 @@ export function getMissingFirebaseConfigKeys() {
   return missing
 }
 
-export function getFirebaseAuth() {
+export function getFirebaseApp() {
   if (!isFirebaseConfigured()) {
     throw new Error('Firebase config is incomplete. Check Expo public environment variables.')
   }
@@ -65,9 +70,15 @@ export function getFirebaseAuth() {
     firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig)
   }
 
+  return firebaseApp
+}
+
+export function getFirebaseAuth() {
+  const app = getFirebaseApp()
+
   if (!firebaseAuth) {
     if (Platform.OS === 'web') {
-      firebaseAuth = getAuth(firebaseApp)
+      firebaseAuth = getAuth(app)
     } else {
       try {
         const persistenceFactory = getReactNativePersistenceFactory()
@@ -75,14 +86,14 @@ export function getFirebaseAuth() {
           ? persistenceFactory(AsyncStorage)
           : null
 
-        firebaseAuth = initializeAuth(firebaseApp, {
+        firebaseAuth = initializeAuth(app, {
           ...(persistence ? { persistence: persistence as never } : {}),
         })
       } catch (error) {
         if (!isAlreadyInitializedAuthError(error)) {
           throw error
         }
-        firebaseAuth = getAuth(firebaseApp)
+        firebaseAuth = getAuth(app)
       }
     }
   }

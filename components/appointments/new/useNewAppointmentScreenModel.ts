@@ -23,6 +23,7 @@ import {
   pickAppointmentImagesFromCamera,
   pickAppointmentImagesFromLibrary,
 } from 'components/appointments/shared/appointmentImagePicker'
+import { buildDurableAppointmentImageInputs } from 'components/appointments/shared/appointmentImageStorage'
 import { useAppointmentInteractiveUi } from 'components/appointments/shared/useAppointmentInteractiveUi'
 import { successHaptic, warningHaptic } from 'components/utils/haptics'
 import {
@@ -257,13 +258,17 @@ export function useNewAppointmentScreenModel() {
     if (!client) return
 
     try {
+      const imageInputs = await buildDurableAppointmentImageInputs({
+        imageUris: images,
+      })
+
       await createAppointmentLog.mutateAsync(
         buildNewAppointmentCreateInput({
           clientId: client.id,
           form,
           selectedServiceIds,
           selectedServices,
-          images,
+          imageInputs,
         })
       )
       void successHaptic()

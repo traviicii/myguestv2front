@@ -47,6 +47,7 @@ export function ClientGroupSelector({
             return (
               <OptionChip
                 key={group.id}
+                testID={`client-group-chip-${group.normalizedName}`}
                 active={active}
                 onPress={() => {
                   void selectionHaptic()
@@ -71,6 +72,7 @@ export function ClientGroupSelector({
         <YStack gap="$2">
           <XStack gap="$2" items="center">
             <TextField
+              testID="client-group-create-input"
               flex={1}
               value={createDraft}
               placeholder="Add a group"
@@ -83,6 +85,7 @@ export function ClientGroupSelector({
               }}
             />
             <SecondaryButton
+              testID="client-group-create-button"
               px="$3"
               disabled={!normalizedDraft || isCreating}
               opacity={normalizedDraft && !isCreating ? 1 : 0.5}

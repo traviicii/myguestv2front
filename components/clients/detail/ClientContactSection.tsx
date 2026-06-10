@@ -12,13 +12,13 @@ export function ClientContactSection({ model }: ClientDetailSectionProps) {
     <ClientDetailCard model={model} rounded={model.cardRadius} p="$4" gap="$2">
       <XStack items="center" gap="$2">
         <Mail size={14} color="$textSecondary" />
-        <Text fontSize={12} color="$textSecondary">
+        <Text fontSize={12} color="$textSecondary" selectable>
           {model.client.email}
         </Text>
       </XStack>
       <XStack items="center" gap="$2">
         <Phone size={14} color="$textSecondary" />
-        <Text fontSize={12} color="$textSecondary">
+        <Text fontSize={12} color="$textSecondary" selectable>
           {formatPhoneForDisplay(model.client.phone)}
         </Text>
       </XStack>

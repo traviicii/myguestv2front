@@ -10,6 +10,7 @@ import type { OverviewMetricCard, OverviewQuickAction } from './overviewModelTyp
 import {
   buildOverviewMetricCards,
   buildOverviewAttentionCards,
+  buildTodayAppointments,
   buildRecentClients,
   buildRecentHistory,
   getEnabledQuickActions,
@@ -57,6 +58,11 @@ export function useOverviewContentData({
   const recentHistory = useMemo(
     () => buildRecentHistory(appointmentHistory, appSettings.overviewRecentAppointmentsCount),
     [appSettings.overviewRecentAppointmentsCount, appointmentHistory]
+  )
+
+  const todayAppointments = useMemo(
+    () => buildTodayAppointments({ appointmentHistory, clients }),
+    [appointmentHistory, clients]
   )
 
   const clientMap = useMemo(() => buildClientMap(clients), [clients])
@@ -124,6 +130,7 @@ export function useOverviewContentData({
     recentClients,
     recentHistory,
     shouldCenterQuickActionRow,
+    todayAppointments,
     visibleSections,
   }
 }

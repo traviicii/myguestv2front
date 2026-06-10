@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Text, XStack, YStack, useTheme } from 'tamagui'
@@ -47,6 +48,7 @@ export function IOSBottomSheet({
   trailingAction,
 }: IOSBottomSheetProps) {
   const insets = useSafeAreaInsets()
+  const { height: windowHeight } = useWindowDimensions()
   const theme = useTheme()
   const { aesthetic, mode } = useResolvedThemeSelection()
   const [mounted, setMounted] = useState(open)
@@ -94,7 +96,12 @@ export function IOSBottomSheet({
     [insets.bottom]
   )
   const horizontalPadding = aesthetic === 'cyberpunk' ? '$3' : '$4'
-  const resolvedMaxHeight = maxHeight ?? (aesthetic === 'glass' ? '94%' : '92%')
+  const resolvedMaxHeight =
+    maxHeight ??
+    Math.max(
+      320,
+      Math.round(windowHeight * (aesthetic === 'glass' ? 0.94 : 0.92) - bottomPadding)
+    )
   const resolvedTone = tone ?? (aesthetic === 'glass' ? 'tabGlass' : 'default')
   const handleRounded = aesthetic === 'cyberpunk' ? 1 : 999
   const handleWidth = aesthetic === 'glass' ? 44 : aesthetic === 'cyberpunk' ? 48 : 38
