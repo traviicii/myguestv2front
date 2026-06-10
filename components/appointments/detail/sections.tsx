@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Image } from 'react-native'
 import { Link } from 'expo-router'
-import { CalendarDays, UserRound } from '@tamagui/lucide-icons'
+import { CalendarDays, ImageOff, UserRound } from '@tamagui/lucide-icons'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
 import { ScreenTopBar } from 'components/ui/ScreenTopBar'
@@ -181,6 +182,59 @@ function AppointmentNotesSection({ model }: AppointmentDetailSectionProps) {
   )
 }
 
+function AppointmentPhotoThumb({
+  index,
+  model,
+  uri,
+}: AppointmentDetailSectionProps & {
+  index: number
+  uri: string
+}) {
+  const [failed, setFailed] = useState(false)
+
+  return (
+    <YStack
+      key={`${uri}-${index}`}
+      width={72}
+      height={72}
+      rounded={model.thumbRadius}
+      overflow="hidden"
+      onPress={() => model.openPreview(index)}
+      cursor="pointer"
+      pressStyle={{ opacity: 0.85 }}
+      bg="$surfaceField"
+      borderWidth={failed ? 1 : 0}
+      borderColor="$borderSubtle"
+      items="center"
+      justify="center"
+    >
+      {failed ? (
+        <YStack items="center" justify="center" gap="$1" px="$1">
+          <ImageOff size={16} color="$textSecondary" />
+          <Text
+            fontSize={9}
+            lineHeight={11}
+            color="$textSecondary"
+            style={{ textAlign: 'center' } as never}
+          >
+            Unavailable
+          </Text>
+        </YStack>
+      ) : (
+        <Image
+          source={{ uri }}
+          style={{ width: '100%', height: '100%' }}
+          onLoad={() => logAppointmentImageEvent('loaded', uri)}
+          onError={(event) => {
+            setFailed(true)
+            logAppointmentImageEvent('failed', uri, event.nativeEvent.error)
+          }}
+        />
+      )}
+    </YStack>
+  )
+}
+
 function AppointmentPhotosSection({ model }: AppointmentDetailSectionProps) {
   return (
     <YStack gap="$3">
@@ -190,25 +244,12 @@ function AppointmentPhotosSection({ model }: AppointmentDetailSectionProps) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <XStack gap="$2">
               {model.images.map((uri, index) => (
-                <YStack
+                <AppointmentPhotoThumb
                   key={`${uri}-${index}`}
-                  width={72}
-                  height={72}
-                  rounded={model.thumbRadius}
-                  overflow="hidden"
-                  onPress={() => model.openPreview(index)}
-                  cursor="pointer"
-                  pressStyle={{ opacity: 0.85 }}
-                >
-                  <Image
-                    source={{ uri }}
-                    style={{ width: '100%', height: '100%' }}
-                    onLoad={() => logAppointmentImageEvent('loaded', uri)}
-                    onError={(event) =>
-                      logAppointmentImageEvent('failed', uri, event.nativeEvent.error)
-                    }
-                  />
-                </YStack>
+                  index={index}
+                  model={model}
+                  uri={uri}
+                />
               ))}
             </XStack>
           </ScrollView>

@@ -9,7 +9,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useThemePrefs } from 'components/ThemePrefs'
 import { resolveAppointmentImageUris } from 'components/appointments/shared/appointmentImageResolver'
+import { buildDurableAppointmentImageInputs } from 'components/appointments/shared/appointmentImageStorage'
 import { useAppointmentDetail, useClients } from 'components/data/queries'
+import { useUpdateAppointmentLog } from 'components/data/queries/appointments'
 import { formatDateByStyle } from 'components/utils/date'
 import { getAppointmentServiceLabels } from 'components/utils/services'
 import { useStudioStore } from 'components/state/studioStore'
@@ -30,12 +32,17 @@ export function useAppointmentDetailScreenModel() {
   const hideViewClient = from === 'client'
   const { data: appointment, isLoading: appointmentLoading } = useAppointmentDetail(appointmentId)
   const { data: clients = [], isLoading: clientsLoading } = useClients()
+  const {
+    mutateAsync: repairAppointmentImages,
+    isPending: isRepairingAppointmentImages,
+  } = useUpdateAppointmentLog()
   const appSettings = useStudioStore((state) => state.appSettings)
 
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [showPreviewControls, setShowPreviewControls] = useState(true)
   const [previewWidth, setPreviewWidth] = useState(0)
   const previewScrollRef = useRef<RNScrollView | null>(null)
+  const attemptedLocalImageRepairRef = useRef<Set<string>>(new Set())
   const controlsOpacity = useRef(new Animated.Value(1)).current
 
   const topInset = Math.max(insets.top + 8, 16)
@@ -64,6 +71,8 @@ export function useAppointmentDetailScreenModel() {
     resolvedImageState.key === imageResolutionKey
       ? resolvedImageState.images
       : fallbackImages
+  const hasDeviceLocalImageRefs =
+    appointment?.imageRefs?.some((image) => image.storageProvider === 'device_local') ?? false
   const canGoPrev = previewIndex !== null && previewIndex > 0
   const canGoNext = previewIndex !== null && previewIndex < images.length - 1
   const serviceLabels = appointment ? getAppointmentServiceLabels(appointment) : []
@@ -118,6 +127,52 @@ export function useAppointmentDetailScreenModel() {
       isActive = false
     }
   }, [appointment?.imageRefs, appointment?.images, imageResolutionKey])
+
+  useEffect(() => {
+    if (
+      !appointment ||
+      !hasDeviceLocalImageRefs ||
+      !fallbackImages.length ||
+      isRepairingAppointmentImages ||
+      attemptedLocalImageRepairRef.current.has(appointment.id)
+    ) {
+      return
+    }
+
+    attemptedLocalImageRepairRef.current.add(appointment.id)
+    let isActive = true
+
+    buildDurableAppointmentImageInputs({
+      imageUris: fallbackImages,
+      existingRefs: appointment.imageRefs ?? [],
+    })
+      .then((imageInputs) => {
+        if (!isActive || !imageInputs.length) return
+        return repairAppointmentImages({
+          formulaId: appointment.id,
+          images: imageInputs,
+        })
+      })
+      .catch((error) => {
+        if (__DEV__) {
+          console.warn(
+            '[appointment-image-repair:failed]',
+            appointment.id,
+            error instanceof Error ? error.message : ''
+          )
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [
+    appointment,
+    fallbackImages,
+    hasDeviceLocalImageRefs,
+    isRepairingAppointmentImages,
+    repairAppointmentImages,
+  ])
 
   useEffect(() => {
     if (!__DEV__ || !appointment) return

@@ -1,6 +1,6 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Image } from 'react-native'
-import { Camera, UploadCloud, X } from '@tamagui/lucide-icons'
+import { Camera, ImageOff, UploadCloud, X } from '@tamagui/lucide-icons'
 import { ScrollView, Text, XStack, YStack } from 'tamagui'
 
 import {
@@ -22,6 +22,90 @@ type AppointmentPhotoSectionProps = {
   onOpenPreview: (uri: string) => void
   onRemoveImage: (index: number) => void
   onSetCoverImage: (index: number) => void
+}
+
+function AppointmentPhotoTile({
+  index,
+  onOpenPreview,
+  onRemoveImage,
+  uri,
+}: {
+  index: number
+  onOpenPreview: (uri: string) => void
+  onRemoveImage: (index: number) => void
+  uri: string
+}) {
+  const [failed, setFailed] = useState(false)
+
+  return (
+    <YStack
+      width={72}
+      height={72}
+      rounded="$4"
+      overflow="hidden"
+      position="relative"
+      onPress={() => onOpenPreview(uri)}
+      cursor="pointer"
+      pressStyle={{ opacity: 0.85 }}
+      bg="$surfaceField"
+      borderWidth={failed ? 1 : 0}
+      borderColor="$borderSubtle"
+      items="center"
+      justify="center"
+    >
+      {failed ? (
+        <YStack items="center" justify="center" gap="$1" px="$1">
+          <ImageOff size={16} color="$textSecondary" />
+          <Text
+            fontSize={9}
+            lineHeight={11}
+            color="$textSecondary"
+            style={{ textAlign: 'center' } as never}
+          >
+            Unavailable
+          </Text>
+        </YStack>
+      ) : (
+        <Image
+          source={{ uri }}
+          style={{ width: '100%', height: '100%' }}
+          onError={() => setFailed(true)}
+        />
+      )}
+      <XStack
+        position="absolute"
+        t={4}
+        r={4}
+        width={20}
+        height={20}
+        rounded={10}
+        items="center"
+        justify="center"
+        bg={FALLBACK_COLORS.overlayMedium}
+        onPress={(event) => {
+          event?.stopPropagation?.()
+          onRemoveImage(index)
+        }}
+      >
+        <X size={12} color="white" />
+      </XStack>
+      {index === 0 ? (
+        <XStack
+          position="absolute"
+          l={4}
+          t={4}
+          px="$1.5"
+          py="$0.5"
+          rounded="$2"
+          bg="$accent"
+        >
+          <Text fontSize={9} color="white" fontWeight="700">
+            Cover
+          </Text>
+        </XStack>
+      ) : null}
+    </YStack>
+  )
 }
 
 export function AppointmentPhotoSection({
@@ -55,50 +139,12 @@ export function AppointmentPhotoSection({
           <XStack gap="$2" pt="$2">
             {images.map((uri, index) => (
               <YStack key={`${uri}-${index}`} gap="$1.5" items="center">
-                <YStack
-                  width={72}
-                  height={72}
-                  rounded="$4"
-                  overflow="hidden"
-                  position="relative"
-                  onPress={() => onOpenPreview(uri)}
-                  cursor="pointer"
-                  pressStyle={{ opacity: 0.85 }}
-                >
-                  <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
-                  <XStack
-                    position="absolute"
-                    t={4}
-                    r={4}
-                    width={20}
-                    height={20}
-                    rounded={10}
-                    items="center"
-                    justify="center"
-                    bg={FALLBACK_COLORS.overlayMedium}
-                    onPress={(event) => {
-                      event?.stopPropagation?.()
-                      onRemoveImage(index)
-                    }}
-                  >
-                    <X size={12} color="white" />
-                  </XStack>
-                  {index === 0 ? (
-                    <XStack
-                      position="absolute"
-                      l={4}
-                      t={4}
-                      px="$1.5"
-                      py="$0.5"
-                      rounded="$2"
-                      bg="$accent"
-                    >
-                      <Text fontSize={9} color="white" fontWeight="700">
-                        Cover
-                      </Text>
-                    </XStack>
-                  ) : null}
-                </YStack>
+                <AppointmentPhotoTile
+                  index={index}
+                  onOpenPreview={onOpenPreview}
+                  onRemoveImage={onRemoveImage}
+                  uri={uri}
+                />
                 {index !== 0 ? (
                   <SecondaryButton
                     size="$1"
